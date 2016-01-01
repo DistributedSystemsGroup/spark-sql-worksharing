@@ -1,0 +1,1 @@
+|| datum == "null" in TypeCast.scala
