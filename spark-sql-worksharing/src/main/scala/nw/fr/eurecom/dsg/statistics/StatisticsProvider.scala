@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import nw.fr.eurecom.dsg.util.{Constants, QueryProvider}
 import org.apache.spark.scheduler._
-import org.apache.spark.sql.{BasicStatGatherer, SparkHistogram}
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
+import org.apache.spark.sql.myExtensions.statistics.{SparkHistogram, BasicStatGatherer}
 import org.apache.spark.sql.types._
 import scala.collection.mutable
 import scala.collection.mutable.HashMap
@@ -169,7 +169,7 @@ class StatisticsProvider(){
 
       val relationStat = new RelationStatistics(inputSize = inputSize,
         numRecords = numRecords,
-        averageRecSize = 0,
+        averageRecSize = inputSize*1.0 / numRecords,
         columnStats = columnsStats)
 
       baseRelationStats.put(tableName, relationStat)

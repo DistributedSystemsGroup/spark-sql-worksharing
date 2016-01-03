@@ -1,10 +1,11 @@
-package org.apache.spark.sql
+package org.apache.spark.sql.myExtensions.statistics
 
 import nw.fr.eurecom.dsg.util.Constants
 import org.apache.spark.Logging
 import org.apache.spark.sql.catalyst.plans.logical.LocalRelation
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Row}
+import nw.fr.eurecom.dsg.statistics.Util
 
 /**
   * utility object, computing equi-width histograms for all columns of a table
@@ -22,7 +23,7 @@ object SparkHistogram extends Logging {
     def add(key: Any): this.type = {
       if(key != null){
         if(key.isInstanceOf[String]){
-          val value = stringToInt(key.toString)
+          val value = Util.stringToInt(key.toString, nBins)
           val iBucket= ((value - min.toInt) / mod).toInt
           buckets(iBucket)+=1
 
@@ -35,14 +36,6 @@ object SparkHistogram extends Logging {
         total+=1
       }
       this
-    }
-
-    def stringToInt(key:String):Int = {
-        val res = key.hashCode() % nBins
-        if(res < 0)
-          res + nBins
-        else
-          res
     }
 
     /**

@@ -1,5 +1,4 @@
 import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
-import org.apache.spark.sql.catalyst.plans.logical.Limit
 import org.apache.spark.{SparkContext, SparkConf}
 
 object BenchmarkApp {

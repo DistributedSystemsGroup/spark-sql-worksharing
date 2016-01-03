@@ -1,9 +1,9 @@
-package org.apache.spark.sql
+package org.apache.spark.sql.myExtensions.statistics
 
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.logical.LocalRelation
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Row, SQLContext}
+import org.apache.spark.sql.{Column, DataFrame, Row, SQLContext}
 
 /**
   * Obtaining statistics information from built-in SQL DataFrame

@@ -13,9 +13,16 @@ class Strategy(inPlans:Array[LogicalPlan], cachePlans:Array[LogicalPlan]){
       println("Cached the plan " + p.toString())
     })
 
+    inPlans.foreach(println)
+
     inPlans.map(p => new DataFrame(sQLContext, p))
   }
 
+  override def toString():String ={
+    var res = "Number of cache plan: %d".format(cachePlans.length)
+    cachePlans.foreach(p => res = res + "\n" + p.toString())
+    res
+  }
 
 
 }

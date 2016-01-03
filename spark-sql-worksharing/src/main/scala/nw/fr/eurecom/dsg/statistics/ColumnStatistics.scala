@@ -36,7 +36,7 @@ class ColumnStatistics(val numNotNull:Long = Constants.UNKNOWN_VAL,
   else
     buckets = new Array[Long](nBins)
 
-  val mod:Double = (max - min + 1) / nBins
+  val mod:Double = (max - min + 1) / nBins // mod >= 1
 
   def putHistogramData(data:Array[Long] ): Unit ={
     for(i <- 0 to nBins-1){
@@ -44,8 +44,55 @@ class ColumnStatistics(val numNotNull:Long = Constants.UNKNOWN_VAL,
     }
   }
 
-  def estimate(expression: Expression):Double={
-    0
+// HistogramCounter in SparkHistogram.scala
+//  def add(key: Any): this.type = {
+//    if(key != null){
+//      if(key.isInstanceOf[String]){
+//        val value = Util.stringToInt(key.toString, nBins)
+//        val iBucket= ((value - min.toInt) / mod).toInt
+//        buckets(iBucket)+=1
+//
+//      }
+//      else{
+//        val value = key.toString.toDouble
+//        val iBucket= ((value - min) / mod).toInt
+//        buckets(iBucket)+=1
+//      }
+//      total+=1
+//    }
+//    this
+//  }
+
+
+  def getRangeEstimation(key:Any): Unit ={
+
   }
+
+
+  /**
+    * provides estimation for the following cases:
+    * - column == key
+    * - column like key
+    * @param key
+    * @return number of records satisfying the equality condition
+    */
+  def getEqualityEstimation(key:Any): Long ={
+    if(key == null || key == "null") return numNull
+
+    if(key.isInstanceOf[String]){
+      val value = Util.stringToInt(key.toString, nBins)
+      if(value < min || value > max) return 0
+      val iBucket= ((value - min.toInt) / mod).toInt
+
+      buckets(iBucket)
+    }
+    else{
+      val value = key.toString.toDouble
+      if(value < min || value > max) return 0
+      val iBucket= ((value - min) / mod).toInt
+      buckets(iBucket)
+    }
+  }
+
 
 }

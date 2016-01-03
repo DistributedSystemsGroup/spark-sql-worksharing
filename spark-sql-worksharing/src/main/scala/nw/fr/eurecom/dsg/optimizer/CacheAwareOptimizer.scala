@@ -1,14 +1,16 @@
 // We need to declare our optimizer in this package here due to the access restriction
-package org.apache.spark.sql
+package org.apache.spark.sql.myExtensions.optimizer
 
 import java.math.BigInteger
 import com.databricks.spark.csv.CsvRelation
-import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator, Util}
+import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator}
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.sources.HadoopFsRelation
 import scala.collection.mutable
+
 
 /**
   * This Optimizer optimizes a bag of Logical Plans (queries)
@@ -16,8 +18,9 @@ import scala.collection.mutable
   *
   * Phases:
   * - Detects the sharing opportunities among the queries which are called "common sub-expressions"
-  * - Transforms the common sub-trees into cache plans which then might be cached in memory to speed up the query execution.
-  * - Strategy Generation: Each strategy is a selection of some cache plans.
+  * - Build covering expression candidates (cache plans candidates) for each group of common sub-trees
+  * which then might be cached in memory to speed up the query execution.
+  * - Strategy Generation: Each strategy is a selection of zero or some cache plan(s).
   * - Strategy Selection phase: by estimating the cost of each individual strategy, produces the best strategy as the output.
   */
 object CacheAwareOptimizer {
@@ -44,7 +47,7 @@ object CacheAwareOptimizer {
 
     def getSeenRelation(relation:LogicalRelation):Option[LogicalRelation]={
       for (r <- seenLogicalRelations){
-        if (Util.isSameSubTree(r, relation))
+        if (Util.isSameRelation(r, relation))
           return Some(r)
       }
       None
@@ -62,19 +65,30 @@ object CacheAwareOptimizer {
     // ==============================================================
     // Step 1: Identifying all common sub-trees
     // ==============================================================
+    println("\n========================================================")
+    println("Start finding common subexpressions ...")
     val commonSubExpressionsMap = identifyCommonSubExpressions(outputPlans)
+    // common subexpressions are grouped by their table signature
+    // HashMap<TableSignature, List<(CommonSubExpression, queryIndex)>>
 
     // ==============================================================
     // Step 2: Build covering expressions from the common subexpressions
     // ==============================================================
+    println("\n========================================================")
+    println("Start building covering expressions...")
     val coveringExpressions = new CoveringPlanBuilder().buildCoveringPlans(commonSubExpressionsMap)
+    // common subexpressions are grouped by a single covering expression
+    // producer - consumer relationship
+    // HashMap<CoveringExpression, List<(CommonSubExpression, queryIndex)>>
 
     // ==============================================================
     // Step 3: Strategy Generation
     // Generates all possible strategies.
-    // Each strategy is a selection of some cache plans.
+    // Each strategy is a selection of zero or some cache plan(s)
     // ==============================================================
     new StrategyGenerator(outputPlans, coveringExpressions)
+    // We return this, the consumer can pull a strategy and judge its quality (step 4)
+
 
     // ==============================================================
     // Step 4: Strategy Selection
@@ -91,15 +105,16 @@ object CacheAwareOptimizer {
 //    val dataFrames = bestStrategy.execute(sqlContext)
   }
 
-  def identifyCommonSubExpressions(trees:Array[LogicalPlan])
+
+  private def identifyCommonSubExpressions(trees:Array[LogicalPlan])
   :mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]={
 
-    // - Key: fingerprint
+    // - Key: fingerprint/ signature
     // - Value: a set of (logical plan, tree index)
-    // The MultiMap allows us to use the addBinding method for quickly adding
+    // At least 2 logical plan(s) having the same signature is considered as a common subexpression
     // We will produce one common subexpression for each key that has the length(value) >= 2
     val fingerPrintMap = new mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]
-    def createNewList = new mutable.ListBuffer[(LogicalPlan, Int)]()
+    def createNewList() = new mutable.ListBuffer[(LogicalPlan, Int)]()
 
     // Build a hash tree for each tree
     // key: plan, value: (fingerprint, plan's height)
@@ -109,31 +124,61 @@ object CacheAwareOptimizer {
       hashTrees(iPlan) = buildHashTree(trees(iPlan))
     }
 
+    println("Input of %d plan(s)".format(trees.length))
+    trees.foreach(println)
+
     // Build fingerPrintMap
     trees.indices.foreach(i => {
+      println("Checking tree %d".format(i))
+      var isAllowedToMatchAfter = true // a super variable
       val visitor = new DFSVisitor(trees(i))
       while (visitor.hasNext){
-        var foundBestSubtree = false
         var continue = true // used to break to following while loop
         val iPlan = visitor.getNext
+        println("Checking %s".format(iPlan.getClass.getName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
 
-        foundBestSubtree = fingerPrintMap.contains(iPlanFingerprint)
+        val foundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
 
-        // check this, cache-friendly & cache-unfriendly operators
-        if(!foundBestSubtree || containCacheUnfriendlyOperator(iPlan)){
-          visitor.goDeeper()
+        if(isAllowedToMatchAfter)
+          fingerPrintMap.getOrElseUpdate(iPlanFingerprint, createNewList()).append(Tuple2(iPlan, i))
+
+        if(foundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
+          println("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
+          println("Stopped the find on this branch")
+          isAllowedToMatchAfter = true
         }
-        fingerPrintMap.getOrElseUpdate(iPlanFingerprint, createNewList).append(Tuple2(iPlan, i))
+        else
+        {
+          println("Keep finding on this branch")
+          visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
+          if(foundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
+            if(isAllowedToMatchAfter)
+              println("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
+            else
+              println("Found a match but we already have a previous better solution")
+
+            if(isUnfriendlyOperator(iPlan)){
+              isAllowedToMatchAfter = true // re-enable
+            }
+            else{
+              isAllowedToMatchAfter = false
+            }
+          }
+        }
       }
     })
 
+    println("Rescanning again to detect expression in expression sharing")
     // Re-scan one more time. Why? because of the case subexpression in subexpression.
     // TODO: explain more
     trees.indices.foreach(i => {
+      println("Checking tree %d".format(i))
       val visitor = new DFSVisitor(trees(i))
+
       while (visitor.hasNext){
         val iPlan = visitor.getNext
+        println("Checking %s".format(iPlan.getClass.getName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
 
         val found = (fingerPrintMap.contains(iPlanFingerprint)
@@ -148,7 +193,14 @@ object CacheAwareOptimizer {
     })
 
     // Keep only those keys that have the length(value) >= 2 (common subtrees)
-    val groupedCommonSubExpressions = fingerPrintMap.filter(keyvaluePair => keyvaluePair._2.size > 1)
+    val groupedCommonSubExpressions = fingerPrintMap.filter(keyvaluePair => keyvaluePair._2.size >= 2)
+    println("========================================================")
+    println("Found %d group(s) of common subexpressions".format(groupedCommonSubExpressions.size))
+    groupedCommonSubExpressions.foreach(element => {
+      println("fingerprint: %d, %d consumers".format(element._1, element._2.length))
+      element._2.foreach(e => println(e._1))
+    })
+
     groupedCommonSubExpressions
   }
 
@@ -211,20 +263,12 @@ object CacheAwareOptimizer {
         case u: UnaryNode =>
           val (childHash, childHeight) = computeTreeHash(u.child)
           u match{
-            case u:Filter =>
-              hashVal = Util.hash(className + childHash)
-            case u:Project =>
-              hashVal = Util.hash(className + childHash)
-            //        case u:Limit =>
-            //          val childHash = computeMerkleTreeHash(u.child)
-            //          Util.hash(className + childHash.toString())
-            case u:Sort =>
-              //hashVal = Util.hash(className + u.order + u.global + childHash) // Only consider identical expression
+            case u@(_:Filter | _:Project) => hashVal = Util.hash(className + childHash)
+
+            case u@(_:Limit | _:Sort | _:Aggregate) => // Only consider identical expression
               val childHash = Util.hash(u.hashCode().toString)
               hashVal = Util.hash(className + childHash)
-            case u:Aggregate => // Only consider identical expression
-              val childHash = Util.hash(u.hashCode().toString)
-              hashVal = Util.hash(className + childHash)
+
             case _ =>
               val childHash = Util.hash(u.hashCode().toString)
               hashVal = Util.hash(className + childHash)
@@ -239,7 +283,7 @@ object CacheAwareOptimizer {
         case l: LeafNode => l match {
           case leaf:LogicalRelation =>
             var paths = ""
-            // We are using structured format input files with schema (csv, parquet).
+            // We are using structured format input files with schema (json, csv, parquet).
             // Thus, if the 2 relations are read from the same file location then they are the same.
             leaf.relation match {
               case r:HadoopFsRelation=> r.paths.foreach(paths += _.trim) // ParquetRelation or JSONRelation
@@ -261,84 +305,7 @@ object CacheAwareOptimizer {
     res
   }
 
-  /**
-    * Computes the hash value of a given LogicalPlan
-    * The hash value is computed like the style of Hash Tree (Merkle Tree).
-    * * ref: https://en.wikipedia.org/wiki/Merkle_tree
-    * The hash value of a node is the hash of the "labels" of its children nodes.
-    * This is a fast and secure way to search for common subtrees among many trees
-    *
-    * @param logicalPlan: node to compute the hash
-    * @return Hash value of the given node
-    */
-  def computeMerkleTreeHash(logicalPlan:LogicalPlan):BigInteger={
-    val className = logicalPlan.getClass.toString
-    logicalPlan match {
-      // ================================================================
-      // Binary Node case: `logicalPlan` has 2 children
-      // ================================================================
-      case b: BinaryNode =>
-        var leftChildHash = computeMerkleTreeHash(b.left)
-        var rightChildHash = computeMerkleTreeHash(b.right)
-        // Do sorting such that the leftChildHash should always lower or equals the rightChildHash
-        // We want (A Join B) to be the same as (B Join A)
-        if(leftChildHash.compareTo(rightChildHash) > 0){
-          val tmp = leftChildHash
-          leftChildHash = rightChildHash
-          rightChildHash = tmp
-        }
-        b match{
-          case b:Join =>
-            Util.hash(className + b.joinType + b.condition + leftChildHash + rightChildHash)
-          case b:Union =>
-            Util.hash(className + leftChildHash + rightChildHash)
-          case b:Intersect =>
-            Util.hash(className + leftChildHash + rightChildHash)
-          case b:Except =>
-            Util.hash(className + leftChildHash + rightChildHash)
-          case _ => throw new IllegalArgumentException("unknown binary node " + b.getClass)
-        }
 
-      // ================================================================
-      // Unary Node case: `logicalPlan` has 1 child
-      // ================================================================
-      case u: UnaryNode =>
-        val childHash = computeMerkleTreeHash(u.child)
-        u match{
-          case u:Filter =>
-            Util.hash(className + childHash)
-          case u:Project =>
-            Util.hash(className + childHash)
-          //        case u:Limit =>
-          //          val childHash = computeMerkleTreeHash(u.child)
-          //          Util.hash(className + childHash.toString())
-          case u:Sort =>
-            Util.hash(className + u.order + u.global + childHash)
-          case _ =>
-            val childHash = Util.hash(logicalPlan.hashCode().toString())
-            Util.hash(className + childHash)
-        }
-
-      // ================================================================
-      // Unary Node case: `logicalPlan` doesn't have any child
-      // ================================================================
-      case l: LeafNode => l match {
-        case leaf:LogicalRelation =>
-          var paths = ""
-          // We are using structured format input files with schema (csv, parquet).
-          // Thus, if the 2 relations are read from the same file location then they are the same.
-          leaf.relation match {
-            case r:HadoopFsRelation=> r.paths.foreach(paths += _.trim) // ParquetRelation or JSONRelation
-            case r:CsvRelation => paths += r.location.get
-            case _ => case _ => throw new IllegalArgumentException("unknown relation")
-          }
-          Util.hash(className + paths)
-        case _ => throw new IllegalArgumentException("illegal leaf")
-      }
-
-      case _ => throw new IllegalArgumentException("illegal logical oldPlan")
-    }
-  }
 
   /**
     * PROBLEM: AttributeReference#ID
@@ -405,5 +372,14 @@ object CacheAwareOptimizer {
     }
     false
   }
+
+  def isUnfriendlyOperator(plan:LogicalPlan):Boolean={
+    plan match{
+      case p:Join => true
+      case p:Union => true
+      case _ => false
+    }
+  }
+
 
 }

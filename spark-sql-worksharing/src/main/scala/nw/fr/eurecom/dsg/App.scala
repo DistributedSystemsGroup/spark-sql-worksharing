@@ -1,8 +1,8 @@
 package nw.fr.eurecom.dsg
 
 import nw.fr.eurecom.dsg.statistics.StatisticsProvider
-import nw.fr.eurecom.dsg.util.QueryProvider
-import org.apache.spark.sql.CostEstimator
+import nw.fr.eurecom.dsg.util.{QueryExecutor, QueryProvider}
+import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
 
 
@@ -12,14 +12,17 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object App {
   def main(args: Array[String]): Unit = {
-    if(args.length != 3){
-      System.out.println("Usage: <inputDir> <outputDir> <format>")
+    if(args.length != 5){
+      System.out.println("Usage: <inputDir> <outputDir> <format> <strategyIndex> <statFile>")
       System.exit(0)
     }
 
     val inputDir = args(0)
     val outputDir = args(1)
     val format = args(2)
+    val strategyIndex = args(3).toInt
+    val statFile = args(4)
+
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
     conf.setMaster("local[1]")
@@ -46,24 +49,24 @@ object App {
 //    val tables = Seq("customer", "customer_address", "customer_demographics",
 //      "date_dim", "item", "promotion", "store", "store_sales", "catalog_sales", "web_sales")
 
-    val tables = Seq("customer")
+    val tables = Seq("date_dim", "store_sales", "item")
 
     // QueryProvider will register your tables to the catalog system, so that your queries can be parsed
     // and understood
-    val query = new QueryProvider(sqlc, inputDir, tables, format)
-    val stats = new StatisticsProvider()
+    val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
+    //val stats = new StatisticsProvider()
     // We have 2 options:
     // - collect (compute) stats. You can save the result to a json file
     // - read from a json file where stats are pre-computed and written back to
 
-    //    stats.initialize(tables, queryProvider = query)
-    //    stats.saveResult("/home/ntkhoa/stat.json")
+//        stats.collect(tables, queryProvider = queryProvider)
+//        stats.saveToFile("/home/ntkhoa/stat.json")
 
-    stats.readFromFile("/home/ntkhoa/stat.json")
+    val stats = new StatisticsProvider().readFromFile(statFile)
     CostEstimator.setStatsProvider(stats)
+    println("Statistics data is loaded!")
 
-
-//    val df2 = query.getDF("""
+//    val df2 = queryProvider.getDF("""
 //                            | WITH wscs as
 //                            | (SELECT sold_date_sk, sales_price
 //                            |  FROM (SELECT ws_sold_date_sk sold_date_sk, ws_ext_sales_price sales_price
@@ -116,7 +119,7 @@ object App {
 //                            | ORDER BY d_week_seq1
 //                          """.stripMargin)
 //
-//    val df3 = query.getDF("""
+//    val df3 = queryProvider.getDF("""
 //                            | SELECT dt.d_year, item.i_brand_id brand_id, item.i_brand brand,SUM(ss_ext_sales_price) sum_agg
 //                            | FROM  date_dim dt, store_sales, item
 //                            | WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
@@ -129,7 +132,7 @@ object App {
 //                          """.stripMargin)
 //
 //
-//    val df7 = query.getDF("""
+//    val df7 = queryProvider.getDF("""
 //                            | SELECT i_item_id,
 //                            |        avg(ss_quantity) agg1,
 //                            |        avg(ss_list_price) agg2,
@@ -149,7 +152,7 @@ object App {
 //                            | ORDER BY i_item_id LIMIT 100
 //                          """.stripMargin)
 //
-//    val df19 = query.getDF("""
+//    val df19 = queryProvider.getDF("""
 //                             | select i_brand_id brand_id, i_brand brand, i_manufact_id, i_manufact,
 //                             | 	sum(ss_ext_sales_price) ext_price
 //                             | from date_dim, store_sales, item,customer,customer_address,store
@@ -167,13 +170,41 @@ object App {
 //                             | limit 100
 //                           """.stripMargin)
 
+    val df3 = queryProvider.getDF("""
+                            | SELECT dt.d_year, item.i_brand_id brand_id, item.i_brand brand,SUM(ss_ext_sales_price) sum_agg
+                            | FROM  date_dim dt, store_sales, item
+                            | WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
+                            |   AND store_sales.ss_item_sk = item.i_item_sk
+                            |   AND item.i_manufact_id = 128
+                            |   AND dt.d_moy=11
+                            | GROUP BY dt.d_year, item.i_brand, item.i_brand_id
+                            | ORDER BY dt.d_year, sum_agg desc, brand_id
+                            | LIMIT 100
+                          """.stripMargin)
+    val df42 = queryProvider.getDF("""
+                                     | select dt.d_year, item.i_category_id, item.i_category, sum(ss_ext_sales_price)
+                                     | from      date_dim dt, store_sales, item
+                                     | where dt.d_date_sk = store_sales.ss_sold_date_sk
+                                     |     and store_sales.ss_item_sk = item.i_item_sk
+                                     |     and item.i_manager_id = 1
+                                     |     and dt.d_moy=11
+                                     |     and dt.d_year=2000
+                                     | group by  dt.d_year
+                                     |           ,item.i_category_id
+                                     |           ,item.i_category
+                                     | order by       sum(ss_ext_sales_price) desc,dt.d_year
+                                     |           ,item.i_category_id
+                                     |           ,item.i_category
+                                     | limit 100
+                                   """.stripMargin)
 
 
-    println("")
-    //Executor.executeWorkSharing(sqlc, Seq(df2, df3), outputDir)
-    while(true){
-      Thread.sleep(1000)
-    }
+    CostEstimator.estimateCost(df3.queryExecution.optimizedPlan)
+
+    QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
+//    while(true){
+//      Thread.sleep(1000)
+//    }
 
   }
 }

@@ -1,8 +1,10 @@
 package nw.fr.eurecom.dsg.optimizer
 
-import org.apache.spark.sql.CacheAwareOptimizer
 import org.apache.spark.sql.catalyst.expressions.{And, Or, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.myExtensions.optimizer.CacheAwareOptimizer
+import org.apache.spark.sql.myExtensions.optimizer.Util
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -14,14 +16,13 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 class StrategyGenerator (inPlans:Array[LogicalPlan],
                          coveringExpressions:mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]){
 
-  val rewrittenPlans = new Array[LogicalPlan](inPlans.length)
-  inPlans.copyToArray(rewrittenPlans)
-
   // GENERATE the power set of cachingPlans
   val subsets = coveringExpressions.toSet.subsets
 
   def hasNext():Boolean = subsets.hasNext
   def next():Strategy = {
+    val rewrittenPlans = new Array[LogicalPlan](inPlans.length)
+    inPlans.copyToArray(rewrittenPlans)
     val selectedCoveringExpressions = subsets.next().toArray.sortBy(ele => Util.getHeight(ele._1) * -1)
     // sort it to solve the expression in expression problem
 
@@ -73,35 +74,73 @@ class StrategyGenerator (inPlans:Array[LogicalPlan],
     new Strategy(rewrittenPlans, cachePlans.toArray)
   }
 
-  def buildExtractionPlan(plan:LogicalPlan, coveringPlan:LogicalPlan):LogicalPlan={
-    if(!plan.isInstanceOf[BinaryNode])
-      throw new Exception("expected binary node " + plan.toString())
-    val root = plan.asInstanceOf[BinaryNode]
-
-    def extract(left:LogicalPlan, right:LogicalPlan): LogicalPlan ={
-      (left, right) match{
-        case (a@Project(projectListA, _), b@Project(projectListB, _)) => {
-          val combinedProjectList = ArrayBuffer[NamedExpression]()
-          projectListA.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
-          projectListB.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
-          val child = extract(a.child, b.child)
-          Project(combinedProjectList, child)
+  def getTopProjections(plan:LogicalPlan):Array[Project]={
+      plan match{
+        case u:UnaryNode => u match{
+          case p:Project => Array(p)
+          case _ => getTopProjections(u.child)
         }
-        case (a@Filter(conditionA, _), b@Filter(conditionB, _)) => {
-          val child = extract(a.child, b.child)
-
-          if(conditionA.fastEquals(conditionB)){
-            Filter(conditionA, child)
-          }
-          else{
-            Filter(And(conditionA, conditionB), child)
-          }
+        case b:BinaryNode =>{
+          val l1 = getTopProjections(b.left)
+          val l2 = getTopProjections(b.right)
+          l1 ++ l2
         }
-        case _ => coveringPlan
+        case l:LeafNode => null
       }
+  }
 
+  def buildExtractionPlan(plan:LogicalPlan, coveringPlan:LogicalPlan):LogicalPlan={
+    // collect all filters to "anding" the predicates
+    // collect all "top" projections and "merge" them
+    // project(filter(coveringPlan))
+
+    val filteringOps = plan.collect{case n:Filter => n}.toArray
+
+    val projectionOps = getTopProjections(plan)
+
+    var andingAllFilterPredicates = filteringOps(0).condition
+    for(i <- 1 to filteringOps.length - 1){
+      andingAllFilterPredicates = new And(andingAllFilterPredicates, filteringOps(i).condition)
     }
-    extract(root.left, root.right)
+
+    val combinedProjectList = ArrayBuffer[NamedExpression]()
+    projectionOps.foreach(proj =>
+      proj.projectList.foreach(
+        item => if(!combinedProjectList.contains(item))
+                  combinedProjectList += item))
+
+    Project(combinedProjectList, Filter(andingAllFilterPredicates, coveringPlan))
+//    if(!plan.isInstanceOf[BinaryNode])
+//      throw new Exception("expected binary node " + plan.toString())
+//    val root = plan.asInstanceOf[BinaryNode]
+//
+//    def extract(left:LogicalPlan, right:LogicalPlan): LogicalPlan ={
+//      (left, right) match{
+//        case (a@Project(projectListA, _), b@Project(projectListB, _)) => {
+//          val combinedProjectList = ArrayBuffer[NamedExpression]()
+//          projectListA.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
+//          projectListB.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
+//          val child = extract(a.child, b.child)
+//          Project(combinedProjectList, child)
+//        }
+//        case (a@Filter(conditionA, _), b@Filter(conditionB, _)) => {
+//          val child = extract(a.child, b.child)
+//
+//          if(conditionA.fastEquals(conditionB)){
+//            Filter(conditionA, child)
+//          }
+//          else{
+//            Filter(And(conditionA, conditionB), child)
+//          }
+//        }
+//        case _ => coveringPlan
+//      }
+//
+//    }
+//
+//
+//
+//    extract(root.left, root.right)
   }
 
 

@@ -12,5 +12,6 @@ object CostConstants {
   val  UNKNOWN_COST:Double = 0
   val UNKNOWN:Long = 0
 
+  val MAX_CACHE_CAPACITY = 2
 
 }

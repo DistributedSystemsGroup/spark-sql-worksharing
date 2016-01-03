@@ -18,8 +18,6 @@
     
 ### BenchmarkApp: the application for doing benchmarking the TPC-DS 1.4 queries
 
-### LogicalPlanViewerApp: utility for analyzing the logical plans of queries
-
 ## Issues & resolve:
 - Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
     + in local mode : set -XX:MaxPermSize=2G (maximum size of Permanent Generation) in VM Options
