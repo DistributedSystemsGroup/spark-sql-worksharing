@@ -26,15 +26,24 @@ object SparkHistogram extends Logging {
           val value = Util.stringToInt(key.toString, nBins)
           val iBucket= ((value - min.toInt) / mod).toInt
           buckets(iBucket)+=1
-
         }
         else{
-          val value = key.toString.toDouble
-          val iBucket= ((value - min) / mod).toInt
-          buckets(iBucket)+=1
+          Util.TryToDouble(key.toString) match{
+            case None => {
+              val value = Util.stringToInt(key.toString, nBins)
+              val iBucket= ((value - min.toInt) / mod).toInt
+              buckets(iBucket)+=1
+            }
+            case Some(v) =>{
+              val value = v
+              val iBucket= ((value - min) / mod).toInt
+              buckets(iBucket)+=1
+            }
+          }
         }
         total+=1
       }
+
       this
     }
 

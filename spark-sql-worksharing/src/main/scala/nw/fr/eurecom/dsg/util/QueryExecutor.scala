@@ -51,7 +51,7 @@ object QueryExecutor{
         val df = bestStrategy.execute(sqlContext)
             df.indices.foreach(i => df(i).write.format("com.databricks.spark.csv")
               .option("header", "true")
-              .save(outputPath + "/" + i.toString))
+              .save(outputPath + "/" + strategyIndex + "/"+ i.toString))
       }
     }
 

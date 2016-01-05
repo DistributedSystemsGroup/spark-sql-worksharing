@@ -19,7 +19,7 @@ object PlanViewer {
     val format = args(2)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
-    conf.setMaster("local[1]")
+    //conf.setMaster("local[1]")
     val sc = new SparkContext(conf)
     val sqlc = new org.apache.spark.sql.hive.HiveContext(sc)
 

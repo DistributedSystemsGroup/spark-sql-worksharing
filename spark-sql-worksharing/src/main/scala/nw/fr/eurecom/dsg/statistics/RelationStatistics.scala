@@ -17,19 +17,9 @@ class RelationStatistics(val inputSize:Long = Constants.UNKNOWN_VAL,
                          val numRecords:Long = Constants.UNKNOWN_VAL,
                          val averageRecSize:Double = Constants.UNKNOWN_VAL_DOUBLE,
                          val columnStats:HashMap[String, ColumnStatistics]){
-
-
-
-  def estimateEqualitySelectivity(expression:Expression):Double={
-
-
-    Constants.UNKNOWN_VAL_DOUBLE
+  def getColumnStats(columnName:String):ColumnStatistics={
+    columnStats.getOrElse(columnName, null)
   }
-
-
-
-
-
 
 
 }

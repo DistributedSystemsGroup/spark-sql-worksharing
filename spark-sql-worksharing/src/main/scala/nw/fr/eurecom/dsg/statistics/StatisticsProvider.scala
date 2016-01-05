@@ -82,11 +82,13 @@ class StatisticsProvider(){
       // We will update the inputSizeAtomic, numRecordsAtomic, numSplitsAtomic based on the second job
       // Result: Row[6]
       // Row[0]: count (not null)
-      // Row[1]: mean
-      // Row[2]: stddev
-      // Row[3]: min
-      // Row[4]: max
-      // Row[5]: ApproxCountDistinct
+      // Row[1]: mean // removed, DateType not possible
+      // Row[2]: stddev // removed, DateType not possible
+      // Row[1]: min
+      // Row[2]: max
+      // Row[3]: ApproxCountDistinct
+
+      builtinStats.foreach(println)
 
       def getCellFromBuiltinStats(row:Int, col:Int):Any={
         builtinStats(row).asInstanceOf[GenericRowWithSchema].get(col)
@@ -112,31 +114,52 @@ class StatisticsProvider(){
         val columnName = columns(i)._1
         val dataType = columns(i)._2
 
+        println(columnName + "-" + dataType)
+
         val numNotNull = getCellFromBuiltinStats(0, i+1).toString.toLong
         val numNull = numRecords - numNotNull
         var mean:Double = Constants.UNKNOWN_VAL_DOUBLE // default value
         var stddev:Double = Constants.UNKNOWN_VAL_DOUBLE // default value
         var min:Double = Constants.MIN_STRING_TYPE
         var max:Double = Constants.MAX_STRING_TYPE
-        val numDistincts:Long = getCellFromBuiltinStats(5, i+1).toString.toLong
+        val numDistincts:Long = getCellFromBuiltinStats(3, i+1).toString.toLong
 
         dataType match {
           case dt:IntegerType =>
-            mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
-            stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
-            min = getCellFromBuiltinStats(3, i+1).toString.toInt
-            max = getCellFromBuiltinStats(4, i+1).toString.toInt
+            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
+            //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
+
+            min = getCellFromBuiltinStats(1, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toInt
+            }
+            max = getCellFromBuiltinStats(2, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toInt
+            }
 
           case dt:LongType =>
-            mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
-            stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
-            min = getCellFromBuiltinStats(3, i+1).toString.toLong
-            max = getCellFromBuiltinStats(4, i+1).toString.toLong
-          case dt:DecimalType =>
-            mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
+            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
             //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
-            min = getCellFromBuiltinStats(3, i+1).toString.toDouble
-            max = getCellFromBuiltinStats(4, i+1).toString.toDouble
+            min = getCellFromBuiltinStats(1, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toLong
+            }
+            max = getCellFromBuiltinStats(2, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toLong
+            }
+          case dt:DecimalType =>
+            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
+            //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
+            min = getCellFromBuiltinStats(1, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toDouble
+            }
+            max = getCellFromBuiltinStats(2, i+1) match{
+              case null => 0
+              case v:Any => v.toString.toDouble
+            }
 
           // Don't get the avg, stddev,min,max for the following types
           case dt:DateType =>

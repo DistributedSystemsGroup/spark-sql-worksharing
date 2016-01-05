@@ -4,7 +4,8 @@ import java.io.InvalidObjectException
 
 import com.databricks.spark.csv.CsvRelation
 import nw.fr.eurecom.dsg.cost.{CostConstants, Estimation}
-import nw.fr.eurecom.dsg.statistics.StatisticsProvider
+import nw.fr.eurecom.dsg.util.Constants
+import nw.fr.eurecom.dsg.statistics.{ColumnStatistics, StatisticsProvider}
 import org.apache.commons.lang.NotImplementedException
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -34,37 +35,123 @@ object CostEstimator {
     }
   }
 
+  /**
+    * return the first match
+    * @param relations
+    * @param columnName
+    * @return null, or first match
+    */
+  private def tryGetColumnStat(relations:Array[String], columnName:String):ColumnStatistics={
+    for(i <- 0 to relations.length - 1){
+      val tableStat = statsProvider.getTableStatistics(relations(i))
+      val columnStat = tableStat.getColumnStats(columnName)
+      if(columnStat != null)
+        return columnStat
+    }
+    null
+  }
+
 
   private def estimateSelectivity(filterOp:Filter):Double={
     val DEFAULT_SELECTIVITY_FACTOR = 0.33f
     var res = DEFAULT_SELECTIVITY_FACTOR
-    val relations = filterOp.collect{case r:LogicalRelation => r}.toArray
+    val relations = filterOp.collect{case r:LogicalRelation => r}
+    val relationNames = relations.map(r => extractTableName(r.relation)).toArray
 
+    /**
+      *
+      * @param expression
+      * @return {UNKNOWN_VAL_DOUBLE, numRec}
+      */
     def estimateExpression(expression:Expression): Double ={
       expression match{
-        case e:GreaterThan =>
-        case e:LessThan =>
-        case e:EqualTo =>
-        case e:Like =>
-        case e:IsNotNull =>
-        case e:GreaterThanOrEqual =>
-        case e:LessThanOrEqual =>
+        case e:GreaterThan =>{
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column.toString())
+          columnStat match{
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getMinimumEstimation(value)
+          }
+        }
+
+        case e:LessThan =>{
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column.toString())
+          columnStat match{
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getMaximumEstimation(value)
+          }
+        }
+
+        case e:EqualTo =>{
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column)
+          columnStat match{
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getEqualityEstimation(value)
+          }
+        }
+        case e:Like =>{
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column)
+          columnStat match{
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getEqualityEstimation(value)
+          }
+        }
+
+        case e:IsNotNull =>{
+
+        }
+
+        case e:IsNull =>
+
+        case e:GreaterThanOrEqual => {
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column.toString())
+          columnStat match {
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getMinimumEstimation(value) + columnStat.getEqualityEstimation(value)
+          }
+        }
+        case e:LessThanOrEqual =>{
+          val column = e.left.asInstanceOf[AttributeReference].name
+          val value = e.right.asInstanceOf[Literal].value
+          val columnStat = tryGetColumnStat(relationNames, column.toString())
+          columnStat match{
+            case null => return Constants.UNKNOWN_VAL_DOUBLE
+            case _ => return columnStat.getMaximumEstimation(value) + columnStat.getEqualityEstimation(value)
+          }
+        }
 
         case e:And =>
           // Heuristics
           // Selectivity(AND(a, b)) = Selectivity(a) * Selectivity(b)
-          estimateExpression(e.left) * estimateExpression(e.right)
+          (estimateExpression(e.left), estimateExpression(e.right)) match{
+            case (Constants.UNKNOWN_VAL_DOUBLE, _) | (_, Constants.UNKNOWN_VAL_DOUBLE) => return Constants.UNKNOWN_VAL_DOUBLE
+            case (l, r) => return l*r
+          }
         case e:Or =>
           // Heuristics
           // Selectivity(OR(a, b)) = 1 - [(1-Selectivity(a)) * (1-Selectivity(b))]
-          1 - ((1 - estimateExpression(e.left)) * (1 - estimateExpression(e.right)))
+          (estimateExpression(e.left), estimateExpression(e.right)) match{
+            case (Constants.UNKNOWN_VAL_DOUBLE, _) | (_, Constants.UNKNOWN_VAL_DOUBLE) => return Constants.UNKNOWN_VAL_DOUBLE
+            case (l, r) => return 1 - (1 - l) * (1 - r)
+          }
       }
 
-
-      DEFAULT_SELECTIVITY_FACTOR
+      val res = estimateExpression(expression)
+      if(res == Constants.UNKNOWN_VAL_DOUBLE)
+        DEFAULT_SELECTIVITY_FACTOR
+      else
+        res
     }
-
-    res
+    estimateExpression(filterOp.condition)
   }
 
 
@@ -111,7 +198,6 @@ object CostEstimator {
             // numRecOutput = childNumRecOutput * S
             // OutputSize = childOutputSize * S
             // add cheap cpu cost
-
             val selectivityFactor = estimateSelectivity(f)
             cost_Child.setOutputSize((cost_Child.getOutputSize * selectivityFactor).toLong)
             cost_Child.setNumRecOutput((cost_Child.getNumRecOutput * selectivityFactor).toLong)
@@ -134,15 +220,23 @@ object CostEstimator {
             cost_Child
 
 
-          case l @ Limit(limitExpr, child) =>new Estimation()
+          case l @ Limit(limitExpr, child) =>{
             // add cheap cpu cost
             // so recout =n trong limit(n)
+            val value = l.limitExpr.asInstanceOf[Literal].value.toString.toLong
+            val reducedF = value * 1.0/ cost_Child.getNumRecOutput()
+            cost_Child.setNumRecOutput(value)
+            cost_Child.setOutputSize((reducedF * cost_Child.getOutputSize).toLong)
+
             cost_Child
+          }
+
+
 
           case s @ Sort(order, global, child) =>new Estimation()
             // add expensive cpu & network cost
+            cost_Child.addCPUCost(cost_Child.getNumRecOutput() * Math.log10(cost_Child.getNumRecOutput()) * CostConstants.COST_SORTING_FACTOR)
             cost_Child
-
 
           case _ => throw new InvalidObjectException(u.toString)
         }
@@ -155,10 +249,10 @@ object CostEstimator {
         case j @ Join(left, right, joinType, condition) =>{
           // broadcast join vs shuffle join should be handled differently
 
+          
+
           costLeftChild
         }
-
-
 
 
         case u @ Union(left, right) => throw new NotImplementedException

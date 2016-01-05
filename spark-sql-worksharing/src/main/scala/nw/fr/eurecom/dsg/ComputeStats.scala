@@ -17,7 +17,7 @@ object ComputeStats {
     val format = args(2)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
-    //conf.setMaster("local[1]")
+//    conf.setMaster("local[1]")
     val sc = new SparkContext(conf)
     //val sqlc = new SQLContext(sc)
     val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
@@ -30,6 +30,7 @@ object ComputeStats {
 
     // Uncomment the following block if you want to use all tables in your queries
     // These are all tables of the TPC-DS benchmark
+
 
         val tables = Seq("catalog_sales", "catalog_returns",
         "inventory", "store_sales", "store_returns", "web_sales", "web_returns",

@@ -11,7 +11,7 @@ object GenApp {
     }
 
     val conf = new SparkConf().setAppName(this.getClass.getName())
-    conf.setMaster("local[2]")
+    //conf.setMaster("local[2]")
     val sparkContext = new SparkContext(conf)
 
     // You need the HiveContext to be able to fully parse the queries

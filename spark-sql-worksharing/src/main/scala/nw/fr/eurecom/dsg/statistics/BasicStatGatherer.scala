@@ -23,9 +23,9 @@ object BasicStatGatherer {
 
     // The list of summary statistics to compute, in the form of expressions.
     val statistics = List[(String, Expression => Expression)](
-      "count" -> Count,
-      "mean" -> Average,
-      "stddev" -> stddevExpr,
+      "count" -> Count, // count not null
+      //"mean" -> Average,
+      //"stddev" -> stddevExpr,
       "min" -> Min,
       "max" -> Max,
       "ApprCountDistinct" -> countDist)
