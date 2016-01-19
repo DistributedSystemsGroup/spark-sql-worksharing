@@ -63,12 +63,16 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
   //    this
   //  }
 
-  def getMinimumEstimation(from:Any):Double={
+  def getGreaterThanEstimation(from:Any):Double={
     getRangeEstimation(from = from, to = this.max) - getEqualityEstimation(from)
   }
 
-  def getMaximumEstimation(to:Any):Double={
+  def getLessThanEstimation(to:Any):Double={
     getRangeEstimation(from = this.min, to = to) - getEqualityEstimation(to)
+  }
+
+  def getUniquenessDegree():Double = {
+      numDistincts*1.0 / numNotNull
   }
 
   /**

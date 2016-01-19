@@ -11,7 +11,8 @@ import scala.collection.mutable.HashMap
   * @param tables name of tables to be registered
   * @param format {parquet, com.databricks.spark.csv}
   */
-class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[String], format: String) {
+class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[String], format: String) extends SparkSQLServerLogging {
+
   import sqlContext.implicits._
 
   // Following are 24 tables with pre-defined schema, migrated from the TPC-DS benchmark of SparkSQL Perf project
@@ -514,7 +515,8 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
       'web_tax_percentage.decimal(5, 2)))
     )
 
-  tables.foreach(tableName =>
+  logInfo("Registering tables ...")
+  tables.foreach(tableName => {
     sqlContext.read
       .format(format)
       .option("header", "true") // Use first line of all files as header
@@ -524,7 +526,8 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
       // Thus, we prefer to disable this, and use our own schema
       .load(inputDir + "/" + tableName)
       .registerTempTable(tableName)
-  )
+    logInfo("Registered table %s".format(tableName))
+  })
 
 
   def getDF(queryStr: String): DataFrame = {

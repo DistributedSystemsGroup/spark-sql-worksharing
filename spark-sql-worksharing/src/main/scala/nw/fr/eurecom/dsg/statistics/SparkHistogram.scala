@@ -13,34 +13,32 @@ import nw.fr.eurecom.dsg.statistics.Util
 object SparkHistogram extends Logging {
 
   private class HistogramCounter(min:Double, max:Double) extends Serializable {
-    // Currently, we are treating min & max as double, regardless the fact that they are actually integers
-    //TODO: bad for small float numbers, eg: 0 - 1.0
     val nBins: Int = Math.min((max - min + 1).toInt, Constants.NUM_BINS_HISTOGRAM_MAX)
     val buckets = new Array[Long](nBins)
-    val mod:Double = (max - min + 1) / nBins
+    val binWidth:Double = (max - min + 1) / nBins
     var total:Long = 0 // if we want to output the fraction
 
     def add(key: Any): this.type = {
       if(key != null){
+
+        var iBucket:Int = 0
         if(key.isInstanceOf[String]){
           val value = Util.stringToInt(key.toString, nBins)
-          val iBucket= ((value - min.toInt) / mod).toInt
-          buckets(iBucket)+=1
+          iBucket= ((value - min.toInt) / binWidth).toInt
         }
         else{
           Util.TryToDouble(key.toString) match{
             case None => {
               val value = Util.stringToInt(key.toString, nBins)
-              val iBucket= ((value - min.toInt) / mod).toInt
-              buckets(iBucket)+=1
+              val iBucket= ((value - min.toInt) / binWidth).toInt
             }
             case Some(v) =>{
               val value = v
-              val iBucket= ((value - min) / mod).toInt
-              buckets(iBucket)+=1
+              val iBucket= ((value - min) / binWidth).toInt
             }
           }
         }
+        buckets(iBucket)+=1
         total+=1
       }
 

@@ -1,7 +1,7 @@
 package nw.fr.eurecom.dsg.statistics
 
 import com.fasterxml.jackson.annotation.{JsonCreator}
-import nw.fr.eurecom.dsg.util.Constants
+import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import scala.collection.mutable.HashMap
 
@@ -20,6 +20,4 @@ class RelationStatistics(val inputSize:Long = Constants.UNKNOWN_VAL,
   def getColumnStats(columnName:String):ColumnStatistics={
     columnStats.getOrElse(columnName, null)
   }
-
-
 }

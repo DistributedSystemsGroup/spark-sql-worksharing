@@ -1,19 +1,19 @@
 package nw.fr.eurecom.dsg
 
 import nw.fr.eurecom.dsg.statistics.StatisticsProvider
-import nw.fr.eurecom.dsg.util.{QueryExecutor, QueryProvider}
+import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, QueryProvider}
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
-
 
 /**
   * Demo application of the CacheAware (MQO) Optimizer
   * Entry point
   */
-object App {
+object App extends SparkSQLServerLogging{
   def main(args: Array[String]): Unit = {
     if(args.length != 5){
-      System.out.println("Usage: <inputDir> <outputDir> <format> <strategyIndex> <statFile>")
+      logError("Usage: <inputDir> <outputDir> <format> <strategyIndex> <statFile>")
       System.exit(0)
     }
 
@@ -27,8 +27,8 @@ object App {
     val conf = new SparkConf().setAppName(this.getClass.toString)
     conf.setMaster("local[1]")
     val sc = new SparkContext(conf)
-    //val sqlc = new SQLContext(sc)
-    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
+    val sqlc = new SQLContext(sc)
+//    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
 
     sqlc.setConf("spark.sql.parquet.cacheMetadata", "false")
     sqlc.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false")
@@ -64,7 +64,7 @@ object App {
 
     val stats = new StatisticsProvider().readFromFile(statFile)
     CostEstimator.setStatsProvider(stats)
-    println("Statistics data is loaded!")
+    logInfo("Loaded statistics data from file at %s".format(statFile))
 
 //    val df2 = queryProvider.getDF("""
 //                            | WITH wscs as
@@ -199,7 +199,11 @@ object App {
                                    """.stripMargin)
 
 
-    CostEstimator.estimateCost(df3.queryExecution.optimizedPlan)
+
+    val cost = CostEstimator.estimateCost(df3.queryExecution.optimizedPlan)
+    println(cost)
+
+//    df3.write.save("/home/ntkhoa/output")
 
     //QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
 //    while(true){

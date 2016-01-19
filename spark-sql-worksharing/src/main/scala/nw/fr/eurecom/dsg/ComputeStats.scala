@@ -4,7 +4,9 @@ import nw.fr.eurecom.dsg.statistics.StatisticsProvider
 import nw.fr.eurecom.dsg.util.QueryProvider
 import org.apache.spark.{SparkConf, SparkContext}
 
-
+/**
+  * Launch this job to compute the statistics and save the result to file
+  */
 object ComputeStats {
   def main(args: Array[String]): Unit = {
     if(args.length != 3){

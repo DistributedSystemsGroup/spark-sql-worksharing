@@ -1,6 +1,7 @@
 package org.apache.spark.sql.myExtensions.optimizer
 
 import java.math.BigInteger
+import nw.fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{Or, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LeafNode, Project, LogicalPlan}
 import org.apache.spark.sql.catalyst.plans.logical.{UnaryNode, BinaryNode}
@@ -8,15 +9,10 @@ import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-class CoveringPlanBuilder {
+class CoveringPlanBuilder extends SparkSQLServerLogging{
   def buildCoveringPlans(commonSubExpressionsMap: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
   :mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]= {
-    // Simplest:
-    // for each group, build a covering expression that covers all its consumers
-
-    // More complex:
-    // For each group:
-    //
+    // For each group
     // Step 1: keep only good candidates (prune bad candidates)
     // Good candidate:
     // - expensive to run (otherwise, re-run from scratch may be better)
@@ -25,27 +21,24 @@ class CoveringPlanBuilder {
     //    + CPU intensive & Network I/O heavy expression: contains join, sort, aggregate, but #out is fit in memory
     // - has high number of consumers (to be reused many times) (to be adjusted)
     //
-    // Step 2: clustering plans by threshold, into 2 clusters: small output & big output if max (#out) > T
-    // T could be 1/3M? or T could be 1/3 #in?
-    // Or size chia thanh 2 groups, relatively to M or #in
+    // Step 2: for each group, build a covering expression that covers all its consumers
+    // TODO: explain why cover all is enough?
     // Tradeoff: wider subexpression can serves more #consumers, but its' output will be large
     // leading to high materializing (to RAM) cost
-
+    //
     // Step 3: output the result
 
     commonSubExpressionsMap.foreach(groupI =>{
-      println("Handling group %d".format(groupI._1))
+      logInfo("Handling group %d".format(groupI._1))
       val peerPlans = groupI._2.map(ele => ele._1)
       peerPlans.indices.foreach { i =>
         val cost = CostEstimator.estimateCost(peerPlans(i))
-        println(cost)
+        logInfo("Cost = ".format(cost))
       }
 
 
 
       // (plan, tree index)
-
-
 
 
       // Good candidates:
@@ -55,10 +48,7 @@ class CoveringPlanBuilder {
       //val coveringExp = combinePlans(peerPlans.map(ele => ele._1))._1
     })
 
-
-    // Step 2: Cluster plans using K-mean, distance is measure by the similarity metering
     // Step 3: Build and output a cache plan for each cluster, with the consumers are members belonging to that group
-
     val coveringExpressions= new mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]
     // (covering plan, (original plan, consumer indexes))
 
@@ -67,7 +57,7 @@ class CoveringPlanBuilder {
       // (plan, tree index)
 
       val coveringExp = combinePlans(plans.map(ele => ele._1))._1
-      println("Built covering expression for %d:\n%s".format(item._1, coveringExp))
+      logInfo("Built covering expression for %d:\n%s".format(item._1, coveringExp))
       coveringExpressions.put(coveringExp, plans.toSet)
     })
 
@@ -190,7 +180,6 @@ class CoveringPlanBuilder {
           (a.withNewChildren(Array(leftCombined, rightCombined)), false)
         }
       }
-
 
       case _ => throw new IllegalArgumentException("Wrong match")
     }

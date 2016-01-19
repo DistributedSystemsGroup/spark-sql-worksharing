@@ -3,9 +3,6 @@ package nw.fr.eurecom.dsg.util
 import org.apache.spark.sql.myExtensions.optimizer.CacheAwareOptimizer
 import org.apache.spark.sql.{SQLContext, DataFrame}
 
-/**
-  * Created by ntkhoa on 09/12/15.
-  */
 object QueryExecutor{
 
   def execute(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String): Unit ={

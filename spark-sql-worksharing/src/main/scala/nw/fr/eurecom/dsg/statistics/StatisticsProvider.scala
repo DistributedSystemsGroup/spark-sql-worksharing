@@ -4,7 +4,7 @@ import java.io._
 import java.util.concurrent.atomic.AtomicLong
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import nw.fr.eurecom.dsg.util.{Constants, QueryProvider}
+import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants, QueryProvider}
 import org.apache.spark.scheduler._
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.myExtensions.statistics.{SparkHistogram, BasicStatGatherer}
@@ -20,7 +20,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
   *
   * Entry point for asking statistics data
   */
-class StatisticsProvider(){
+class StatisticsProvider extends SparkSQLServerLogging{
 
   // Map a table to its RelationStatistics
   val baseRelationStats = new HashMap[String, RelationStatistics]()

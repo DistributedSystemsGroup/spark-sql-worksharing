@@ -4,6 +4,7 @@ package org.apache.spark.sql.myExtensions.optimizer
 import java.math.BigInteger
 import com.databricks.spark.csv.CsvRelation
 import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator}
+import nw.fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
@@ -23,7 +24,7 @@ import scala.collection.mutable
   * - Strategy Generation: Each strategy is a selection of zero or some cache plan(s).
   * - Strategy Selection phase: by estimating the cost of each individual strategy, produces the best strategy as the output.
   */
-object CacheAwareOptimizer {
+object CacheAwareOptimizer  extends SparkSQLServerLogging{
   /**
     * Use the caching technique to globally optimize a given bag of (ìndividually) optimized Logical Plans (queries).
     * (currently, it supports only structured data sources which goes with the schema, eg: json, parquet, csv, ...)
@@ -42,7 +43,8 @@ object CacheAwareOptimizer {
     // Resolving the AttributeReference#ID problem. Refer to method
     // `transformToSameDatasource` for more information
     // ==============================================================
-
+    logInfo("========================================================")
+    logInfo("Step 0: Pre-processing")
     val seenLogicalRelations = mutable.Set[LogicalRelation]()
 
     def getSeenRelation(relation:LogicalRelation):Option[LogicalRelation]={
@@ -63,10 +65,10 @@ object CacheAwareOptimizer {
     }
 
     // ==============================================================
-    // Step 1: Identifying all common sub-trees
+    // Step 1: Identifying all common subexpressions
     // ==============================================================
-    println("\n========================================================")
-    println("Start finding common subexpressions ...")
+    logInfo("========================================================")
+    logInfo("Step 1: Identifying all common subexpressions")
     val commonSubExpressionsMap = identifyCommonSubExpressions(outputPlans)
     // common subexpressions are grouped by their table signature
     // HashMap<TableSignature, List<(CommonSubExpression, queryIndex)>>
@@ -74,8 +76,8 @@ object CacheAwareOptimizer {
     // ==============================================================
     // Step 2: Build covering expressions from the common subexpressions
     // ==============================================================
-    println("\n========================================================")
-    println("Start building covering expressions...")
+    logInfo("========================================================")
+    logInfo("Step 2: Building covering expression candidates")
     val coveringExpressions = new CoveringPlanBuilder().buildCoveringPlans(commonSubExpressionsMap)
     // common subexpressions are grouped by a single covering expression
     // producer - consumer relationship
@@ -86,6 +88,8 @@ object CacheAwareOptimizer {
     // Generates all possible strategies.
     // Each strategy is a selection of zero or some cache plan(s)
     // ==============================================================
+    logInfo("========================================================")
+    logInfo("Step 3: Strategy Generation")
     new StrategyGenerator(outputPlans, coveringExpressions)
     // We return this, the consumer can pull a strategy and judge its quality (step 4)
 
@@ -124,18 +128,18 @@ object CacheAwareOptimizer {
       hashTrees(iPlan) = buildHashTree(trees(iPlan))
     }
 
-    println("Input of %d plan(s)".format(trees.length))
-    trees.foreach(println)
+    logInfo("Input of %d plan(s)".format(trees.length))
+    trees.foreach(t => log.info(t.toString()))
 
     // Build fingerPrintMap
     trees.indices.foreach(i => {
-      println("Checking tree %d".format(i))
+      logInfo("Checking tree %d".format(i))
       var isAllowedToMatchAfter = true // a super variable
       val visitor = new DFSVisitor(trees(i))
       while (visitor.hasNext){
         var continue = true // used to break to following while loop
         val iPlan = visitor.getNext
-        println("Checking %s".format(iPlan.getClass.getName))
+        logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
 
         val foundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
@@ -144,19 +148,19 @@ object CacheAwareOptimizer {
           fingerPrintMap.getOrElseUpdate(iPlanFingerprint, createNewList()).append(Tuple2(iPlan, i))
 
         if(foundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
-          println("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
-          println("Stopped the find on this branch")
+          logInfo("At tree %d: Found a match for: \n%s".format(i,iPlan.toString()))
+          logInfo("Stopped the find on this branch")
           isAllowedToMatchAfter = true
         }
         else
         {
-          println("Keep finding on this branch")
+          logInfo("Keep finding on this branch")
           visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
           if(foundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
             if(isAllowedToMatchAfter)
-              println("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
+              logInfo("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
             else
-              println("Found a match but we already have a previous better solution")
+              logInfo("Found a match but we already have a previous better solution")
 
             if(isUnfriendlyOperator(iPlan)){
               isAllowedToMatchAfter = true // re-enable
@@ -169,16 +173,16 @@ object CacheAwareOptimizer {
       }
     })
 
-    println("Rescanning again to detect expression in expression sharing")
+    logInfo("Rescanning again to detect expression in expression sharing")
     // Re-scan one more time. Why? because of the case subexpression in subexpression.
     // TODO: explain more
     trees.indices.foreach(i => {
-      println("Checking tree %d".format(i))
+      logInfo("Checking tree %d".format(i))
       val visitor = new DFSVisitor(trees(i))
 
       while (visitor.hasNext){
         val iPlan = visitor.getNext
-        println("Checking %s".format(iPlan.getClass.getName))
+        logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
 
         val found = (fingerPrintMap.contains(iPlanFingerprint)
@@ -194,10 +198,10 @@ object CacheAwareOptimizer {
 
     // Keep only those keys that have the length(value) >= 2 (common subtrees)
     val groupedCommonSubExpressions = fingerPrintMap.filter(keyvaluePair => keyvaluePair._2.size >= 2)
-    println("========================================================")
-    println("Found %d group(s) of common subexpressions".format(groupedCommonSubExpressions.size))
+    logInfo("========================================================")
+    logInfo("Found %d group(s) of common subexpressions".format(groupedCommonSubExpressions.size))
     groupedCommonSubExpressions.foreach(element => {
-      println("fingerprint: %d, %d consumers".format(element._1, element._2.length))
+      logInfo("fingerprint: %d, %d consumers".format(element._1, element._2.length))
       element._2.foreach(e => println(e._1))
     })
 
@@ -251,7 +255,7 @@ object CacheAwareOptimizer {
               hashVal = Util.hash(className + b.hashCode().toString)
             case b:Except =>
               hashVal = Util.hash(className + b.hashCode().toString)
-            case _ => throw new IllegalArgumentException("unknown binary node")
+            case _ => throw new IllegalArgumentException("notsupported binary node")
           }
           val ret = (hashVal, math.max(leftChildHeight, rightChildHeight) + 1)
           res.put(b, ret)
@@ -294,10 +298,10 @@ object CacheAwareOptimizer {
             val ret = (hashVal, 1)
             res.put(l, ret)
             ret
-          case _ => throw new IllegalArgumentException("illegal leaf")
+          case _ => throw new IllegalArgumentException("notsupported leaf")
         }
 
-        case _ => throw new IllegalArgumentException("illegal logical plan")
+        case _ => throw new IllegalArgumentException("notsupported logical plan")
       }
     }
 
@@ -380,6 +384,4 @@ object CacheAwareOptimizer {
       case _ => false
     }
   }
-
-
 }
