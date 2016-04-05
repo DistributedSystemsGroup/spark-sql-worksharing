@@ -9,14 +9,15 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object ComputeStats {
   def main(args: Array[String]): Unit = {
-    if(args.length != 3){
-      System.out.println("Usage: <inputDir> <savePath> <format>")
+    if(args.length != 4){
+      System.out.println("Usage: <master> <inputDir> <savePath> <format>")
       System.exit(0)
     }
 
-    val inputDir = args(0)
-    val savePath = args(1)
-    val format = args(2)
+    val master = args(0)
+    val inputDir = args(1)
+    val savePath = args(2)
+    val format = args(3)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
 //    conf.setMaster("local[1]")
