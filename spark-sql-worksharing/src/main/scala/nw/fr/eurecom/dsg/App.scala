@@ -36,6 +36,8 @@ object App extends SparkSQLServerLogging{
     sqlc.setConf("spark.sql.parquet.filterPushdown", "false")
     import sqlc.implicits._
 
+
+
     // Uncomment the following block if you want to use all tables in your queries
     // These are all tables of the TPC-DS benchmark
 
