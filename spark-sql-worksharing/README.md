@@ -5,7 +5,14 @@
 
 
 ## Architecture:
+<<<<<<< HEAD
 
+=======
+- Step 1: Precompute some basic statistics and materialize it to disk  
+`ComputeStats <inputDir> <savePath> <format>`
+
+- 
+>>>>>>> bf0a7d31593387efddb369e0712b0aa620664014
 
 
 
