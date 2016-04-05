@@ -1,8 +1,28 @@
-# Spark SQL Performance Tests
+# Spark SQL Performance
+This is the library provided by Databricks that supports running TPC-DS queries on Spark SQL.  
+Repository URL: <https://github.com/databricks/spark-sql-perf>
 
-## Configuration
-- sparkVersion := "1.5.2" (in build.sbt)
-- remove the account credential and stuffs declared in build.sbt: dbcUsername, dbcPassword, dbcApiUrl, dbcClusters, dbcLibraryPath
+You can get it by:
+```
+git clone https://github.com/databricks/spark-sql-perf.git
+cd spark-sql-perf
+// checkout the version 1.6
+git checkout e516e1e7b31713efbc25b9c5caf6cf556ec064d9
+// then, you need to edit the `build.sbt` file:
+// change: sparkVersion := "1.6.1"
+// remove the account credential requirements: dbcUsername, dbcPassword, dbcApiUrl, dbcClusters, dbcLibraryPath
+```
+
+# Modification required to support CSV format
+
+```
+//1. In Tables.scala, function genData
+writer.format(format).option("header", "true").mode(mode)
+
+//2. In Tables.scala, function createTemporaryTable
+qlContext.read.format(format).option("header", "true").option("inferSchema", "true").load(location).registerTempTable(name)
+
+```
 
 # Different sparkVersion build
 in Benchmark.scala
@@ -13,7 +33,7 @@ in Benchmark.scala
  `case UnresolvedRelation(Seq(name), _) => name`
  `tableIdentifier.last`
 
-## Build
+## How to build?
 `./build/sbt package`
 
 ## How to use?

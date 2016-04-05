@@ -8,7 +8,7 @@ sparkPackageName := "databricks/spark-sql-perf"
 // All Spark Packages need a license
 licenses := Seq("Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0"))
 
-sparkVersion := "1.5.2"
+sparkVersion := "1.6.1"
 
 resolvers += "Apache Preview Repo" at "https://repository.apache.org/content/repositories/orgapachespark-1156/"
 
@@ -24,21 +24,6 @@ initialCommands in console :=
 libraryDependencies += "com.twitter" %% "util-jvm" % "6.23.0" % "provided"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
-
-// Your username to login to Databricks Cloud
-//dbcUsername := sys.env.getOrElse("DBC_USERNAME", sys.error("Please set DBC_USERNAME"))
-
-// Your password (Can be set as an environment variable)
-//dbcPassword := sys.env.getOrElse("DBC_PASSWORD", sys.error("Please set DBC_PASSWORD"))
-
-// The URL to the Databricks Cloud DB Api. Don't forget to set the port number to 34563!
-//dbcApiUrl := sys.env.getOrElse ("DBC_URL", sys.error("Please set DBC_URL"))
-
-// Add any clusters that you would like to deploy your work to. e.g. "My Cluster"
-// or run dbcExecuteCommand
-//dbcClusters += sys.env.getOrElse("DBC_USERNAME", sys.error("Please set DBC_USERNAME"))
-
-//dbcLibraryPath := s"/Users/${sys.env.getOrElse("DBC_USERNAME", sys.error("Please set DBC_USERNAME"))}/lib"
 
 import ReleaseTransformations._
 

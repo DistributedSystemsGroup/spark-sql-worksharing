@@ -22,23 +22,6 @@ trait SimpleQueries extends Benchmark {
 
   import ExecutionMode._
 
-   val targetedPerfQueries = Seq(
-     // Query to measure scan performance.
-     ("stores-sales-scan",
-       """
-         |select * from store_sales where ss_item_sk = 1
-       """.stripMargin),
-     ("fact-fact-join",
-       """
-         | select count(*) from store_sales
-         | join store_returns
-         | on store_sales.ss_item_sk = store_returns.sr_item_sk
-         | and store_sales.ss_ticket_number = store_returns.sr_ticket_number
-       """.stripMargin)
-   ).map { case (name, sqlText) =>
-     Query(name = name, sqlText = sqlText, description = "", executionMode = ForeachResults)
-   }
-
    val q7Derived = Seq(
      ("q7-simpleScan",
        """
