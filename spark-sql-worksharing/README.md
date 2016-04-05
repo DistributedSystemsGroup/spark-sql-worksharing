@@ -1,6 +1,22 @@
-|| datum == "null" in TypeCast.scala
+## Idea
+- Group all queries to a central server for optimizing them in batch
+- Find the common (similar) subexpressions (CSE)
+- Transform the original queries 
 
-- Table call_center, 5th column "cc_closed_date_sk", datatype:int, all records = null!!!
+
+## Architecture:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 `scp /home/ntkhoa/workspace/working/spark-sql-worksharing/spark-sql-worksharing/out/artifacts/spark_sql_worksharing_jar/*.jar spark-master:~`
@@ -10,4 +26,10 @@
 
 
 `/opt/spark/bin/spark-submit --class nw.fr.eurecom.dsg.AppTmp --master spark://khoa-spark-khoa-master-001:7077 spark-sql-worksharing.jar hdfs://khoa-spark-khoa-master-001:8020/user/ubuntu/input_csv_10G hdfs://khoa-spark-khoa-master-001:8020/user/ubuntu/output_csv_10G com.databricks.spark.csv 0 /home/ubuntu/stat_10G.json`
+
+
+## Issues you may encountered
+- Table call_center, the 5th column "cc_closed_date_sk", datatype:int, all records = null!!!
+- Solution: build your own spark-csv version
+- `|| datum == "null"` in TypeCast.scala
 
