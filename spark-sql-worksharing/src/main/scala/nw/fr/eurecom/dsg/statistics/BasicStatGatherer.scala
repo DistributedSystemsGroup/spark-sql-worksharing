@@ -1,6 +1,7 @@
 package org.apache.spark.sql.myExtensions.statistics
 
 import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.plans.logical.LocalRelation
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, Row, SQLContext}
@@ -19,16 +20,14 @@ object BasicStatGatherer {
     def stddevExpr(expr: Expression): Expression =
       Sqrt(Subtract(Average(Multiply(expr, expr)), Multiply(Average(expr), Average(expr))))
 
-    def countDist(expr: Expression):Expression = ApproxCountDistinct(expr)
-
     // The list of summary statistics to compute, in the form of expressions.
     val statistics = List[(String, Expression => Expression)](
-      "count" -> Count, // count not null
+      "count" -> ((child: Expression) => Count(child).toAggregateExpression()), // count not null
       //"mean" -> Average,
       //"stddev" -> stddevExpr,
-      "min" -> Min,
-      "max" -> Max,
-      "ApprCountDistinct" -> countDist)
+      "min" -> ((child: Expression) => Min(child).toAggregateExpression()),
+      "max" -> ((child: Expression) => Max(child).toAggregateExpression()),
+      "ApprCountDistinct" -> ((child: Expression) => HyperLogLogPlusPlus(child).toAggregateExpression()))
 
     val outputCols = df.columns.toList
 

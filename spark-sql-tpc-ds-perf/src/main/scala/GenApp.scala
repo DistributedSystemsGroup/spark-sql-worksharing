@@ -2,16 +2,27 @@ import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkContext, SparkConf}
 
+/**
+  * Generate TPC-DS tables
+  */
 object GenApp {
   def main(args: Array[String]) {
-    if(args.length < 4){
-      System.err.println("Usage: <inputPath> <scaleFactor> <format> <dsdgenDir>")
+    if(args.length != 5){
+      System.err.println("Usage: <master> <outputPath> <scaleFactor> <format> <dsdgenDir>")
       // scaleFactor: number of GB of data to be generated
       System.exit(-1)
     }
 
+    val master = args(0)
+    val outputPath = args(1)
+    val scaleFactor = args(2).toInt
+    val format = args(3)
+    val dsdgenDir = args(4)
+
     val conf = new SparkConf().setAppName(this.getClass.getName())
-    //conf.setMaster("local[2]")
+    if(master.toLowerCase == "local")
+      conf.setMaster("local[2]")
+
     val sparkContext = new SparkContext(conf)
 
     // You need the HiveContext to be able to fully parse the queries
@@ -20,13 +31,13 @@ object GenApp {
     // Tables in TPC-DS benchmark used by experiments.
     val tables = new Tables(
       sqlContext =  sqlContext,
-      dsdgenDir = args(3),
-      scaleFactor = args(1).toInt
+      dsdgenDir = dsdgenDir,
+      scaleFactor = scaleFactor
     )
 
     tables.genData(
-      location = args(0),
-      format = args(2),
+      location = outputPath,
+      format = format,
       overwrite = false,
       partitionTables = true,
       useDoubleForDecimal = false,

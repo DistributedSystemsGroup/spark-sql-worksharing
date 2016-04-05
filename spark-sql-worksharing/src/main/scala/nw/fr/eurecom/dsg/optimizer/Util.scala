@@ -25,7 +25,7 @@ object Util {
     relationA.relation match {
       case r:HadoopFsRelation=> r.paths.foreach(pathsA += _.trim) // ParquetRelation or JSONRelation
       case r:CsvRelation => pathsA += r.location.get
-      case _ => case _ => throw new IllegalArgumentException("unknown relation")
+      case _ => throw new IllegalArgumentException("unknown relation")
     }
     val hashA = Util.hash(classA + pathsA)
 
@@ -34,7 +34,7 @@ object Util {
     relationB.relation match {
       case r:HadoopFsRelation=> r.paths.foreach(pathsB += _.trim) // ParquetRelation or JSONRelation
       case r:CsvRelation => pathsB += r.location.get
-      case _ => case _ => throw new IllegalArgumentException("unknown relation")
+      case _ => throw new IllegalArgumentException("unknown relation")
     }
     val hashB = Util.hash(classB + pathsB)
 
@@ -135,7 +135,7 @@ object Util {
           leaf.relation match {
             case r:HadoopFsRelation=> r.paths.foreach(paths += _.trim) // ParquetRelation or JSONRelation
             case r:CsvRelation => paths += r.location.get
-            case _ => case _ => throw new IllegalArgumentException("unknown relation")
+            case _ => throw new IllegalArgumentException("unknown relation")
           }
           hashVal = Util.hash(className + paths)
           hashVal

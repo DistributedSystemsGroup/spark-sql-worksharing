@@ -54,7 +54,7 @@ object BenchmarkApp {
     var queries = tpcds.q7Derived
 
     val exp = tpcds.runExperiment(
-      executionsToRun = queries,
+      queriesToRun = queries,
       includeBreakdown = true,
       iterations = args(4).toInt
     )

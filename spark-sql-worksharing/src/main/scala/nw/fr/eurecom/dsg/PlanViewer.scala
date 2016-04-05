@@ -3,7 +3,6 @@ package org.apache.spark.sql
 
 import com.databricks.spark.csv.CsvRelation
 import nw.fr.eurecom.dsg.util.QueryProvider
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.plans.logical.{LeafNode, UnaryNode, BinaryNode, LogicalPlan}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.{SparkContext, SparkConf}

@@ -2,33 +2,33 @@
 
 ## Dependencies
 - spark-hive (in build.sbt): to be able to use the HiveContext instead of SparkContext in generating the database
-`libraryDependencies += "org.apache.spark" %% "spark-hive" % "1.5.2"`
-- spark-sql-perf (in lib/): from DataBrick [Github url](https://github.com/databricks/spark-sql-perf). Clone version is included in this repository (/spark-sql-perf)
+`libraryDependencies += "org.apache.spark" %% "spark-hive" % "1.6.1"`
+- spark-sql-perf (in lib/): from DataBrick [Github url](https://github.com/databricks/spark-sql-perf). Cloned version is included in this repository (/spark-sql-perf)
 `cp ../spark-sql-perf/target/scala-2.10/*.jar lib/`
 - tpc-ds-tool/ : folder containing official tpc-ds tool to generate data
 - spark-csv & commons-csv in lib/
 
-## Utilities
+## How to use?
 
-### GenApp: application to initialize dataset for the benchmark
+### GenApp: 
+Application to initialize dataset for the benchmark
 - arguments: <inputPath> <scaleFactor> <format> <dsdgenDir>
+    + master: {local, cluster}
+    + outputPath: where to save the generated data
     + scaleFactor: number of GB of data to be generated, eg: 10, 100, ...
-    + format: [parquet, com.databricks.spark.csv]
+    + format: {parquet, com.databricks.spark.csv}
     + dsdgenDir: folder tpc-ds-tool/
+- Example: local /home/ntkhoa/tpcds-csv 1 com.databricks.spark.csv tpc-ds-tool
+- Example: local /home/ntkhoa/tpcds-parquet 1 parquet tpc-ds-tool
     
-### BenchmarkApp: the application for doing benchmarking the TPC-DS 1.4 queries
+### BenchmarkApp: 
+Application for doing benchmarking the TPC-DS 1.4 queries
 
 ## Issues & resolve:
 - Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
-    + in local mode : set -XX:MaxPermSize=2G (maximum size of Permanent Generation) in VM Options
-    + otherwise: --driver-java-options -XX:MaxPermSize=2G 
-- CSV with no headers: 
-    + add `writer.format(format).option("header", "true").mode(mode)` in Tables.scala, function genData
-    + ```sqlContext.read.format(format)
-              .option("header", "true") // Use first line of all files as header
-              .option("inferSchema", "true") // Automatically infer data types
-              .load(location).registerTempTable(name)``` 
-    in Tables.scala, function createTemporaryTable 
+    + in local: set `-XX:MaxPermSize=2G` (maximum size of Permanent Generation) in VM Options
+    + in cluster: `--driver-java-options -XX:MaxPermSize=2G` 
+- CSV with no headers: read README in project `spark-sql-perf`
 
 
 ## Additional information for Eurecom internal users

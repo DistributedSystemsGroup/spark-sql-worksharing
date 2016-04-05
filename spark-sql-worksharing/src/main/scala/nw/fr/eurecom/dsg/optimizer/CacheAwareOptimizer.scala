@@ -292,7 +292,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
             leaf.relation match {
               case r:HadoopFsRelation=> r.paths.foreach(paths += _.trim) // ParquetRelation or JSONRelation
               case r:CsvRelation => paths += r.location.get
-              case _ => case _ => throw new IllegalArgumentException("unknown relation")
+              case _ => throw new IllegalArgumentException("unknown relation")
             }
             hashVal = Util.hash(className + paths)
             val ret = (hashVal, 1)
