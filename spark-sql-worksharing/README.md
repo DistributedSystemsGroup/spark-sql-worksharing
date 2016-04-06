@@ -5,16 +5,11 @@
 
 
 ## Architecture:
-<<<<<<< HEAD
-
-=======
 - Step 1: Precompute some basic statistics and materialize it to disk  
-`ComputeStats <inputDir> <savePath> <format>`
+`ComputeStats <master> <inputDir> <savePath> <format>`
+    + format = {parquet, com.databricks.spark.csv}
 
 - 
->>>>>>> bf0a7d31593387efddb369e0712b0aa620664014
-
-
 
 
 
@@ -35,8 +30,11 @@
 `/opt/spark/bin/spark-submit --class nw.fr.eurecom.dsg.AppTmp --master spark://khoa-spark-khoa-master-001:7077 spark-sql-worksharing.jar hdfs://khoa-spark-khoa-master-001:8020/user/ubuntu/input_csv_10G hdfs://khoa-spark-khoa-master-001:8020/user/ubuntu/output_csv_10G com.databricks.spark.csv 0 /home/ubuntu/stat_10G.json`
 
 
-## Issues you may encountered
+## Issues & resolution
 - Table call_center, the 5th column "cc_closed_date_sk", datatype:int, all records = null!!!
 - Solution: build your own spark-csv version
 - `|| datum == "null"` in TypeCast.scala
 
+- Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
+    + in local: set `-XX:MaxPermSize=2G` (maximum size of Permanent Generation) in VM Options
+    + in cluster: `--driver-java-options -XX:MaxPermSize=2G` 

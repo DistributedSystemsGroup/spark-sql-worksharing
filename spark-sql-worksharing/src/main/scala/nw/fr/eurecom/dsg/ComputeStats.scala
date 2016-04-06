@@ -20,7 +20,9 @@ object ComputeStats {
     val format = args(3)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
-//    conf.setMaster("local[1]")
+    if(master.toLowerCase == "local")
+      conf.setMaster("local[2]")
+
     val sc = new SparkContext(conf)
     //val sqlc = new SQLContext(sc)
     val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
