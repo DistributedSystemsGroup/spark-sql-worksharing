@@ -2,7 +2,7 @@ package nw.fr.eurecom.dsg.statistics
 
 import java.io._
 import java.util.concurrent.atomic.AtomicLong
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants, QueryProvider}
 import org.apache.spark.scheduler._
@@ -220,6 +220,7 @@ class StatisticsProvider extends SparkSQLServerLogging{
     val json = scala.io.Source.fromFile(file).mkString
     val mapper = new ObjectMapper()
     mapper.registerModule(DefaultScalaModule)
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     val res = mapper.readValue(json, classOf[StatisticsProvider])
     res
 

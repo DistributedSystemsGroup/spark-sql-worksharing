@@ -1,7 +1,7 @@
 package nw.fr.eurecom.dsg
 
 import nw.fr.eurecom.dsg.statistics.StatisticsProvider
-import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, QueryProvider}
+import nw.fr.eurecom.dsg.util.{QueryExecutor, SparkSQLServerLogging, QueryProvider}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
@@ -12,20 +12,23 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object App extends SparkSQLServerLogging{
   def main(args: Array[String]): Unit = {
-    if(args.length != 5){
-      logError("Usage: <inputDir> <outputDir> <format> <strategyIndex> <statFile>")
+    if(args.length != 6){
+      logError("Usage: <master> <inputDir> <outputDir> <format> <strategyIndex> <statFile>")
       System.exit(0)
     }
 
-    val inputDir = args(0)
-    val outputDir = args(1)
-    val format = args(2)
-    val strategyIndex = args(3).toInt
-    val statFile = args(4)
+    val master = args(0)
+    val inputDir = args(1)
+    val outputDir = args(2)
+    val format = args(3)
+    val strategyIndex = args(4).toInt
+    val statFile = args(5)
 
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
-    conf.setMaster("local[1]")
+    if(master.toLowerCase == "local")
+      conf.setMaster("local[1]")
+
     val sc = new SparkContext(conf)
     val sqlc = new SQLContext(sc)
 //    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
@@ -201,13 +204,13 @@ object App extends SparkSQLServerLogging{
                                    """.stripMargin)
 
 
-
-    val cost = CostEstimator.estimateCost(df3.queryExecution.optimizedPlan)
-    println(cost)
+//
+//    val cost = CostEstimator.estimateCost(df3.queryExecution.optimizedPlan)
+//    println(cost)
 
 //    df3.write.save("/home/ntkhoa/output")
 
-    //QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
+    QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
 //    while(true){
 //      Thread.sleep(1000)
 //    }

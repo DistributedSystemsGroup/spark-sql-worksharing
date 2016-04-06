@@ -14,6 +14,27 @@
 
 
 
+### Precomputed statistics
+- check class `StatisticsProvider`. Method `collect(tables)` will start computing stats for given list of tables. Method `saveToFile`, `readFromFile`  
+- Statistics are of 2 levels: 
+    + Relation level (table level) (class `RelationStatistics`)
+        * input size
+        * num records
+        * averageRecSize
+        * column stats
+    + Column level (class `ColumnStatistics`)
+        * num records not null
+        * num null records
+        * mean (if applicable)
+        * stddev (if applicable)
+        * min, max (if applicable)
+        * count distinct
+        * histograms (equal-width histograms)
+        
+    
+
+
+
 
 
 

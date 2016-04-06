@@ -134,20 +134,19 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // Build fingerPrintMap
     trees.indices.foreach(i => {
       logInfo("Checking tree %d".format(i))
-      var isAllowedToMatchAfter = true // a super variable
+      var isAllowedToMatchAfter = true // a flag variable
       val visitor = new DFSVisitor(trees(i))
       while (visitor.hasNext){
-        var continue = true // used to break to following while loop
         val iPlan = visitor.getNext
         logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
 
-        val foundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
+        val isFoundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
 
         if(isAllowedToMatchAfter)
           fingerPrintMap.getOrElseUpdate(iPlanFingerprint, createNewList()).append(Tuple2(iPlan, i))
 
-        if(foundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
+        if(isFoundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
           logInfo("At tree %d: Found a match for: \n%s".format(i,iPlan.toString()))
           logInfo("Stopped the find on this branch")
           isAllowedToMatchAfter = true
@@ -156,7 +155,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
         {
           logInfo("Keep finding on this branch")
           visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
-          if(foundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
+          if(isFoundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
             if(isAllowedToMatchAfter)
               logInfo("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
             else
@@ -298,10 +297,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
             val ret = (hashVal, 1)
             res.put(l, ret)
             ret
-          case _ => throw new IllegalArgumentException("notsupported leaf")
+          case _ => throw new IllegalArgumentException("unsupported leaf")
         }
 
-        case _ => throw new IllegalArgumentException("notsupported logical plan")
+        case _ => throw new IllegalArgumentException("unsupported logical plan")
       }
     }
 
