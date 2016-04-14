@@ -1,0 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Cardinality and cost estimation}
+\label{sec:cardinality}
+To automatically select the best candidates CEs for the final \emph{cache plans}, we design a cost model that analyze relational operators in the queries. Just as traditional work, the system pre-computes statistics data of the input tables to better estimate the output size and execution cost of queries. 
+
+Statistics data are divided into 2 levels: relation and column. In relation level, the system obtains the number of records and average record size. In more detail level - column, the system collects the min, max, the cardinality and builds an equi-width histogram for each column. The output size of each operator is estimated under the uniform distribution assumption. Although simple, we just want a good estimation to avoid obviously bad plans. More complex histogram techniques could be used to improve the estimation accuracy.
+
+We focus on the CPU, disk I/O and network cost in estimating the total execution cost of a query because they are the three most dominant ones. For \emph{cache plans}, we also take into account the cost of materializing data to RAM and retrieving data back. Those costs are the results of the multiplication between the pre-defined constants and the estimated number of records.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Cache plans selection}
+\label{sec:cbo-o}
+Now that we already have a mean to estimate the execution cost of a query. Our problem is to select the best combination of CEs to form the \emph{cache plans}. For each \emph{cache plan}, we compute the (profit, weight). Let's call $W$ is the total cache capacity of the cluster. Then our optimization problem is to maximize the $\sum profit$ under a limited memory capacity: $\sum weight \leq W$. This is the knapsack problem and could be solved by many approaches \cite{•}.
+
+The weight is estimated thanks to the cardinality estimation in section \ref{sec:cardinality}. The profit is the cost difference between (1) executing $n$ SEs and (2) executing the \emph{cache plan} and reused in multiple places. The cost of executing individual SEs are $\sum_{i=1}^n SE_i$ apparently. On the other hand, the cost of (2) is the cost of executing the \emph{cache plan} once, materializing the result to RAM and n times * retrieving the cached data. Furthermore, the cost of applying the \emph{extraction plans} in section \ref{sec:query_rewriting} to compensate the CE and the garbage collection effect are also parts of (2).
+
+Then the combination of \emph{cache plans} to maximize the benefit under the memory limit is equivalent to solving the knapsack problem. Thus, we will be able to first select the best CE among different sharing options.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

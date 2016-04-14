@@ -1,0 +1,47 @@
+This section describes how the cache primitives can be applied to the context of work-sharing in large-scale distributed computing engines. The whole optimization process containing 4 phases is described in Figure \ref{fig:phases_mqo}. Queries submitted by multiple users are parsed, analyzed and individually optimized normally by the query optimizer. We take the optimized logical plan (the optimized operator tree) of each query as the input to our system. In this paper, we are using the term \emph{logical plan} as the logical representation of a query. Those (optimized) logical plans are then sent to a central server where we will apply our optimization.
+
+\begin{figure}[!htb]
+	\centering
+ 	\includegraphics[scale=0.65]{figures/phases_mqo}
+   	\caption{Proposed architecture.} 
+   	\label{fig:phases_mqo}
+\end{figure}
+
+
+\textbf{Phase 1: Similar subExpressions(SEs) identification}\\
+The goal of this phases is to quickly identify all potential sharing opportunities inside a query and among different queries. Similar subexpressions are subqueries that could benefit from some common computation. We compute the \emph{operator fingerprints} for all logical plans and store them into a fingerprint table. An operator fingerprint is computed by traversing in post order the tree rooted at that operator. Two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. We will discuss this technique in more detail in Section \ref{sec:common_sub}. Found similar subexpressions represents the potential candidates for building covering subexpressions in the next phase.
+
+\textbf{Phase 2: Building Covering SubExpressions}\\
+Given the sets of similar subexpressions, the optimizer first tries to eliminate obviously bad candidates for sharing with the help from the cost estimation. Then for each set of subexpressions, we construct a single covering subexpression that is the common computation among those expressions. Some CEs might become \emph{cache plans} after the cost-based optimization in phase 3.
+
+\textbf{Phase 3: Cost-based optimization}\\
+This phase achieves the objective of selecting the best combination of CEs which are then become \emph{cache plans}, taking into account the memory constraints and the cost of the caching operation. By using our cost estimation, each CE in previous phase would be assigned a weight and a profit. Finding the best \emph{cache plans} is the most important materialization of our idea to achieve high performance work sharing. 
+
+\textbf{Phase 4: Query rewriting}\\
+Last but not least, the input queries will be rewritten such that the cache plans are employed. This step involves some basic query transformations on the original queries.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Common subexpression identification}
+\label{sec:common_sub}
+\input{common_sub}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Building Covering SubExpression}
+\label{sec:covering_subexpression}
+\input{covering_subexpression}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Cost-based optimization}
+\label{sec:cbo}
+\input{cbo}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Query Rewriting}
+\label{sec:query_rewriting}
+\input{query_rewriting}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We next cover in detail the implementation of our system running on Apache Spark and Spark SQL.

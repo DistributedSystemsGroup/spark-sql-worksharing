@@ -1,0 +1,7 @@
+As mentioned in Section \ref{sec:common_sub}, the cache plan's size not only affects the memory occupation but also brings materializing costs. Thus, under the memory constraint, our goal is to maximize the benefit from caching while keeping the least amount of data possible.
+
+Just like traditional RDBMS, when a query executes, the engine searches the cache memory to determine whether the results exists in result cache. If yes, it retrieves the result from the memory instead. If no, it executes, return the results as the output and store it to the result cache.
+
+In this paper, we define the \emph{cache plan} as the materialization for this idea. A \emph{cache plan} is a query defining the result of a materialized view. In other words, cache plans can be seen as views (in RDBMSes) and (if selected) to be materialized in RAM. 
+
+From the found common subtrees, we transform the common subexpressions to increase the sharing benefit. For each common subtree, a transforming rule $e1 \rightarrow e1(e1 \cup e2)$ is applied to combine each two common expression if $e1$ and $e2$ are two Filters or two Projects.
