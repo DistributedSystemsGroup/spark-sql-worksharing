@@ -1,28 +1,24 @@
 The multi-query optimization (MQO) is well-known as the technique of minimizing the total execution time by performing common tasks only once. In this paper, we systematically propose a comprehensive solution for large-scale distributed computing engines; that combines the in-memory caching primitives with the state-of-the-art MQO techniques: similar subexpressions sharing, materialized view selection and work-sharing.
 
 % similar subexpressions & materialized views
-\emph{\textbf{MQO in RDBMSes.}} Similar subexpressions sharing has been well studied by Zhou et al. in \cite{zhou2007efficient}. As was pointed out, to improve query performance, common subexpressions could be evaluated once and the result is reused in multiple places. His solution could avoid some limitations of earlier work \cite{finkelstein1982common, roy2000efficient} by (i)considering all generated plans as sharing opportunities to avoid leading to suboptimal plans and (ii) also considering multiple competing covering expressions. 
+\emph{\textbf{MQO in RDBMSes.}} Similar subexpressions sharing has been well studied by Zhou et al. in \cite{zhou2007efficient}. As was pointed out, to improve query performance in MS SQL Server, common subexpressions could be evaluated once and the result is reused in multiple places. His solution could avoid some limitations of earlier work \cite{finkelstein1982common, roy2000efficient} by (i)considering all generated plans as sharing opportunities to avoid leading to suboptimal plans and (ii) also considering multiple competing covering expressions. 
 
 %The proposed solution has 3 steps: (1) Table signature generation, (2) Generation of candidates CSEs and (3) Optimization with candidate CSEs.
 
 % Differences:
-% Table signature to identify
-% heuristic to prune bad candidates
-% Covering expression candidates are evaluated in cost-based manner (same), but: they already have their own cost estimation
-% not use in-memory caching
 % Plans are stored in MEMO structure
+% Table signature: technique to identify sharing
+% heuristics to prune bad candidates
+% Covering expression candidates are evaluated in cost-based manner (same), but: they already have their own cost estimation
+% does not use in-memory caching, does not have memory limit
 
-Materialized views can be used is conjunction with MQO to speed up query performance. It relies on the fact that accessing to a materialized view can be much faster than recomputing it. Nevertheless, due to the nature of RDBMSes, base relation changes frequently leading to cache invalidation and view maintenance cost. In this paper, we will concentrate on big data analytics queries in which the input data is usually stable in the Distributed File System (DFS). Additionally, while materialized views are usually materialized permanently (to disk), our approach considers temporarily materializing common shareable data to RAM as a mean to boost the overall jobs' performance.
+Materialized views can be used is conjunction with MQO to reduce query response time. The contents of materialized view are precomputed and stored to provide the alternative faster way of computing a query. Nevertheless, due to the nature of RDBMSes, base relation changes frequently leading to view inconsistency and view maintenance cost. In this paper, we will concentrate on big data analytics queries in which the input data is usually stable in the Distributed File System. Additionally, while materialized views are materialized permanently (to disk), our approach considers temporarily materializing common shareable data to RAM as a mean to boost the overall jobs' performance.
 
 % work-sharing & MQO in MapReduce + MQO in Cloud & MPP
-\emph{\textbf{MQO in Cloud and MPP.}} Inheriting from the MQO techniques in RDBMSes, Silva et al. \cite{silva2012exploiting} proposed an extension to the SCOPE query optimizer which optimizes cloud scripts containing common expressions while reconciling the physical requirements.
+\emph{\textbf{MQO in Cloud and Massively Parallel Processing (MPP).}} Inheriting from the MQO techniques in RDBMSes, Silva et al. \cite{silva2012exploiting} proposed an extension to the SCOPE query optimizer which optimizes cloud scripts containing common expressions while reconciling the physical requirements.
 
-In the context of Massively Parallel Processing databases, The work in \cite{el2015optimization} presents a comprehensive framework for the optimization of Common Table Expressions (CTEs) implemented for Orca (the Pivotal Query Optimizer). Compared to our method, we not only consider CTEs but also similar subexpressions as the potential sharing opportunities. We achieve work-sharing by utilizing the distributed memory cache, not by materializing intermediate result to disk.
+In the context of MPP databases, the work in \cite{el2015optimization} presents a comprehensive framework for the optimization of Common Table Expressions (CTEs) implemented for Orca. Compared to our method, we not only consider CTEs but also similar subexpressions as the potential sharing opportunities. We achieve work-sharing by utilizing the RAM memory, not by materializing intermediate result to disk.
 
 \emph{\textbf{MQO in MapReduce.}} The idea of avoiding redundant processing by batching the queries and make them share some intermediate results was widely studied in \cite{mrshare, mqo, agrawal2008scheduling, bhatotia2011incoop, elghandour2012restore, silva2012exploiting, li2011platform, li2012scalla}. Typically among them, MRShare \cite{mrshare}, is a sharing framework for MapReduce that first identifies different jobs sharing portions of identical work. These jobs are then transformed into a compound job such that \emph{scan sharing}, \emph{Map Output sharing} and \emph{Map Functions Sharing} could be achieved. While MRShare focuses on sharing between queries that are executed concurrently, ReStore \cite{elghandour2012restore}, as an extension on higher level language - Pig, allows jobs submitted at different time share the results. By keeping intermediate data and then reuse them in future jobs, the performance of the whole workflows improves. They both modifies the internal process of the computing engine, we don't. Our system is an extension to the current Spark SQL optimizer (the Catalyst \cite{sparksql}).
 
-None of earlier work comprehensively take into account the usage of the distributed memory to achieve high performance work sharing.
-
-%Coming to the ``big data'' era, where both volume, velocity and the variety of structure of data are increasingly %high, integrating optimization ideas from traditional DBMSes to distributed environment is a nontrivial task. It %requires modifications and considerations on new aspects, such as network cost and physical parallel computation.
-
-% . Early work on multi-query optimization [] focused primarily on exhaustive algorithms, considering sharing %opportunities only among the best plans for each query, leading to suboptimal solution. [] constructs covering %expression to cover all its potential consumers, which may result in producing too much data, as pointed in [].
+None of earlier work comprehensively take into account the limited usage of memory to achieve high performance work sharing.
