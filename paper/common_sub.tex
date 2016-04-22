@@ -52,7 +52,7 @@ Output: List of SEs put together in group
 		\EndIf
 		\State $AllowedMatching = True$	
 		\If {$IsMatched$ $AND$ the tree rooted at u does not has cache-unfriendly operator}
-			\State Stop the search on u's descendant
+			\State Stop the search on u's descendants
 		\ElsIf {$IsMatched$ $AND$ the tree rooted at u has cache-unfriendly operator $AND$ $u$ is cache-friendly operator}
 			\State $AllowedMatching = False$	
 		\EndIf		
@@ -65,4 +65,4 @@ Output: List of SEs put together in group
 \end{algorithmic}
 \end{algorithm}
 
-By using the formula (1) and (2), the algorithm \ref{sec:buildht_alg} builds a HashTree for each input tree (line 4) of algorithm \ref{sec:common_sub_alg}. Algorithm \ref{sec:buildht_alg} just shows the simplified pseudo code. (Dynamic programming can be applied to save the computations in the for loop). A single fingerprint table (line 2) is used for tracking the matches. Trees with the same fingerprint (same key) will be put in the same group. Following the depth-first-search, each tree and its \emph{operator fingerprint} are added to the fingerprint table (line 10). As being discussed, if we encounter a match on a tree having only cache-friendly operators, then we can safely skip the search on the descendants (line 13 and 14).
+By using the expression (1) and (2), the algorithm \ref{sec:buildht_alg} builds a HashTree for each input tree (line 4) of algorithm \ref{sec:common_sub_alg}. Algorithm \ref{sec:buildht_alg} just shows the simplified pseudo code. (Dynamic programming can be applied to save the computations in the for loop). A single fingerprint table (line 2) is used for tracking the matches. Trees with the same fingerprint (same key) will be put in the same group. Following the depth-first-search, each tree and its \emph{operator fingerprint} are added to the fingerprint table (line 10). As being discussed, if we encounter a match on a tree having only cache-friendly operators, then we can safely skip the search on the descendants (line 13 and 14). A group of SEs is detected whenever that group has 2 or more SEs (line 20). Algorithm \ref{sec:common_sub_alg} has O(N*M) complexity where N is the number of trees and M is the average number of nodes per tree.
