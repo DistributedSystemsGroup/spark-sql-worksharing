@@ -5,6 +5,7 @@ This section describes how cache primitives can be applied to the context of wor
    	\caption{Proposed architecture.} 
    	\label{fig:phases_mqo}
 \end{figure}
+
 \textbf{Phase 1: Similar subExpressions(SEs) identification}\\
 The goal of this phase is to quickly identify all potential sharing opportunities - the Similar Subexpressions (SEs). We compute an \emph{operator fingerprint} for each operator in each logical plan and store it in a fingerprint table. If two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. We will discuss this technique in Section \ref{sec:common_sub}. Found similar subexpressions represents the potential candidates for building covering subexpressions (CEs) in the next phase.
 
@@ -12,7 +13,7 @@ The goal of this phase is to quickly identify all potential sharing opportunitie
 Given the sets of SEs, the optimizer first tries to eliminate bad candidates for sharing with the help of cardinality and cost estimation. In this phase, some heuristics are applied to quickly reduce the solution space. Then for each set of SEs, we construct a CE that covers the computation of those expressions. Some CEs are dependent on other CEs, thus CEs are put into groups (classes). Some CEs might become \emph{cache plans} after the cost-based optimization in phase 3.
 
 \textbf{Phase 3: Cost-based optimization}\\
-This phase achieves the objective of selecting the best combination of CEs which are then become \emph{cache plans}, taking into account the memory constraints and the cost of the caching operation. By using our cost estimation, each CE in previous phase will be assigned a weight and a profit. Finding the best \emph{cache plans} is the most important materialization of our idea to achieve high performance work sharing. We model the challenge such that solving it is equal to solving the Multiple Choice Knapsack problem.
+This phase achieves the objective of selecting the best combination of CEs which then become \emph{cache plans}, taking into account the memory constraints and the cost of the caching operation. By using our cost estimation, each CE in previous phase will be assigned a weight and a profit. Finding the best \emph{cache plans} is the most important materialization of our idea to achieve high performance work sharing. We model the challenge such that solving it is equal to solving the Multiple Choice Knapsack problem.
 
 \textbf{Phase 4: Query rewriting}\\
 Finally, the input queries are rewritten in which the cache plans are employed. This step involves some basic query transformations on the original queries.

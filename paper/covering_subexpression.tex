@@ -1,11 +1,11 @@
 We identified the potential sharing candidates (SEs) from the input queries, it is the goal of this phase to build the covering subexpressions (CEs) that are the ``covering" computations. Given the sets of SEs, the optimizer first tries to eliminate obviously bad candidates for sharing with the help of cardinality and cost estimation described in Section \ref{sec:cardinality}. Then for each set of SEs, we construct a single CE to produce all common sharing tuples for the consumers (all SEs in that set). Some CEs might become \emph{cache plans} after the cost-based optimization in phase 3. 
 
+In this paper, we define the \emph{cache plan} as the materialization for our work sharing idea. A \emph{cache plan} is a CE defining the result of a materialized view. In other words, cache plans can be seen as temporary views in RDBMSes and to be materialized in RAM. In our work, \emph{cache plans} (selected CEs) will be executed only once and the result is materialized in RAM so that it could be reused multiple times to achieve work sharing. When a query executes, the engine searches in the distributed memory cache to determine whether the results already exists. If yes, it retrieves the result instead. If no, it executes, return the results as output and store them back to the memory cache.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Pruning bad SEs}
 \label{sec:se-prune}
-In this paper, we define the \emph{cache plan} as the materialization for our work sharing idea. A \emph{cache plan} is a CE defining the result of a materialized view. In other words, cache plans can be seen as temporary views in RDBMSes and to be materialized in RAM. In our work, \emph{cache plans} (selected CEs) will be executed only once and the result is materialized in RAM so that it could be reused multiple times to achieve work sharing. When a query executes, the engine searches in the distributed memory cache to determine whether the results already exists. If yes, it retrieves the result instead. If no, it executes, return the results as output and store them back to the memory cache.
-
-Hence, the size of the \emph{cache plans} not only affects the memory occupation but also brings materializing costs
+The size of the \emph{cache plans} not only affects the memory occupation but also brings materializing costs
 
 the saving comes from 
 
