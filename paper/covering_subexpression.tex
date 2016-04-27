@@ -2,14 +2,16 @@ We identified the potential sharing candidates (SEs) from the input queries, it 
 
 In this paper, we define the \emph{cache plan} as the materialization for our work sharing idea. A \emph{cache plan} is a CE defining the result of a materialized view. In other words, cache plans can be seen as temporary views in RDBMSes and to be materialized in RAM. In our work, \emph{cache plans} (selected CEs) will be executed only once and the result is materialized in RAM so that it could be reused multiple times to achieve work sharing. When a query executes, the engine searches in the distributed memory cache to determine whether the results already exists. If yes, it retrieves the result instead. If no, it executes, return the results as output and store them back to the memory cache.
 
+We first compare the cost between two approaches: with and without our optimization. We use the notation $C_{E}^{se}$ and $C_{E}^{ce}$ to denote the executing costs of SE $se$ and CE $ce$. $C_{W}^{ce}$ and $C_{R}^{ce}$ are the costs of materializing (writing) the result of CE $ce$ to RAM and retrieving (reading) it back. $C_{COMP}^{se}$ indicates the cost of using the CE to answer the SE $se$.
+
+Given a group of n SEs detected in phase 1, 
+The cost of executing queries 
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Pruning bad SEs}
 \label{sec:se-prune}
-The size of the \emph{cache plans} not only affects the memory occupation but also brings materializing costs
-
-the saving comes from 
-
-As mentioned in Section \ref{sec:problem}, . 
+The size of the \emph{cache plans} not only affects the memory occupation but also brings materializing costs. 
 
 
 Intuitively, good candidates of \emph{cache plans} are those satisfy the memory constraint while (1) have high frequent of use and/or (2) are expensive to (re)compute, for example producing small amount of output while reading and computing a large amount of input data. Thus, cheap SEs (fast to compute) and heavy SEs (their output exceeds the memory constraint) should be eliminated early from consideration of building the CE. We rather compute them from scratch than just gain a small benefit while paying a big cost in caching a large amount of data. The cost and cardinality estimation we propose in the next section is used to estimate the execution cost and output size of a query.
