@@ -4,8 +4,10 @@ In this paper, we define the \emph{cache plan} as the materialization for our wo
 
 We first compare the cost between two approaches: with and without our optimization. We use the notation $C_{E}^{se}$ and $C_{E}^{ce}$ to denote the executing costs of SE $se$ and CE $ce$. $C_{W}^{ce}$ and $C_{R}^{ce}$ are the costs of materializing (writing) the result of CE $ce$ to RAM and retrieving (reading) it back. $C_{COMP}^{se}$ indicates the cost of using the CE to answer the SE $se$.
 
-Given a group of n SEs detected in phase 1, 
-The cost of executing queries 
+Given a group of n SEs detected in phase 1, without our optimization, the cost of executing them is simply the sum of executing individual SE: $C = \sum _{i=1}^{n}C_{E}^{se_i}$. In contrast, by building a CE and use it as a \emph{cache plan}, it becomes: 
+\[C^* = C_{E}^{ce} + C_{W}^{ce} + \sum _{i=1}^{n}(C_{R}^{ce} + C_{COMP}^{se_i})\]
+
+CE will be executed and materialized to RAM once. Then the result is read back to answer each individual SE. Only when $C^* < C$, caching CE brings some benefit in reducing the total job's running time. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
