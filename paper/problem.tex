@@ -22,9 +22,7 @@ WHERE dep = dept_id
 	AND id = emp_id
 	AND gender = 'F'
 	AND location = 'us'
-	AND salary > 20000
-GROUP BY title
-ORDER BY to
+	AND from >= 2010
 
 QUERY 3:
 SELECT id, name, salary, from_date
