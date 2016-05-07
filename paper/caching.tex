@@ -1,24 +1,22 @@
-This section describes how the cache primitives can be applied to the context of work-sharing in large-scale distributed computing engines. The whole optimization process contains 4 phases described in Figure \ref{fig:phases_mqo}. Queries submitted by multiple users are parsed, analyzed and individually optimized normally by the query optimizer. We take the optimized logical plan (the optimized operator tree) of each query as the input to our system. In this paper, we are using the term \emph{logical plan} as the logical representation of a query. Those (optimized) logical plans are then sent to a central server where we will apply our optimization.
-
+This section describes how cache primitives can be applied to the context of work-sharing in large-scale distributed computing engines. The optimization process contains 4 phases and is described in Figure \ref{fig:phases_mqo}. Queries submitted by multiple users are parsed, analyzed and individually optimized by the query optimizer in normal way. Our optimization process starts with the optimized logical plan (the optimized operator tree) of each query as the input. In this paper, we are using the term \emph{logical plan} as the logical representation of a query. Those (optimized) logical plans are sent to a central server where our optimizations are applied.
 \begin{figure}[!htb]
 	\centering
- 	\includegraphics[scale=0.65]{figures/phases_mqo}
+ 	\includegraphics[scale=0.7]{figures/phases_mqo}
    	\caption{Proposed architecture.} 
    	\label{fig:phases_mqo}
 \end{figure}
 
-
 \textbf{Phase 1: Similar subExpressions(SEs) identification}\\
-The goal of this phases is to quickly identify all potential sharing opportunities inside a query and among different queries. Similar subexpressions are subqueries that could benefit from some common computation. We compute the \emph{operator fingerprints} for all logical plans and store them into a fingerprint table. An operator fingerprint is computed by traversing in post order the tree rooted at that operator. Two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. We will discuss this technique in more detail in Section \ref{sec:common_sub}. Found similar subexpressions represents the potential candidates for building covering subexpressions in the next phase.
+The goal of this phase is to quickly identify all potential sharing opportunities - the Similar Subexpressions (SEs). We compute an \emph{operator fingerprint} for each operator in each logical plan and store it in a fingerprint table. If two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. We will discuss this technique in Section \ref{sec:common_sub}. Found similar subexpressions represents the potential candidates for building covering subexpressions (CEs) in the next phase.
 
 \textbf{Phase 2: Building Covering SubExpressions}\\
-Given the sets of similar subexpressions, the optimizer first tries to eliminate obviously bad candidates for sharing with the help from the cost estimation. Then for each set of subexpressions, we construct a single covering subexpression that is the common computation among those expressions. Some CEs might become \emph{cache plans} after the cost-based optimization in phase 3.
+Given the sets of SEs, the optimizer first tries to eliminate bad candidates for sharing with the help of cardinality and cost estimation. In this phase, some heuristics are applied to quickly reduce the solution space. Then for each set of SEs, we construct a CE that covers the computation of those expressions. Some CEs are dependent on other CEs, thus CEs are put into groups (classes). Some CEs might become \emph{cache plans} after the cost-based optimization in phase 3.
 
 \textbf{Phase 3: Cost-based optimization}\\
-This phase achieves the objective of selecting the best combination of CEs which are then become \emph{cache plans}, taking into account the memory constraints and the cost of the caching operation. By using our cost estimation, each CE in previous phase will be assigned a weight and a profit. Finding the best \emph{cache plans} is the most important materialization of our idea to achieve high performance work sharing. 
+This phase achieves the objective of selecting the best combination of CEs which then become \emph{cache plans}, taking into account the memory constraints and the cost of the caching operation. By using our cost estimation, each CE in previous phase will be assigned a weight and a profit. Finding the best \emph{cache plans} is the most important materialization of our idea to achieve high performance work sharing. We model the challenge such that solving it is equal to solving the Multiple Choice Knapsack problem.
 
 \textbf{Phase 4: Query rewriting}\\
-Finally, the input queries are rewritten such that the cache plans are employed. This step involves some basic query transformations on the original queries.
+Finally, the input queries are rewritten in which the cache plans are employed. This step involves some basic query transformations on the original queries.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Common subexpression identification}

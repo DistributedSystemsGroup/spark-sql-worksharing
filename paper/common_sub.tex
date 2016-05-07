@@ -1,18 +1,11 @@
-The goal of this phases is to quickly identify all potential sharing opportunities inside a query and among different queries. The input of this phase is a set of logical plans that are already parsed, analyzed and optimized individually. A logical plan is the internal form represent a query. It is a tree with nodes are logical operators supported by the execution engine. Each operator has its own attribute(s) (filter predicate, project columns, joining condition, etc.). 
-%Next, the query is validated against the meta-data (schema, catalogs) to ensure that the query contains only valid references to existing database objects. The optimization process, which could require substantial search and applying rule/cost-based optimization, outputs an optimized plan called query execution plan. This plan is finally translated into physical plan for execution.
-%Recall our problem statement: Given a batch of queries submitted within a time-window $\tau$, transform it into a new batch  and ``injecting'' the caching commands, such that the new batch results in shorter aggregate job running time, with respect to the original batch. 
+The goal of this phase is to quickly identify all potential sharing opportunities in a query and among different queries. The input of this phase is a set of logical plans that are already parsed, analyzed and optimized individually. A logical plan is the internal form representing a query. It is a tree with nodes are logical operators supported by the execution engine. Each operator has its own attribute(s) (filter predicate, project columns, joining condition, etc.).
 
-Our proposed MQO optimization technique starts with the optimized logical plans (right before being transformed into physical plans) as the input. Note that we simplified the problem by only focusing on the locally optimal query plans that can derive globally better ones. The first reason is that all queries are already optimized by the same techniques (for example the rule-based optimizer) and usually, the selection and projection operators are pushed to the relations as close as possible. We want to quickly obtain and identify the potential sharing opportunities without paying too much the cost of taking into consideration each single generated logical plan for each query as in \cite{zhou2007efficient}.
+Our optimization process starts with the optimized logical plans (right before being transformed into physical plans) as the input. Note that we simplified the problem by only focusing on the locally optimal query plans that can derive globally better ones. The first reason is that all queries are already optimized by the same techniques (for example the rule-based optimizer) and usually, the selection and projection operators are pushed to the relations as close as possible. We want to quickly obtain and identify the potential sharing opportunities without paying too much the cost of taking into consideration each single generated logical plan for each query as in \cite{zhou2007efficient}. Keeping that in mind, it is the target of this step to quickly identify and produce reasonable good candidates.
 
-% Keeping that in mind, it is the target of this step to identify and produce reasonable good candidates
-We begin with finding the similar subexpressions in the trees. As discussed in Section \ref{sec:problem}, we need to strike a balance between (low) memory utilization and (high) benefits from caching. Considering a query has only selection and projection operators, then the higher the node is, the more selective (less output data) it will be. In other words, we can determine that caching some trees is always better than the others. For example in the example of 3 queries in Figure \ref{fig:queries}, sharing the table \textbf{date dim} is always worse than sharing the CS at ($Project_3$, $Project_8$, $Project_{13}$). However, we may have multiple caching options if the subqueries contains one of the following operators: union, cartesian product and join. They are operators that could possibly produce many output data, even more than the input. Thus, we classify them into the \emph{cache-unfriendly operators} group. The rest are \emph{cache-friendly operators} (Filter, Project, Sort, Limit, etc.).
+We begin with finding the similar subexpressions in the trees. As being discussed in Section \ref{sec:problem}, we need to strike a balance between (low) memory utilization and (high) benefits from caching. Considering a query has only selection and projection operators, then the higher the node in that tree is, the more selective (less output data) it will be. In other words, some SEs can be safely eliminated from consideration because sharing (caching) them is always worse than some others. However, we may have multiple options if the tree contains one of the following operators: union, cartesian product and join. They are the operators that could possibly produce many output data, even more than the input. Such operators are classified into the \emph{cache-unfriendly operators} group. The rest are \emph{cache-friendly operators} (Filter, Project, Sort, Limit, etc.). Going back to the example in Section \ref{sec:problem}, because SE2, SE3 and SE4 contains only \emph{cache-friendly operators}, we stop looking at the smaller subexpressions for more sharing possibilities. SE1, however, has one \emph{cache-unfriendly operator} - Join. Then we can either select this candidate (SE1) or the 2 smaller ones (SE2 and SE3). We may not be able to immediately conclude which selection is the best. It depends on multiple criteria (how much we can save in each case, how much data each produces and the memory available, etc.). Potential options are: $\{SE1, SE2, SE3, (SE2, SE3)]\}$.
 
-We use the \emph{operator fingerprints} as a mean to detect the expressions that are either similar or identical. Found similar subexpressions represents the potential candidates for building covering subexpressions in the next phase. We first describe how to compute it and then how to produce only the reasonable good SE candidates. We use the following notations: A node $u$ in the operator tree has its label $u.label$ (operator name - Filter, Project, Join, ...) and attributes $u.attributes$ (filter predicate, projection columns, ...).
-
-%We compute the \emph{operator fingerprints} for all logical plans and store them into a fingerprint table.
-
-For each query (logical plan), we build a hash tree containing \emph{operator fingerprints} using the expression:
-\[fprint(u)= h(H(u) | Sort(fprint(u.lchild), fprint(u.rchild))) (1)\]
+We use the \emph{operator fingerprints} as a mean to detect the similar subexpressions. Found SEs  represents the potential candidates for building CE in the next phase. We first describe how to compute it and how to produce only the reasonable good SE candidates. The fingerprint $FP(u)$ of an operator $u$ is computed by:
+\[FP(u)= h(H(u) | Sort(FP(u.lchild), FP(u.rchild))) (1)\]
 where $h$ is a robust hash function (for example SHA256) and 
 \[H(u)=
 \begin{cases}
@@ -20,41 +13,56 @@ where $h$ is a robust hash function (for example SHA256) and
  & h(u.label, u.attributes)),\ otherwise
 \end{cases} (2)\]
 
-As can be seen from (1), an operator fingerprint is computed by traversing in post order the tree rooted at that operator. Two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. The $Sort$ in (1) ensures the isomorphic property, for example the expression $TableA\ JOIN\ TableB$ is isomorphic to $TableB\ JOIN\ TableA$. If $u$ is a binary node, we have $u.lchild$ and $u.rchild$ as the left and right child. If $u$ is a unary node or a leaf node, $fprint(u)= h(H(u), fprint(u.child))$ and $fprint(u)= h(H(u))$ will be used respectively. Note that the fingerprint of a node (an operator) is computed after computing hash code of their child(s). Then two nodes having the same hash code would have same structure and property. The reason we treat the Filter and Project operations differently in (2) is that we notice these two operators could be transformed into equivalent expressions sharing a common subexpression. For instance $e1 = Filter[a>10](x)$ and $e2 = Filter[b<30](x)$ are similar subexpressions, then $e1, e2$ can be transformed into $Filter[a>10](Filter[a>10\ \cup \ b < 30](x))$ and $Filter[b<30](a>10\ \cup \ b b < 30)$ without changing the expression's result. By doing that, the subexpression $Filter[a>10\ \cup \ b < 30](x)$ could be evaluated once and the result is reused twice.
+Node $u$ in the operator tree has its label $u.label$ (operator name) and attributes $u.attributes$ (filter predicate, projection columns, joining conditions, etc.). The $Sort$ in (1) ensures the isomorphic property, for example $TableA\ JOIN\ TableB$ and $TableB\ JOIN\ TableA$ are two isomorphic expressions. If $u$ is a binary node, we have $u.lchild$ and $u.rchild$ as the left and right child. If $u$ is a unary node or a leaf node, (1) will become $FP(u)= h(H(u), FP(u.child))$ and $FP(u)= h(H(u))$ respectively. Note that the fingerprint of a node (an operator) is computed after computing fingerprint of its child(s). Two operators (and its descendants) have the same fingerprint then we call them similar subexpressions. They must have the same tree structure and property. Treating the Filter and Project operations differently in (2) allows us to identify SEs having different filtering predicates and projections. In phase 2, they can be transformed into equivalent expressions sharing a common subexpression. For instance $e1 = Filter_{a>10}(x)$ and $e2 = Filter_{b<30}(x)$ are similar subexpressions, then $e1, e2$ can be transformed into $Filter_{a>10}(Filter_{a>10\ \cup \ b < 30}(x))$ and $Filter_{b<30}(Filter_{a>10\ \cup \ b < 30}(x))$ without changing the expression's result.
 
-Now that we have a mean to compare two operator trees, the following algorithm search for matchings while avoid producing worse candidates.
+Now that we have a mean to compare two operator trees, the algorithm \ref{sec:common_sub_alg} searches for SEs among a set of trees while avoid producing worse candidates.
 
-%The identification algorithm is described as follows:
-%Our multi-query optimizer needs first to detect all sharing opportunities - the common subtrees in all original query plans. The logical representations of 3 queries are 3 rooted trees with nodes are labeled by only the operator names (Filter, Project, Join, etc...). A node may have zero, one, or two child(s) (respectively the leaf, unary and binary node). Intuitively, . They are either identical or similar sequence of operations that could be computed only once after we transform them into cache plans. The algorithm to identify the common subtrees is described as follows:
+\begin{algorithm}
+	\caption{Build hash tree}\label{sec:buildht_alg}
+	Input: a logical plans (tree)\\
+	Output: HashMap[node, fingerprint]
+	\begin{algorithmic}[1]
+		\Procedure{$BuildHashTree([T])$}{}
+		\State $HT:\{(node, fingerprint)\}=$ empty hash tree
+		\For{each node $u$ in $T$}
+			\State compute fingerprint $opFT$ for $u$ using (1) and (2)
+			\State put $(u, opFT)$ into $HT$
+		\EndFor
+		\State \Return  $HT$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 
 \begin{algorithm}
 \caption{Identify similar subexpressions}\label{sec:common_sub_alg}
+Input: Array of logical plans (trees)\\
+Output: List of SEs put together in group
 \begin{algorithmic}[1]
-\Procedure{$IdentifySEs(T_{1}, T_{2}, ... T_{N})$}{}
-\State $FT = \{(f\_print, [nodes])\} //fingerprint\_table$ 
+\Procedure{$IdentifySEs([T_{1}, T_{2}, ... T_{N}])$}{}
+\State $FT:\{(fp, [nodes])\} =$ empty fingerprint table
 %\State $common\_sub\_expressions = \{\}$
 \For{each tree $T_{i}, i = 1..N$}
 	\State$HT(i) = BuildHashTree(T_{i})$
 	\State $AllowedMatching = True$	
-	\For{each node $u$ in $T_{i}$ follows the DFS traversal}
-		\State $Operator\_fp = HT(i)(u)$
-		\State IsMatched = FT contains Operator\_fp
-		\If {AllowedMatching}
-				\State Add to FT
+	\For{each node $u$ in $T_{i}$ follow the DFS traversal}
+		\State $opFP = HT(i)(u)$
+		\State $IsMatched = FT$ contains $opFP$
+		\If {$AllowedMatching$}
+				\State Add $(opFP, u)$ entry to $FT$
 		\EndIf
 		\State $AllowedMatching = True$	
-		\If {IsMatched AND u does not contain cache-unfriendly operator}
-			\State Stop the search on u's descendant
-		\ElsIf {IsMatched AND u contains cache-unfriendly operator AND u is cache-friendly operator}
+		\If {$IsMatched$ $AND$ the tree rooted at u does not has cache-unfriendly operator}
+			\State Stop the search on u's descendants
+		\ElsIf {$IsMatched$ $AND$ the tree rooted at u has cache-unfriendly operator $AND$ $u$ is cache-friendly operator}
 			\State $AllowedMatching = False$	
 		\EndIf		
 	\EndFor
 	
 \EndFor
-
-\State \Return $FT.filter(length(values) >= 2)$
+\State remove any entries (fp, [nodes]) in FT that has length(nodes) = 1
+\State \Return  $FT$
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
 
-By following the formula (1) and (2), the algorithm first builds a HashTree for each input tree (line 4), computing the \emph{operator fingerprints} for all nodes. A single fingerprint table (line 2) is used for tracking the matches. Trees with the same fingerprint (same key) will be put in the same group. Following the depth-first-search, each tree and its \emph{operator fingerprint} are added to the fingerprint table (line 10). As being discussed, if we encounter a match on a tree having only cache-friendly operators, then we can safely skip the search on the descendants (line 13 and 14).
+By using the expression (1) and (2), the algorithm \ref{sec:buildht_alg} builds a HashTree for each input tree (line 4) of algorithm \ref{sec:common_sub_alg}. Algorithm \ref{sec:buildht_alg} just shows the simplified pseudo code. (Dynamic programming can be applied to save the computations in the for loop). A single fingerprint table (line 2) is used for tracking the matches. Trees with the same fingerprint (same key) will be put in the same group. Following the depth-first-search, each tree and its \emph{operator fingerprint} are added to the fingerprint table (line 10). As being discussed, if we encounter a match on a tree having only cache-friendly operators, then we can safely skip the search on the descendants (line 13 and 14). A group of SEs is detected whenever that group has 2 or more SEs (line 20). Algorithm \ref{sec:common_sub_alg} has O(N*M) complexity where N is the number of trees and M is the average number of nodes per tree.
