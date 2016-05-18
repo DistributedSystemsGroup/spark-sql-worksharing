@@ -1,7 +1,7 @@
 We discuss the optimization opportunities and challenges through the following example. We also provide the readers a more practical example of queries taken from the TPC-DS benchmark \cite{tpcds} in Section \ref{sec:tpcds-sharing}.
 
 \begingroup
-\fontsize{8pt}{9pt}
+\fontsize{7pt}{8pt}
 \selectfont
 \begin{verbatim}
 QUERY 1:
@@ -44,7 +44,8 @@ Looking at the \emph{FROM} statements above, we can see that 3 queries (jobs) ca
 
 To facilitate reader's understanding, we use Figure \ref{fig:common_sub} which illustrates the optimized operator trees (optimized logical plans) of 3 queries in the above example. Those optimized logical plans are produced by Spark SQL's query optimizer that will be next translated into physical plans for execution. The leaf nodes represents the base relations. Each intermediate node is a relational algebra operator (Filter, Project, Join, etc.). The arrows indicate data flow.
 
-As can be seen from Figure \ref{fig:common_sub}, multiple SEs can be identified. They have the same tree structure but different filtering predicates and projections, for example the similar subexpression 2 (SE2): $Project_p(Filter_f(employees))$ which appears in both 3 queries. We can save some reading, parsing, filtering and projecting costs on the \textbf{employees} table 2 times out of 3. In order to achieve that, a CE will be constructed by ``combining'' operators' predicates: \[Project_{id, name, dep, age, gender}(Filter_{gender=F \cup age>30}(employees))\]
+As can be seen from Figure \ref{fig:common_sub}, multiple SEs can be identified. They have the same tree structure but different filtering predicates and projections, for example the similar subexpression 2 (SE2): $Project_p(Filter_f(employees))$ which appears in both 3 queries. We can save some reading, parsing, filtering and projecting costs on the \textbf{employees} table 2 times out of 3. In order to achieve that, a CE will be constructed by ``combining'' operators' predicates: 
+\[\Scale[0.95]{Project_{id, name, dep, age, gender}(Filter_{gender=F \cup age>30}(employees))}\]
 
 Constructing the CE in this way makes its output can be used to answer the consumer queries. By executing this CE and keeping the result in memory, the consumers can retrieve it back instead of reading and computing again from scratch. Thereby, the query execution time reduces significantly. Imagine that the Projection operator only projects on 5 out of total 10 columns and the Filtering keeps 60\% of records in \textbf{employees} tables, then the consumers rather than re-read and scan the whole table from disk, they can just extract from a smaller chunk of cached data in-memory. 
 

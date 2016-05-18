@@ -18,6 +18,9 @@
 \usepackage{listings}
 \usepackage{xcolor}
 
+%==============
+\usepackage{amsmath}
+
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
@@ -53,6 +56,7 @@
 
 %========================================================
 \newcommand\mytodo[1]{\textcolor{red}{[#1]}}
+\newcommand*{\Scale}[2][4]{\scalebox{#1}{$#2$}}%
 
 \makeatletter
 \def\BState{\State\hskip-\ALG@thistlm}
