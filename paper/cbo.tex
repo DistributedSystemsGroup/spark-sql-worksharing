@@ -7,11 +7,7 @@ Computing the query's output size mainly relies on the statistics data, which ar
 
 Although simple, we just want a good estimation to avoid obviously bad plans. More complex histogram techniques could be used to improve the estimation accuracy.
 
-
-We focus on the CPU, disk I/O and network costs in estimating the total execution cost of a query because they are the three most dominant ones. Those costs are the results of the multiplication between the pre-defined constants and the estimated number of records.
-
-
-
+The executing cost comprises of CPU, disk I/O and network costs. Those costs are the results of the multiplication between the pre-defined constants and the estimated number of records.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
