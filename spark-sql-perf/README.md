@@ -13,6 +13,29 @@ git checkout 5c93fff32337e46fa2cc8c9069c3a18a68eb2b63
 // remove the account credential requirements: dbcUsername, dbcPassword, dbcApiUrl, dbcClusters, dbcLibraryPath
 ```
 
+
+### Different sparkVersion build
+
+in Benchmark.scala
+- for sparkVersion = 1.6+, check the [commit](https://github.com/databricks/spark-sql-perf/commit/344b31ed69f18205fb8192df2f5a8704e6a62615) 
+ `case UnresolvedRelation(t, _) => t.table`
+ `tableIdentifier.table`
+- for sparkVersion = 1.4, 1.5
+ `case UnresolvedRelation(Seq(name), _) => name`
+ `tableIdentifier.last`
+
+### Newest version 2.0 snapshot
+
+in src/main/scala/com/databricks/spark/sql/perf/DatasetPerformance.scala
+```
+import org.apache.spark.sql.{Encoder, SQLContext}
+
+override def bufferEncoder = implicitly[Encoder[SumAndCount]]
+override def outputEncoder = implicitly[Encoder[Double]]
+
+
+```
+
 ### Modification required to support CSV format
 
 ```
@@ -24,17 +47,10 @@ sqlContext.read.format(format).option("header", "true").option("inferSchema", "t
 
 ```
 
-### Different sparkVersion build
-in Benchmark.scala
-- for sparkVersion = 1.6+, check the [commit](https://github.com/databricks/spark-sql-perf/commit/344b31ed69f18205fb8192df2f5a8704e6a62615) 
- `case UnresolvedRelation(t, _) => t.table`
- `tableIdentifier.table`
-- for sparkVersion = 1.4, 1.5
- `case UnresolvedRelation(Seq(name), _) => name`
- `tableIdentifier.last`
 
 ### How to build?
 `./build/sbt package`
 
 ### How to use?
 - Refer to project spark-sql-tpc-ds-perf for an example of usage.
+

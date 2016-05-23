@@ -1,4 +1,4 @@
-import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
+import com.databricks.spark.sql.perf.tpcds.Tables
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkContext, SparkConf}
 
@@ -26,7 +26,7 @@ object GenApp {
     val sparkContext = new SparkContext(conf)
 
     // You need the HiveContext to be able to fully parse the queries
-    val sqlContext= new org.apache.spark.sql.hive.HiveContext(sparkContext)
+    val sqlContext= new SQLContext(sparkContext)
 
     // Tables in TPC-DS benchmark used by experiments.
     val tables = new Tables(
