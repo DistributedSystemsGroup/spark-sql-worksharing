@@ -22,6 +22,8 @@ Application to generate the dataset for the benchmark
     
 ### BenchmarkApp: 
 Application for doing benchmarking the TPC-DS 1.4 queries
+- arguments: <inputPath> <outputPath> <scaleFactor> <format> <iterations> <dsdgenDir>
+- Example: /home/ntkhoa/tpcds-csv /home/ntkhoa/out 1 csv 1 tpc-ds-tool
 
 ## Issues & resolve:
 - Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
