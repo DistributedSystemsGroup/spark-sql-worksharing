@@ -1,5 +1,6 @@
 import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
 
 object BenchmarkApp {
@@ -17,7 +18,7 @@ object BenchmarkApp {
     val sparkContext = new SparkContext(conf)
 
     // You need the HiveContext to be able to fully parse the queries
-    val sqlContext= new SQLContext(sparkContext)
+    val sqlContext= new HiveContext(sparkContext)
 
     // Tables in TPC-DS benchmark used by experiments.
     val tables = new Tables(
@@ -31,38 +32,18 @@ object BenchmarkApp {
       format = args(3)
     )
 
-    //, , , item, promotion
-//    val df = sqlContext.sql("""
-//                     | SELECT *
-//                     | FROM store_sales
-//                   """.stripMargin)
-//
-//    val df2 = sqlContext.sql("""
-//                              | SELECT *
-//                              | FROM customer_demographics
-//                            """.stripMargin)
-//
-//    val df3 = sqlContext.sql("""
-//                              | SELECT *
-//                              | FROM date_dim
-//                            """.stripMargin)
-
-
     val tpcds = new TPCDS(sqlContext = sqlContext)
 
-    val queries = tpcds.runnable// tpcds.q7Derived
+    val queries = tpcds.tpcds1_4Queries
 
-    val exp = tpcds.runExperiment(
+    tpcds.runExperiment(
       executionsToRun = queries,
-      includeBreakdown = true,
       iterations = args(4).toInt
     )
 
-    exp.waitForFinish(Int.MaxValue)
+    // block the ui
+    while(true){
 
-    //      tpcds.createResultsTable()
-
-    sparkContext.stop()
-
+    }
   }
 }

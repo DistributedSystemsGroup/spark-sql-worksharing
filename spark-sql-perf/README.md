@@ -6,11 +6,7 @@ You can get it by:
 ```
 git clone https://github.com/databricks/spark-sql-perf.git
 cd spark-sql-perf
-// checkout the version 1.6
-git checkout 5c93fff32337e46fa2cc8c9069c3a18a68eb2b63
-// then, you need to edit the `build.sbt` file:
-// change: sparkVersion := "1.6.1"
-// remove the account credential requirements: dbcUsername, dbcPassword, dbcApiUrl, dbcClusters, dbcLibraryPath
+// then remove the account credential requirements: dbcUsername, dbcPassword, dbcApiUrl, dbcClusters, dbcLibraryPath in build.sbt
 ```
 
 
@@ -24,7 +20,7 @@ in Benchmark.scala
  `case UnresolvedRelation(Seq(name), _) => name`
  `tableIdentifier.last`
 
-### Newest version 2.0 snapshot
+### Newest spark (version 2.0 snapshot)
 
 in src/main/scala/com/databricks/spark/sql/perf/DatasetPerformance.scala
 ```
@@ -32,11 +28,9 @@ import org.apache.spark.sql.{Encoder, SQLContext}
 
 override def bufferEncoder = implicitly[Encoder[SumAndCount]]
 override def outputEncoder = implicitly[Encoder[Double]]
-
-
 ```
 
-### Modification required to support CSV format
+### Modification required to support CSV header
 
 ```
 //1. In Tables.scala, function genData

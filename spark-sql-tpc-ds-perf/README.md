@@ -2,23 +2,22 @@
 
 ## Dependencies
 - spark-hive (in build.sbt): to be able to use the HiveContext instead of SparkContext in generating the database
-`libraryDependencies += "org.apache.spark" %% "spark-hive" % "1.6.1"`
 - spark-sql-perf (in lib/): from DataBrick [Github url](https://github.com/databricks/spark-sql-perf). Cloned version is included in this repository (/spark-sql-perf)
 `cp ../spark-sql-perf/target/scala-2.10/*.jar lib/`
 - tpc-ds-tool/ : folder containing official tpc-ds tool to generate data
-- spark-csv & commons-csv in lib/
+- old versions (prior to 1.6.x) of spark require `spark-csv` & `commons-csv` library to be able to read and write csv files.
 
 ## How to use?
 
 ### GenApp: 
-Application to initialize dataset for the benchmark
+Application to generate the dataset for the benchmark
 - arguments: <inputPath> <scaleFactor> <format> <dsdgenDir>
     + master: {local, cluster}
     + outputPath: where to save the generated data
     + scaleFactor: number of GB of data to be generated, eg: 10, 100, ...
-    + format: {parquet, com.databricks.spark.csv}
+    + format: {parquet, csv}
     + dsdgenDir: folder tpc-ds-tool/
-- Example: local /home/ntkhoa/tpcds-csv 1 com.databricks.spark.csv tpc-ds-tool
+- Example: local /home/ntkhoa/tpcds-csv 1 csv tpc-ds-tool
 - Example: local /home/ntkhoa/tpcds-parquet 1 parquet tpc-ds-tool
     
 ### BenchmarkApp: 
@@ -29,7 +28,6 @@ Application for doing benchmarking the TPC-DS 1.4 queries
     + in local: set `-XX:MaxPermSize=2G` (maximum size of Permanent Generation) in VM Options
     + in cluster: `--driver-java-options -XX:MaxPermSize=2G` 
 - CSV with no headers: read README in project `spark-sql-perf`
-
 
 ## Additional information for Eurecom internal users
 - Copy the tpc-ds-tool to each worker machine, same location

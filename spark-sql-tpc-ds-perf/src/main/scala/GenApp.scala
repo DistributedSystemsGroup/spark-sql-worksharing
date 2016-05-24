@@ -25,7 +25,6 @@ object GenApp {
 
     val sparkContext = new SparkContext(conf)
 
-    // You need the HiveContext to be able to fully parse the queries
     val sqlContext= new SQLContext(sparkContext)
 
     // Tables in TPC-DS benchmark used by experiments.
