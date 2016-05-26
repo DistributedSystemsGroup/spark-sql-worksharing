@@ -38,9 +38,9 @@ object GenApp {
       location = outputPath,
       format = format,
       overwrite = false,
-      partitionTables = true,
+      partitionTables = false,
       useDoubleForDecimal = false,
-      clusterByPartitionColumns = true,
+      clusterByPartitionColumns = false,
       filterOutNullPartitionValues = false
     )
   }

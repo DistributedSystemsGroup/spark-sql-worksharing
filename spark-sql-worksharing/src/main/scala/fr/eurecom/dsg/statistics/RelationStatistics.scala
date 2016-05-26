@@ -1,12 +1,12 @@
-package nw.fr.eurecom.dsg.statistics
+package fr.eurecom.dsg.statistics
 
-import com.fasterxml.jackson.annotation.{JsonCreator}
-import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants}
-import org.apache.spark.sql.catalyst.expressions.Expression
+import com.fasterxml.jackson.annotation.JsonCreator
+import fr.eurecom.dsg.util.Constants
 import scala.collection.mutable.HashMap
 
-/**
+/** POJO class
   * Holds statistics information of a table
+  *
   * @param inputSize total size of the input in bytes
   * @param numRecords total number of records of the table
   * @param averageRecSize average size of records in bytes
@@ -19,5 +19,12 @@ class RelationStatistics(val inputSize:Long = Constants.UNKNOWN_VAL,
                          val columnStats:HashMap[String, ColumnStatistics]){
   def getColumnStats(columnName:String):ColumnStatistics={
     columnStats.getOrElse(columnName, null)
+  }
+
+  override def toString():String = {
+    val sb = new StringBuilder()
+    sb.append("InputSize=%d, NumRecords=%d, AverageRecSize=%f".format(inputSize, numRecords, averageRecSize))
+    columnStats.foreach(kv => sb.append(" \n" + kv._1 + " " + kv._2.toString()))
+    sb.toString()
   }
 }

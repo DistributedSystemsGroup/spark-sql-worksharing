@@ -2,9 +2,9 @@
 package org.apache.spark.sql.myExtensions.optimizer
 
 import java.math.BigInteger
-import com.databricks.spark.csv.CsvRelation
+import fr.eurecom.dsg.util.SparkSQLServerLogging
 import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator}
-import nw.fr.eurecom.dsg.util.SparkSQLServerLogging
+
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
@@ -29,6 +29,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * (currently, it supports only structured data sources which goes with the schema, eg: json, parquet, csv, ...)
     *
     * This is the main entry function of the Optimizer
+ *
     * @param inPlans: array of queries. To be more exact, array of (individually) Optimized LogicalPlans
     * @param sqlContext: SQLContext
     * @return the best (globally optimized) CacheAwareStrategy to be executed
@@ -324,6 +325,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * This method will be used to resolve that problem
     * Given a replaceByRelation and tobeReplacedRelation which are actually the same relation (because the AttributeReference#IDs are not the same)
     * Replaces the tobeReplacedRelation (which is the child of "oldPlan") by replaceByRelation and transforms upwards the attribute reference#ID
+ *
     * @param replaceByRelation
     * @param tobeReplacedRelation
     * @param oldPlan
@@ -361,6 +363,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
   /**
     * Find all LogicalRelation nodes of a plan
     * The leaf nodes of a logical plan are very usually Logical Relations - loading up the data
+ *
     * @param plan: the logical plan (query)
     * @return sequence of LogicalRelations
     */

@@ -1,10 +1,10 @@
+/*
+
 package org.apache.spark.sql
 
-
-import com.databricks.spark.csv.CsvRelation
 import nw.fr.eurecom.dsg.util.QueryProvider
 import org.apache.spark.sql.catalyst.plans.logical.{LeafNode, UnaryNode, BinaryNode, LogicalPlan}
-import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
 import org.apache.spark.{SparkContext, SparkConf}
 import scala.collection.mutable.ArrayBuffer
 
@@ -283,8 +283,9 @@ object PlanViewer {
     q.append(q3, q7, q15, q19, q21, q26, q37, q42, q43, q52, q55, q82, q96)
     q.foreach { str =>
       val df = query.getDF(str)
+      println("Khoa")
       println(getVisualizedString(df.queryExecution.optimizedPlan))
-      println(df.queryExecution.optimizedPlan)
+      //println(df.queryExecution.optimizedPlan)
       //println(df.queryExecution.optimizedPlan.toString())
     }
   }
@@ -293,6 +294,7 @@ object PlanViewer {
     * Use the format of the following site
     * http://ironcreek.net/phpsyntaxtree/?
     * Paste the result and you can get the image of the tree visualized
+ *
     * @param p
     * @return
     */
@@ -305,7 +307,7 @@ object PlanViewer {
       case u: UnaryNode =>
         return "[%s %s]".format(opName, getVisualizedString(u.child))
       case l: LeafNode =>
-        val path = l.asInstanceOf[LogicalRelation].relation.asInstanceOf[CsvRelation].location.get
+        val path = l.asInstanceOf[LogicalRelation].relation.asInstanceOf[HadoopFsRelation].inputFiles(0)
         return "%s".format(path.substring(path.lastIndexOf('/')+1))
     }
     ""
@@ -313,3 +315,5 @@ object PlanViewer {
 
 
 }
+
+*/

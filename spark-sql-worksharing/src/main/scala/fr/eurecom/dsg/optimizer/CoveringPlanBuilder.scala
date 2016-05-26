@@ -1,7 +1,7 @@
 package org.apache.spark.sql.myExtensions.optimizer
 
 import java.math.BigInteger
-import nw.fr.eurecom.dsg.util.SparkSQLServerLogging
+import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{Or, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LeafNode, Project, LogicalPlan}
 import org.apache.spark.sql.catalyst.plans.logical.{UnaryNode, BinaryNode}

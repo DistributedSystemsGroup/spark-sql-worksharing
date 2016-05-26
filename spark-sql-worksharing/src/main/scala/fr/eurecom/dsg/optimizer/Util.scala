@@ -2,7 +2,6 @@ package org.apache.spark.sql.myExtensions.optimizer
 
 import java.math.BigInteger
 import java.security.MessageDigest
-import com.databricks.spark.csv.CsvRelation
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
 
@@ -22,7 +21,6 @@ object Util {
     val classA = relationA.getClass.toString
     relationA.relation match {
       case r:HadoopFsRelation=> r.inputFiles.foreach(pathsA += _.trim) // ParquetRelation or JSONRelation
-      case r:CsvRelation => pathsA += r.location.get
       case _ => throw new IllegalArgumentException("unknown relation")
     }
     val hashA = Util.hash(classA + pathsA)
@@ -135,7 +133,6 @@ object Util {
           // Thus, if the 2 relations are read from the same file location then they are the same.
           leaf.relation match {
             case r:HadoopFsRelation=> r.inputFiles.foreach(paths += _.trim) // ParquetRelation or JSONRelation
-            case r:CsvRelation => paths += r.location.get
             case _ => throw new IllegalArgumentException("unknown relation")
           }
           hashVal = Util.hash(className + paths)

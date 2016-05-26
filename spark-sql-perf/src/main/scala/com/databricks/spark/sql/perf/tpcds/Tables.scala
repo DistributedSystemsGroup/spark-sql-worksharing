@@ -161,7 +161,7 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
         // If the table is not partitioned, coalesce the data to a single file.
         data.coalesce(1).write
       }
-      writer.format(format).option("header", "true").mode(mode)
+      writer.format(format).mode(mode)
       if (partitionColumns.nonEmpty) {
         writer.partitionBy(partitionColumns : _*)
       }
@@ -187,7 +187,7 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
     def createTemporaryTable(location: String, format: String): Unit = {
       println(s"Creating temporary table $name using data stored in $location.")
       log.info(s"Creating temporary table $name using data stored in $location.")
-      sqlContext.read.format(format).option("header", "true").option("inferSchema", "true").load(location).registerTempTable(name)
+      sqlContext.read.format(format).load(location).registerTempTable(name)
     }
   }
 
@@ -440,8 +440,8 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
       partitionColumns = Nil,
       'cc_call_center_sk        .int,
       'cc_call_center_id        .string,
-      'cc_rec_start_date        .date,
-      'cc_rec_end_date          .date,
+      'cc_rec_start_date        .string,
+      'cc_rec_end_date          .string,
       'cc_closed_date_sk        .int,
       'cc_open_date_sk          .int,
       'cc_name                  .string,
@@ -689,8 +689,8 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
       partitionColumns = Nil,
       'wp_web_page_sk           .int,
       'wp_web_page_id           .string,
-      'wp_rec_start_date        .date,
-      'wp_rec_end_date          .date,
+      'wp_rec_start_date        .string,
+      'wp_rec_end_date          .string,
       'wp_creation_date_sk      .int,
       'wp_access_date_sk        .int,
       'wp_autogen_flag          .string,
@@ -705,8 +705,8 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
       partitionColumns = Nil,
       'web_site_sk              .int,
       'web_site_id              .string,
-      'web_rec_start_date       .date,
-      'web_rec_end_date         .date,
+      'web_rec_start_date       .string,
+      'web_rec_end_date         .string,
       'web_name                 .string,
       'web_open_date_sk         .int,
       'web_close_date_sk        .int,

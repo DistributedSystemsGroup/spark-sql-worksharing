@@ -1,13 +1,13 @@
-package nw.fr.eurecom.dsg.statistics
+package fr.eurecom.dsg.statistics
 
 import java.io._
 import java.util.concurrent.atomic.AtomicLong
 import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants, QueryProvider}
+import fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants, QueryProvider}
 import org.apache.spark.scheduler._
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
-import org.apache.spark.sql.myExtensions.statistics.{SparkHistogram, BasicStatGatherer}
+import org.apache.spark.sql.extensions.statistics.{HistogramAggregator, BasicStatGatherer}
 import org.apache.spark.sql.types._
 import scala.collection.mutable
 import scala.collection.mutable.HashMap
@@ -20,7 +20,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
   *
   * Entry point for asking statistics data
   */
-class StatisticsProvider extends SparkSQLServerLogging{
+class StatisticsProvider{
 
   // Map a table to its RelationStatistics
   val baseRelationStats = new HashMap[String, RelationStatistics]()
@@ -34,27 +34,17 @@ class StatisticsProvider extends SparkSQLServerLogging{
     * For each table, 2 jobs are submitted
     * - the first computes basic stats: count, min, max, cardinality,...
     * - the second computes Histogram for each column (using the min, max of each column obtained)
+ *
     * @param tables tables to compute statistics data
     * @param queryProvider
     */
   def collect(tables: Seq[String], queryProvider: QueryProvider){
-
-    // Obtaining statistics information from built-in SQL DataFrame
-    // Spark SQL currently supports basic statistics for numeric columns
-    // Ref: https://databricks.com/blog/2015/06/02/statistical-and-mathematical-functions-with-dataframes-in-spark.html
-    // We can obtain: [(column_name, (count, mean, stddev, min, max))] from it
-    // Customized version:
-    // + add ApproxCountDistinct for each column (cardinality estimation with the HyperLogLog algorithm)
-    // + compute Histogram for each column
-    // TODO: How about using dataframe.stat.corr('column1', 'column2')? to compute the statistical dependence between 2 columns?
-
+    // atomic variables
     val inputSizeAtomic:AtomicLong = new AtomicLong(0)
     val numRecordsAtomic:AtomicLong = new AtomicLong(0)
-    val numSplitsAtomic:AtomicLong = new AtomicLong(0)
+    val numSplitsAtomic:AtomicLong = new AtomicLong(0) // at the moment, we have not used this info yet
 
-    def resetCounter(): Unit ={
-      inputSizeAtomic.set(0); numRecordsAtomic.set(0); numSplitsAtomic.set(0)
-    }
+    def resetCounter(): Unit ={ inputSizeAtomic.set(0); numRecordsAtomic.set(0); numSplitsAtomic.set(0) }
 
     // A call-back function whenever a ShuffleMapTask is completed
     queryProvider.sqlContext.sparkContext.addSparkListener(new StatsReportListener(){
@@ -72,31 +62,22 @@ class StatisticsProvider extends SparkSQLServerLogging{
     })
 
     tables.foreach(tableName => {
-      // TODO: any different way?
       resetCounter()
       val tableDF = queryProvider.getDF("SELECT * FROM " + tableName)
-      val builtinStats = BasicStatGatherer.execute(queryProvider.sqlContext, tableDF).collect()
-      // Note that Spark will generate 2 jobs for this query. The first job only read 10 first lines to parse the header (we can safely ignore this)
-      // We will update the inputSizeAtomic, numRecordsAtomic, numSplitsAtomic based on the second job
-      // Result: Row[6]
+      val builtinStats = BasicStatGatherer.execute(tableDF).collect()
+      // Result: Row[4]
       // Row[0]: count (not null)
-      // Row[1]: mean // removed, DateType not possible
-      // Row[2]: stddev // removed, DateType not possible
       // Row[1]: min
       // Row[2]: max
       // Row[3]: ApproxCountDistinct
-
-      builtinStats.foreach(println)
 
       def getCellFromBuiltinStats(row:Int, col:Int):Any={
         builtinStats(row).asInstanceOf[GenericRowWithSchema].get(col)
       }
 
       val inputSize:Long = inputSizeAtomic.get()
-      val numRecords:Long = numRecordsAtomic.get() - 1 // - header
+      val numRecords:Long = numRecordsAtomic.get()
       val numSplits:Long = numSplitsAtomic.get()
-
-      println("Table %s: InputSize=%d, NumRecords=%d, NumSplits=%d".format(tableName, inputSize, numRecords, numSplits))
 
       val columns = tableDF.schema.map(f => (f.name, f.dataType))
       val nColums = tableDF.columns.length
@@ -105,6 +86,7 @@ class StatisticsProvider extends SparkSQLServerLogging{
       // useful for computing histogram then
       val mins = new Array[Double](nColums)
       val maxs = new Array[Double](nColums)
+      val nBins = new Array[Int](nColums)
 
       // Read the result for each column
       // Initialize a ColumnStatistics for each column and add it to columnsStats
@@ -112,44 +94,24 @@ class StatisticsProvider extends SparkSQLServerLogging{
         val columnName = columns(i)._1
         val dataType = columns(i)._2
 
-        println(columnName + "-" + dataType)
-
         val numNotNull = getCellFromBuiltinStats(0, i+1).toString.toLong
         val numNull = numRecords - numNotNull
-        var mean:Double = Constants.UNKNOWN_VAL_DOUBLE // default value
-        var stddev:Double = Constants.UNKNOWN_VAL_DOUBLE // default value
-        var min:Double = Constants.MIN_STRING_TYPE
-        var max:Double = Constants.MAX_STRING_TYPE
-        val numDistincts:Long = getCellFromBuiltinStats(3, i+1).toString.toLong
+        var min:Double = Constants.DEFAULT_MIN
+        var max:Double = Constants.DEFAULT_MAX
+        var numDistinct:Long = getCellFromBuiltinStats(3, i+1).toString.toLong
+        var numBins:Int = 1
 
         dataType match {
-          case dt:IntegerType =>
-            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
-            //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
+            // get min, max for the following types
 
-            min = getCellFromBuiltinStats(1, i+1) match{
-              case null => 0
-              case v:Any => v.toString.toInt
-            }
-            max = getCellFromBuiltinStats(2, i+1) match{
-              case null => 0
-              case v:Any => v.toString.toInt
-            }
+          case _:BooleanType | _:BinaryType => {
+            min = 0
+            max = 1
+            numDistinct = 2
+            numBins = 2
+          }
 
-          case dt:LongType =>
-            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
-            //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
-            min = getCellFromBuiltinStats(1, i+1) match{
-              case null => 0
-              case v:Any => v.toString.toLong
-            }
-            max = getCellFromBuiltinStats(2, i+1) match{
-              case null => 0
-              case v:Any => v.toString.toLong
-            }
-          case dt:DecimalType =>
-            //mean = getCellFromBuiltinStats(1, i+1).toString.toDouble
-            //stddev = getCellFromBuiltinStats(2, i+1).toString.toDouble
+          case _:NumericType =>{
             min = getCellFromBuiltinStats(1, i+1) match{
               case null => 0
               case v:Any => v.toString.toDouble
@@ -159,24 +121,26 @@ class StatisticsProvider extends SparkSQLServerLogging{
               case v:Any => v.toString.toDouble
             }
 
-          // Don't get the avg, stddev,min,max for the following types
-          case dt:DateType =>
-            if(numDistincts < Constants.NUM_BINS_HISTOGRAM_MAX)
-              max = numDistincts.toInt
-          case dt:StringType =>
-            if(numDistincts < Constants.NUM_BINS_HISTOGRAM_MAX)
-              max = numDistincts.toInt
+            numBins = Math.min(numDistinct.toInt, Constants.NUM_BINS_HISTOGRAM_MAX)
+          }
+
+          // Don't get the min,max for the following types
+          case _:StringType | _:DateType | _:TimestampType =>
+            numBins = Math.min(numDistinct.toInt, Constants.NUM_BINS_HISTOGRAM_MAX)
         }
 
         mins(i) = min
         maxs(i) = max
-        val colStats = new ColumnStatistics(numNotNull, numNull,mean, stddev, min, max, numDistincts)
+        nBins(i) = numBins
+        val colStats = new ColumnStatistics(numNotNull, numNull, min, max, numDistinct)
 
         columnsStats.put(columnName, colStats)
       }
 
+      //***************************************
       // Compute the histogram for each column
-      val histogramRes = SparkHistogram.singlePassHistogramCounter(tableDF, mins, maxs).collect()
+      //***************************************
+      val histogramRes = HistogramAggregator.execute(tableDF, mins, maxs, nBins).collect()
       // Result: Row[1]
 
       def extractHist(col:Int):Array[Long]={
@@ -194,23 +158,29 @@ class StatisticsProvider extends SparkSQLServerLogging{
         columnStats = columnsStats)
 
       baseRelationStats.put(tableName, relationStat)
+      println("================== STATISTICS for Table %s ==================".format(tableName))
+      println("NumSplits=%d".format(numSplits))
+      println(relationStat.toString())
+
     })
 
   }
 
   /**
     * Save statistics data collected to a json file
+ *
     * @param file
     */
   def saveToFile(file:String)={
     val mapper = new ObjectMapper()
     mapper.registerModule(DefaultScalaModule)
-    val out = new FileOutputStream(file)
+    val out = new FileOutputStream(file, false)
     mapper.writeValue(out, this)
   }
 
   /**
     * Read statistics data from a json file
+ *
     * @param file
     * @return
     */

@@ -1,4 +1,4 @@
-package nw.fr.eurecom.dsg.util
+package fr.eurecom.dsg.util
 
 import org.apache.spark.sql.myExtensions.optimizer.CacheAwareOptimizer
 import org.apache.spark.sql.{SQLContext, DataFrame}
@@ -6,8 +6,8 @@ import org.apache.spark.sql.{SQLContext, DataFrame}
 object QueryExecutor{
 
   def execute(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String): Unit ={
-    executeSequential(sqlContext, dfs, outputPath)
-    executeWorkSharing(sqlContext, dfs, outputPath)
+    executeSequential(sqlContext, dfs, outputPath + "_seq")
+    executeWorkSharing(sqlContext, dfs, outputPath + "_ws")
   }
 
   def executeSequential(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
@@ -20,14 +20,14 @@ object QueryExecutor{
     //val bestStrategy = strategyGenerator.next()
 
         //var bestStrategy = strategyGenerator.next()
-        while(strategyGenerator.hasNext()){
-          val bestStrategy = strategyGenerator.next()
-          println("new strategy is generated")
-          println(bestStrategy)
-          val df = bestStrategy.execute(sqlContext)
-
-         //comparing the cost
-        }
+//        while(strategyGenerator.hasNext()){
+//          val bestStrategy = strategyGenerator.next()
+//          println("new strategy is generated")
+//          println(bestStrategy)
+//          val df = bestStrategy.execute(sqlContext)
+//
+//         //comparing the cost
+//        }
         //bestStrategy
 
 //    val df = bestStrategy.execute(sqlContext)

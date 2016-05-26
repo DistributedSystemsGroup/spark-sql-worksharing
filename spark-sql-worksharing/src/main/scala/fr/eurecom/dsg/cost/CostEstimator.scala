@@ -1,14 +1,15 @@
 package org.apache.spark.sql.myExtensions.cost
 
 import java.io.InvalidObjectException
-import nw.fr.eurecom.dsg.cost.{CostConstants, Estimate}
-import nw.fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants}
-import nw.fr.eurecom.dsg.statistics.{ColumnStatistics, StatisticsProvider}
+import fr.eurecom.dsg.cost.{CostConstants, Estimate}
+import fr.eurecom.dsg.util.{SparkSQLServerLogging, Constants}
+import fr.eurecom.dsg.statistics.{ColumnStatistics, StatisticsProvider}
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
+import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.sources.BaseRelation
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.extensions.Util
 
 
 object CostEstimator extends SparkSQLServerLogging {
@@ -16,15 +17,6 @@ object CostEstimator extends SparkSQLServerLogging {
 
   def setStatsProvider(provider: StatisticsProvider): Unit = {
     statsProvider = provider
-  }
-
-  private def extractTableName(r: BaseRelation): String = {
-    var path = ""
-    r match {
-      case r:HadoopFsRelation => path = r.inputFiles(0)
-      case _ => throw new InvalidObjectException(r.toString)
-    }
-    path.substring(path.lastIndexOf('/') + 1, path.length)
   }
 
   /**
@@ -47,7 +39,7 @@ object CostEstimator extends SparkSQLServerLogging {
   private def estimateSelectivity(plan: LogicalPlan, condition: Expression): Double = {
     var res = CostConstants.DEFAULT_SELECTIVITY_FACTOR
     val relations = plan.collect { case r: LogicalRelation => r }
-    val relationNames = relations.map(r => extractTableName(r.relation)).toArray
+    val relationNames = relations.map(r => Util.extractTableName(r.relation)).toArray
 
     /**
       *
@@ -190,7 +182,7 @@ object CostEstimator extends SparkSQLServerLogging {
       case l: LeafNode => l match {
         case l@LogicalRelation(baseRelation: BaseRelation, _, _) =>
           estimateResult = new Estimate()
-          val tableName = extractTableName(baseRelation)
+          val tableName = Util.extractTableName(baseRelation)
           val tableStats = statsProvider.getTableStatistics(tableName)
           estimateResult.addnumRecInput(tableStats.numRecords)
           estimateResult.addnumRecOutput(tableStats.numRecords)
@@ -290,7 +282,7 @@ object CostEstimator extends SparkSQLServerLogging {
               case Some(e) =>
                 val expression = e.asInstanceOf[EqualTo]
                 val relations = plan.collect { case r: LogicalRelation => r }
-                val relationNames = relations.map(r => extractTableName(r.relation)).toArray
+                val relationNames = relations.map(r => Util.extractTableName(r.relation)).toArray
                 // colA == colB
                 // if colA is unique || colB is unique
                 // then numOutput = max(colA output, colB output)

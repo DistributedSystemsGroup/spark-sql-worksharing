@@ -1,7 +1,7 @@
-package nw.fr.eurecom.dsg
+package fr.eurecom.dsg.applications
 
-import nw.fr.eurecom.dsg.statistics.StatisticsProvider
-import nw.fr.eurecom.dsg.util.{QueryExecutor, SparkSQLServerLogging, QueryProvider}
+import fr.eurecom.dsg.statistics.StatisticsProvider
+import fr.eurecom.dsg.util.{Tables, QueryExecutor, QueryProvider, SparkSQLServerLogging}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
@@ -31,41 +31,16 @@ object App extends SparkSQLServerLogging{
 
     val sc = new SparkContext(conf)
     val sqlc = new SQLContext(sc)
-//    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
-
     sqlc.setConf("spark.sql.parquet.cacheMetadata", "false")
     sqlc.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false")
     sqlc.setConf("spark.sql.inMemoryColumnarStorage.partitionPruning", "true")
     sqlc.setConf("spark.sql.parquet.filterPushdown", "false")
-    import sqlc.implicits._
 
-
-
-    // Uncomment the following block if you want to use all tables in your queries
-    // These are all tables of the TPC-DS benchmark
-
-//    val tables = Seq("catalog_sales", "catalog_returns",
-//    "inventory", "store_sales", "store_returns", "web_sales", "web_returns",
-//    "call_center", "catalog_page", "customer", "customer_address", "customer_demographics",
-//    "date_dim", "household_demographics", "income_band", "item", "promotion", "reason",
-//    "ship_mode", "store", "time_dim", "warehouse", "web_page", "web_site")
-
-    // Or uncomment the following block if you just want to use some tables in your queries
-//    val tables = Seq("customer", "customer_address", "customer_demographics",
-//      "date_dim", "item", "promotion", "store", "store_sales", "catalog_sales", "web_sales")
-
-    val tables = Seq("date_dim", "store_sales", "item")
+    val tables = Tables.getSomeTables()
 
     // QueryProvider will register your tables to the catalog system, so that your queries can be parsed
     // and understood
     val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
-//    val stats = new StatisticsProvider()
-    // We have 2 options:
-    // - collect (compute) stats. You can save the result to a json file
-    // - read from a json file where stats are pre-computed and written back to
-//
-//        stats.collect(tables, queryProvider = queryProvider)
-//        stats.saveToFile("/home/ntkhoa/stat.json")
 
     val stats = new StatisticsProvider().readFromFile(statFile)
     CostEstimator.setStatsProvider(stats)

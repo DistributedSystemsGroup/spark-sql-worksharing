@@ -1,4 +1,4 @@
-package nw.fr.eurecom.dsg.util
+package fr.eurecom.dsg.util
 import org.slf4j.LoggerFactory
 
 trait SparkSQLServerLogging{

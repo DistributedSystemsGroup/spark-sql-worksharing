@@ -1,12 +1,18 @@
+import java.io.{BufferedWriter, File, FileWriter}
+import java.lang.Exception
+
+import com.databricks.spark.sql.perf.Query
 import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
 
 import scala.collection.mutable.HashMap
 
-object BenchmarkApp {
+object PlanWriterApp {
+
   def main(args: Array[String]) {
     if(args.length < 6){
       System.err.println("Usage: <inputPath> <outputPath> <scaleFactor> <format> <iterations> <dsdgenDir>")
@@ -497,14 +503,36 @@ object BenchmarkApp {
 
     val queries = tpcds.tpcds1_4Queries
 
-    tpcds.runExperiment(
-      executionsToRun = queries,
-      iterations = args(4).toInt
-    )
 
-    // block the ui
-    while(true){
-
+    def tryNewDF(q:Query):(LogicalPlan, String)={
+      try{
+        (q.newDataFrame().queryExecution.optimizedPlan, q.sqlText.get)
+      }
+      catch{
+          case _ => null
+      }
     }
+
+    val dfs = queries.map(q => tryNewDF(q)).zipWithIndex
+
+    def writeLPToTextFile(lp_queryText:(LogicalPlan, String), i:Int){
+      if(lp_queryText != null){
+      val lp = lp_queryText._1
+      val queryText = lp_queryText._2
+
+        try{
+          println(lp.toString())
+          val file = new File(i + ".txt")
+          val bw = new BufferedWriter(new FileWriter(file))
+          bw.write(queryText + "\n")
+          bw.write(lp.toString())
+          bw.close()
+        }
+        catch{
+          case _ =>
+        }
+      }
+    }
+    dfs.foreach(lp => writeLPToTextFile(lp._1, lp._2))
   }
 }

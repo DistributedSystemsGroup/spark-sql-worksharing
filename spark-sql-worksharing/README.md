@@ -7,7 +7,7 @@
 ## Architecture:
 - Step 1: Precompute some basic statistics and materialize it to disk  
 `ComputeStats <master> <inputDir> <savePath> <format>`
-    + format = {parquet, com.databricks.spark.csv}
+    + format = {parquet, csv}
 
 - 
 
@@ -52,10 +52,20 @@
 
 
 ## Issues & resolution
+- datetime datatype problem:
+fix: when generating, change to string
+when read: string too. among 99 tpc-ds queries, none of them uses those date columns 
+
 - Table call_center, the 5th column "cc_closed_date_sk", datatype:int, all records = null!!!
-- Solution: build your own spark-csv version
-- `|| datum == "null"` in TypeCast.scala
+- 
 
 - Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
     + in local: set `-XX:MaxPermSize=2G` (maximum size of Permanent Generation) in VM Options
     + in cluster: `--driver-java-options -XX:MaxPermSize=2G` 
+    
+    
+cannot parsed:
+16, 23a, 32, 41, 92, 95
+
+benchmark fail: 9
+16, 23a, 32, 41, 92, 95

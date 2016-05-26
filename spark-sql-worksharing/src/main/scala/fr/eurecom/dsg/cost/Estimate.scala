@@ -1,4 +1,4 @@
-package nw.fr.eurecom.dsg.cost
+package fr.eurecom.dsg.cost
 
 class Estimate(
   private var networkCost:Double = 0,

@@ -1,6 +1,6 @@
 package org.apache.spark.sql.myExtensions.optimizer
 
-import nw.fr.eurecom.dsg.util.SparkSQLServerLogging
+import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.{Dataset, DataFrame, SQLContext}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 

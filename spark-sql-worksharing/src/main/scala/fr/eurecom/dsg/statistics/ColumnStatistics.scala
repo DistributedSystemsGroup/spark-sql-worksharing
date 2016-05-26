@@ -1,16 +1,16 @@
-package nw.fr.eurecom.dsg.statistics
+package fr.eurecom.dsg.statistics
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import nw.fr.eurecom.dsg.util.Constants
-import org.apache.spark.sql.catalyst.expressions.Expression
+import fr.eurecom.dsg.util.Constants
+import org.apache.spark.sql.extensions.Util
 
 /**
+  * POJO class
   * Holds statistics information of a column
   * The histBuckets is an equi-width histogram
+ *
   * @param numNotNull
   * @param numNull
-  * @param mean
-  * @param stddev
   * @param min
   * @param max
   * @param numDistincts
@@ -19,49 +19,27 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 @JsonCreator
 class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
                        val numNull: Long = Constants.UNKNOWN_VAL,
-                       val mean: Double = Constants.UNKNOWN_VAL_DOUBLE,
-                       val stddev: Double = Constants.UNKNOWN_VAL_DOUBLE,
                        val min: Double = Constants.UNKNOWN_VAL_DOUBLE,
                        val max: Double = Constants.UNKNOWN_VAL_DOUBLE,
                        val numDistincts: Long = Constants.UNKNOWN_VAL,
-                       var histBuckets: Array[Long] = null) {
-  val nBins: Int = Math.min((max - min + 1).toInt, Constants.NUM_BINS_HISTOGRAM_MAX)
+                       var histBuckets: Array[Long] = Array.empty) {
 
-  // holds number of items in each bucket
-  // note that the histogram is equi-width
-  var buckets: Array[Long] = null
-
-  if (histBuckets != null)
-    buckets = histBuckets
-  else
-    buckets = new Array[Long](nBins)
-
-  val binWidth: Double = (max - min + 1) / nBins // mod >= 1
-
-  def putHistogramData(data: Array[Long]): Unit = {
-    for (i <- 0 to nBins - 1) {
-      buckets(i) = data(i)
-    }
+  override def toString()={
+    "NumNotNull=%d, NumNull=%d, Min=%f, Max=%f, NumDistinct=%d, Buckets=%s".format(numNotNull, numNull, min, max, numDistincts, histBuckets.mkString(", "))
   }
 
-  // HistogramCounter in SparkHistogram.scala
-  //  def add(key: Any): this.type = {
-  //    if(key != null){
-  //      if(key.isInstanceOf[String]){
-  //        val value = Util.stringToInt(key.toString, nBins)
-  //        val iBucket= ((value - min.toInt) / mod).toInt
-  //        buckets(iBucket)+=1
-  //
-  //      }
-  //      else{
-  //        val value = key.toString.toDouble
-  //        val iBucket= ((value - min) / mod).toInt
-  //        buckets(iBucket)+=1
-  //      }
-  //      total+=1
-  //    }
-  //    this
-  //  }
+  val nBins: Int = histBuckets.length
+
+  def binWidth = (max - min) / nBins
+
+  def putHistogramData(data: Array[Long]): Unit = {
+    histBuckets = data
+  }
+
+
+  //************************************************
+  // ESTIMATION FUNCTIONS
+  //************************************************
 
   def getGreaterThanEstimation(from:Any):Double={
     getRangeEstimation(from = from, to = this.max) - getEqualityEstimation(from)
@@ -77,6 +55,7 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
 
   /**
     * [from, to]
+ *
     * @param from
     * @param to
     */
@@ -101,12 +80,12 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
     val iBucketToDouble = (valueTo - min.toInt) / binWidth
     val iBucketTo = iBucketToDouble.toInt
 
-    val estimationForBinFrom = buckets(iBucketFrom) * (1 - (iBucketFromDouble - iBucketFrom))
-    val estimationForBinTo = buckets(iBucketTo) * (iBucketToDouble - iBucketTo)
+    val estimationForBinFrom = histBuckets(iBucketFrom) * (1 - (iBucketFromDouble - iBucketFrom))
+    val estimationForBinTo = histBuckets(iBucketTo) * (iBucketToDouble - iBucketTo)
     var res = (estimationForBinFrom + estimationForBinTo).toLong
 
     for (i <- iBucketFrom + 1 to iBucketTo - 1) {
-      res += buckets(i)
+      res += histBuckets(i)
     }
     res * 1.0 / (numNull + numNotNull)
   }
@@ -116,6 +95,7 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
     * provides estimation for the following cases:
     * - column == key
     * - column like key
+ *
     * @param key
     * @return number of records satisfying the equality condition
     */
@@ -131,7 +111,7 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
 
     if (value < min || value > max) return 0
     val iBucket = ((value - min.toInt) / binWidth).toInt
-    (buckets(iBucket)*1.0 / Math.max(binWidth, 1)) / (numNull + numNotNull)
+    (histBuckets(iBucket)*1.0 / Math.max(binWidth, 1)) / (numNull + numNotNull)
   }
 
 }

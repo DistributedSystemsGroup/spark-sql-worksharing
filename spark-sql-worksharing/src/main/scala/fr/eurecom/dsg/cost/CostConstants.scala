@@ -1,4 +1,4 @@
-package nw.fr.eurecom.dsg.cost
+package fr.eurecom.dsg.cost
 
 object CostConstants {
   val COST_DISK_READ:Double = 1
@@ -10,9 +10,7 @@ object CostConstants {
 
   val UNKNOWN_COST:Double = -1
   val UNKNOWN:Long = -1
-
-  val MAX_CACHE_CAPACITY = 2
+  val CACHE_CAPACITY = 2
 
   val DEFAULT_SELECTIVITY_FACTOR = 0.33f
-
 }
