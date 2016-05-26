@@ -12,3 +12,4 @@ libraryDependencies += "org.apache.spark" %% "spark-core" % "2.0.0-SNAPSHOT"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.0.0-SNAPSHOT"
 
 libraryDependencies += "org.apache.spark" %% "spark-hive" % "2.0.0-SNAPSHOT"
+

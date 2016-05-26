@@ -1,6 +1,6 @@
 package fr.eurecom.dsg.util
 
-import org.apache.spark.sql.myExtensions.optimizer.CacheAwareOptimizer
+import org.apache.spark.sql.extensions.optimizer.CacheAwareOptimizer
 import org.apache.spark.sql.{SQLContext, DataFrame}
 
 object QueryExecutor{

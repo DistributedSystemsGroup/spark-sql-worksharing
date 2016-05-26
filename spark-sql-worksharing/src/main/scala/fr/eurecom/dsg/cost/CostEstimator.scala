@@ -25,19 +25,31 @@ object CostEstimator extends SparkSQLServerLogging {
     * @param columnName
     * @return null, or first match
     */
-  private def tryGetColumnStat(relations: Array[String], columnName: String): ColumnStatistics = {
-    for (i <- 0 to relations.length - 1) {
+  private def tryGetColumnStat(relations: Array[String], columnName: String): Option[ColumnStatistics] = {
+    relations.indices.foreach(i =>{
       val tableStat = statsProvider.getTableStatistics(relations(i))
       val columnStat = tableStat.getColumnStats(columnName)
       if (columnStat != null)
-        return columnStat
-    }
-    null
+        return Some(columnStat)
+    })
+    None
   }
 
 
-  private def estimateSelectivity(plan: LogicalPlan, condition: Expression): Double = {
-    var res = CostConstants.DEFAULT_SELECTIVITY_FACTOR
+  private def estimateSelectivity(filter:Filter):Double ={
+    var selectivity = CostConstants.DEFAULT_SELECTIVITY
+    val predicate = filter.condition
+    val child = filter.child
+
+
+
+    selectivity
+  }
+
+
+
+  private def estimateSelectivity(plan: LogicalPlan, predicate: Expression): Double = {
+    var res = CostConstants.DEFAULT_SELECTIVITY
     val relations = plan.collect { case r: LogicalRelation => r }
     val relationNames = relations.map(r => Util.extractTableName(r.relation)).toArray
 
@@ -53,8 +65,8 @@ object CostEstimator extends SparkSQLServerLogging {
           val value = e.right.asInstanceOf[Literal].value
           val columnStat = tryGetColumnStat(relationNames, column)
           columnStat match {
-            case null => return Constants.UNKNOWN_VAL_DOUBLE
-            case _ => return columnStat.getGreaterThanEstimation(value)
+            case None => return Constants.UNKNOWN_VAL_DOUBLE
+            case Some(c)=> return c.getGreaterThanEstimation(value)
           }
         }
 
@@ -63,8 +75,8 @@ object CostEstimator extends SparkSQLServerLogging {
           val value = e.right.asInstanceOf[Literal].value
           val columnStat = tryGetColumnStat(relationNames, column)
           columnStat match {
-            case null => return Constants.UNKNOWN_VAL_DOUBLE
-            case _ => return columnStat.getLessThanEstimation(value)
+            case None => return Constants.UNKNOWN_VAL_DOUBLE
+            case Some(c) => return c.getLessThanEstimation(value)
           }
         }
 
@@ -75,8 +87,8 @@ object CostEstimator extends SparkSQLServerLogging {
               val value = e.right.asInstanceOf[Literal].value
               val columnStat = tryGetColumnStat(relationNames, column)
               columnStat match {
-                case null => return Constants.UNKNOWN_VAL_DOUBLE
-                case _ => return columnStat.getEqualityEstimation(value)
+                case None => return Constants.UNKNOWN_VAL_DOUBLE
+                case Some(c) => return c.getEqualityEstimation(value)
               }
             case anotherColumn: AttributeReference =>
               // colA == colB
@@ -91,15 +103,15 @@ object CostEstimator extends SparkSQLServerLogging {
               val columnStatB = tryGetColumnStat(relationNames, columnB)
 
 
-              (columnStatA, columnB) match {
-                case (null, null) | (_, null) | (null, _) => return Constants.UNKNOWN_VAL_DOUBLE
-                case _ =>
-                  if (columnStatA.getUniquenessDegree() >= 0.9f)
-                    return columnStatB.numNotNull * 1.0 / (columnStatA.numNotNull + columnStatB.numNotNull)
-                  else if (columnStatB.getUniquenessDegree() >= 0.9f)
-                    return columnStatA.numNotNull * 1.0 / (columnStatA.numNotNull + columnStatB.numNotNull)
-                  else if (columnStatA.getUniquenessDegree() >= 0.9f && columnStatB.getUniquenessDegree() >= 0.9f)
-                    return Math.max(columnStatA.numNotNull, columnStatB.numNotNull) * 1.0 / (columnStatA.numNotNull + columnStatB.numNotNull)
+              (columnStatA, columnStatB) match {
+                case (None, None) | (_, None) | (None, _) => return Constants.UNKNOWN_VAL_DOUBLE
+                case (Some(a), Some(b)) =>
+                  if (a.getUniquenessDegree() >= 0.9f)
+                    return b.numNotNull * 1.0 / (a.numNotNull + b.numNotNull)
+                  else if (b.getUniquenessDegree() >= 0.9f)
+                    return a.numNotNull * 1.0 / (a.numNotNull + b.numNotNull)
+                  else if (a.getUniquenessDegree() >= 0.9f && b.getUniquenessDegree() >= 0.9f)
+                    return Math.max(a.numNotNull, b.numNotNull) * 1.0 / (a.numNotNull + b.numNotNull)
                   else
                     return Constants.UNKNOWN_VAL_DOUBLE
               }
@@ -111,8 +123,8 @@ object CostEstimator extends SparkSQLServerLogging {
           val value = e.right.asInstanceOf[Literal].value
           val columnStat = tryGetColumnStat(relationNames, column)
           columnStat match {
-            case null => return Constants.UNKNOWN_VAL_DOUBLE
-            case _ => return columnStat.getEqualityEstimation(value)
+            case None => return Constants.UNKNOWN_VAL_DOUBLE
+            case Some(c) => return c.getEqualityEstimation(value)
           }
         }
 
@@ -127,8 +139,8 @@ object CostEstimator extends SparkSQLServerLogging {
           val value = e.right.asInstanceOf[Literal].value
           val columnStat = tryGetColumnStat(relationNames, column)
           columnStat match {
-            case null => return Constants.UNKNOWN_VAL_DOUBLE
-            case _ => return columnStat.getGreaterThanEstimation(value) + columnStat.getEqualityEstimation(value)
+            case None => return Constants.UNKNOWN_VAL_DOUBLE
+            case Some(c) => return c.getGreaterThanEstimation(value) + c.getEqualityEstimation(value)
           }
         }
         case e: LessThanOrEqual => {
@@ -136,8 +148,8 @@ object CostEstimator extends SparkSQLServerLogging {
           val value = e.right.asInstanceOf[Literal].value
           val columnStat = tryGetColumnStat(relationNames, column)
           columnStat match {
-            case null => return Constants.UNKNOWN_VAL_DOUBLE
-            case _ => return columnStat.getLessThanEstimation(value) + columnStat.getEqualityEstimation(value)
+            case None => return Constants.UNKNOWN_VAL_DOUBLE
+            case Some(c) => return c.getLessThanEstimation(value) + c.getEqualityEstimation(value)
           }
         }
 
@@ -159,11 +171,11 @@ object CostEstimator extends SparkSQLServerLogging {
 
       val res = estimateExpression(expression)
       if (res == Constants.UNKNOWN_VAL_DOUBLE)
-        CostConstants.DEFAULT_SELECTIVITY_FACTOR
+        CostConstants.DEFAULT_SELECTIVITY
       else
         res
     }
-    estimateExpression(condition)
+    estimateExpression(predicate)
   }
 
 
@@ -308,14 +320,14 @@ object CostEstimator extends SparkSQLServerLogging {
                 val columnStatB = tryGetColumnStat(relationNames, columnB)
 
 
-                (columnStatA, columnB) match {
-                  case (null, null) | (_, null) | (null, _) =>
-                  case _ =>
-                    if (columnStatA.getUniquenessDegree() >= 0.9f)
+                (columnStatA, columnStatB) match {
+                  case (None, None) | (_, None) | (None, _) =>
+                  case (Some(a), Some(b)) =>
+                    if (a.getUniquenessDegree() >= 0.9f)
                       selectivity = estimateB.getNumRecOutput()*1.0 / costSum.getNumRecOutput()
-                    else if (columnStatB.getUniquenessDegree() >= 0.9f)
+                    else if (b.getUniquenessDegree() >= 0.9f)
                       selectivity = estimateA.getNumRecOutput()*1.0 / costSum.getNumRecOutput()
-                    else if (columnStatA.getUniquenessDegree() >= 0.9f && columnStatB.getUniquenessDegree() >= 0.9f)
+                    else if (a.getUniquenessDegree() >= 0.9f && b.getUniquenessDegree() >= 0.9f)
                       selectivity = Math.max(estimateA.getNumRecOutput(), estimateB.getNumRecOutput())*1.0 / costSum.getNumRecOutput()
                 }
 

@@ -1,13 +1,13 @@
-package org.apache.spark.sql.myExtensions.optimizer
+package org.apache.spark.sql.extensions.optimizer
 
 import java.math.BigInteger
 import fr.eurecom.dsg.util.SparkSQLServerLogging
-import org.apache.spark.sql.catalyst.expressions.{Or, NamedExpression}
-import org.apache.spark.sql.catalyst.plans.logical.{Filter, LeafNode, Project, LogicalPlan}
-import org.apache.spark.sql.catalyst.plans.logical.{UnaryNode, BinaryNode}
+import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
+import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
 import org.apache.spark.sql.myExtensions.cost.CostEstimator
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.sql.extensions.Util
 
 class CoveringPlanBuilder extends SparkSQLServerLogging{
   def buildCoveringPlans(commonSubExpressionsMap: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
@@ -95,9 +95,8 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
     *         isIdentical = true means the sharing plan is the same as planA and planB
     */
   def combinePlans(planA:LogicalPlan, planB:LogicalPlan): (LogicalPlan, Boolean) ={
-    //assert(Util.isSameSubTree(planA, planB))
 
-    if(planA.fastEquals(planB))// if they are identical, then return one of them as the covering plan
+    if(Util.isIdenticalLogicalPlans(planA, planB))// if they are identical, then return one of them as the covering plan
       return (planA, true)
 
     (planA, planB) match{
@@ -167,7 +166,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
       // leftA ~ rightB and rightA ~ leftB
       // =================================================================================
       case (a:BinaryNode, b:BinaryNode) =>{
-        if(Util.computeTreeHashExternal(a.left) == Util.computeTreeHashExternal(b.left)){
+        if(Util.isSameHash(a.left, b.left)){
           //leftA ~ leftB and rightA ~ rightB
           val (leftCombined, _) = combinePlans(a.left, b.left)
           val (rightCombined, _) = combinePlans(a.right, b.right)

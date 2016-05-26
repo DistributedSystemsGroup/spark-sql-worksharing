@@ -1,8 +1,8 @@
-package org.apache.spark.sql.myExtensions.optimizer
+package org.apache.spark.sql.extensions.optimizer
 
 import fr.eurecom.dsg.util.SparkSQLServerLogging
-import org.apache.spark.sql.{Dataset, DataFrame, SQLContext}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.{DataFrame, Dataset, SQLContext}
 
 class Strategy(inPlans:Array[LogicalPlan], cachePlans:Array[LogicalPlan]) extends SparkSQLServerLogging{
   def execute(sQLContext: SQLContext):Array[DataFrame]={

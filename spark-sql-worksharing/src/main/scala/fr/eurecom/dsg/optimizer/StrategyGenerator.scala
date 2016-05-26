@@ -2,12 +2,10 @@ package nw.fr.eurecom.dsg.optimizer
 
 import org.apache.spark.sql.catalyst.expressions.{And, Or, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.myExtensions.optimizer.CacheAwareOptimizer
-import org.apache.spark.sql.myExtensions.optimizer.Util
+import org.apache.spark.sql.extensions.optimizer.{Strategy, CacheAwareOptimizer}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import org.apache.spark.sql.myExtensions.optimizer.Strategy
+import org.apache.spark.sql.extensions.Util
 
 /**
   *

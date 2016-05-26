@@ -1,14 +1,16 @@
 // We need to declare our optimizer in this package here due to the access restriction
-package org.apache.spark.sql.myExtensions.optimizer
+package org.apache.spark.sql.extensions.optimizer
 
 import java.math.BigInteger
+
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator}
-
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
+import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.extensions.Util
+
 import scala.collection.mutable
 
 
@@ -56,7 +58,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     }
 
     inPlans.indices.foreach { iPlan =>
-      for (relation <- getLogicalRelations(inPlans(iPlan))){
+      for (relation <- Util.getLogicalRelations(inPlans(iPlan))){
         getSeenRelation(relation) match {
           case Some(standardRelation:LogicalRelation) => outputPlans(iPlan) = transformToSameDatasource(standardRelation, relation, outputPlans(iPlan))
           case None => seenLogicalRelations.add(relation)
@@ -110,6 +112,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
   }
 
 
+
   private def identifyCommonSubExpressions(trees:Array[LogicalPlan])
   :mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]={
 
@@ -123,7 +126,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // Build a hash tree for each tree
     // key: plan, value: (fingerprint, plan's height)
     // We haven
-    val hashTrees = new Array[mutable.HashMap[LogicalPlan, (BigInteger, Int)]](trees.length)
+    val hashTrees = new Array[mutable.HashMap[LogicalPlan, BigInteger]](trees.length)
     trees.indices.foreach {iPlan =>
       hashTrees(iPlan) = buildHashTree(trees(iPlan))
     }
@@ -139,7 +142,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       while (visitor.hasNext){
         val iPlan = visitor.getNext
         logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
-        val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
+        val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val isFoundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
 
@@ -182,7 +185,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       while (visitor.hasNext){
         val iPlan = visitor.getNext
         logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
-        val iPlanFingerprint = hashTrees(i).get(iPlan).get._1
+        val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val found = (fingerPrintMap.contains(iPlanFingerprint)
           && fingerPrintMap.get(iPlanFingerprint).get.size >= 2)
@@ -207,112 +210,104 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     groupedCommonSubExpressions
   }
 
-  def buildHashTree(rootPlan:LogicalPlan):mutable.HashMap[LogicalPlan, (BigInteger, Int)]={
-    val res = new mutable.HashMap[LogicalPlan, (BigInteger, Int)]()
-
-    /**
-      * Computes the hash value of a given LogicalPlan
-      * The hash value is computed like the style of Hash Tree (Merkle Tree).
-      * * ref: https://en.wikipedia.org/wiki/Merkle_tree
-      * The hash value of a node is the hash of the "labels" of its children nodes.
-      * This is a fast and secure way to search for common subtrees among many trees
-      *
-      * @param plan: node to compute the hash
-      * @return (hash value of the given node, height)
-      */
-    def computeTreeHash(plan:LogicalPlan):(BigInteger, Int)={
-      val className = plan.getClass.toString
-      var hashVal:BigInteger = null
-      plan match {
-        // ================================================================
-        // Binary Node case: `logicalPlan` has 2 children
-        // ================================================================
-        case b: BinaryNode =>
-          var (leftChildHash, leftChildHeight) = computeTreeHash(b.left)
-          var (rightChildHash, rightChildHeight) = computeTreeHash(b.right)
-          // Unifying the order of left & right child before computing the hash of the parent node
-          // Do sorting such that the leftChildHash should always lower or equals the rightChildHash
-          // We want (A Join B) to be the same as (B Join A)
-          if(leftChildHash.compareTo(rightChildHash) > 0){
-            // Do the swap
-            val tmpSwap = leftChildHash
-            leftChildHash = rightChildHash
-            rightChildHash = tmpSwap
-
-            val tmp2Swap = leftChildHeight
-            leftChildHeight = rightChildHeight
-            rightChildHeight = tmp2Swap
-          }
-          b match {
-            case b:Join =>
-              // Join should consider combing Filters and Projects
-              hashVal = Util.hash(className + b.joinType + b.condition + leftChildHash + rightChildHash)
-            case b:Intersect =>
-              hashVal = Util.hash(className + b.hashCode().toString)
-            case b:Except =>
-              hashVal = Util.hash(className + b.hashCode().toString)
-            case _ => throw new IllegalArgumentException("notsupported binary node")
-          }
-          val ret = (hashVal, math.max(leftChildHeight, rightChildHeight) + 1)
-          res.put(b, ret)
-          ret
-
-
-        case u:Union =>{
-          val childrenHash = u.children.map(c => computeTreeHash(c)._1).mkString(" ")
-          // Union should consider combining Filters, not Projects
-          hashVal = Util.hash(className + childrenHash)
-          val ret = (hashVal, 1)
-          ret
-        }
-        // ================================================================
-        // Unary Node case: `logicalPlan` has 1 child
-        // ================================================================
-        case u: UnaryNode =>
-          val (childHash, childHeight) = computeTreeHash(u.child)
-          u match{
-            case u@(_:Filter | _:Project) => hashVal = Util.hash(className + childHash)
-
-            case u@(_:GlobalLimit | _:LocalLimit | _:Sort | _:Aggregate) => // Only consider identical expression
-              val childHash = Util.hash(u.hashCode().toString)
-              hashVal = Util.hash(className + childHash)
-
-            case _ =>
-              val childHash = Util.hash(u.hashCode().toString)
-              hashVal = Util.hash(className + childHash)
-          }
-          val ret = (hashVal, childHeight + 1)
-          res.put(u, ret)
-          ret
-
-        // ================================================================
-        // Unary Node case: `logicalPlan` doesn't have any child
-        // ================================================================
-        case l: LeafNode => l match {
-          case leaf:LogicalRelation =>
-            var paths = ""
-            // We are using structured format input files with schema (json, csv, parquet).
-            // Thus, if the 2 relations are read from the same file location then they are the same.
-            leaf.relation match {
-              case r:HadoopFsRelation => r.inputFiles.foreach(paths += _.trim)
-              case _ => throw new IllegalArgumentException("unknown relation")
-            }
-            hashVal = Util.hash(className + paths)
-            val ret = (hashVal, 1)
-            res.put(l, ret)
-            ret
-          case _ => throw new IllegalArgumentException("unsupported leaf")
-        }
-
-        case _ => throw new IllegalArgumentException("unsupported logical plan")
-      }
+  /**
+    * Computes the hash value of a given LogicalPlan
+    * The hash value is computed like the style of Hash Tree (Merkle Tree).
+    * * ref: https://en.wikipedia.org/wiki/Merkle_tree
+    * The hash value of a node is the hash of the "labels" of its children nodes.
+    * This is a fast and secure way to search for common subtrees among many trees
+    *
+    * @param plan: node to compute the hash
+    * @return (hash value of the given node)
+    */
+  def computeTreeHash(plan:LogicalPlan, hashTree:mutable.HashMap[LogicalPlan, BigInteger] = null):BigInteger={
+    def updateHashTree(p:LogicalPlan, h:BigInteger): Unit ={
+      if(hashTree != null)
+        hashTree.put(p, h)
     }
 
-    computeTreeHash(rootPlan)
-    res
+    val className = plan.getClass.toString
+    var hashVal:BigInteger = null
+
+    plan match {
+
+      // ================================================================
+      // Binary Node case: `logicalPlan` has 2 children
+      // ================================================================
+      case b: BinaryNode => {
+        var leftChildHash = computeTreeHash(b.left, hashTree)
+        var rightChildHash = computeTreeHash(b.right, hashTree)
+        // Unifying the order of left & right child before computing the hash of the parent node
+        // Do sorting such that the leftChildHash should always lower or equals the rightChildHash
+        // We want (A Join B) to be the same as (B Join A)
+        if(leftChildHash.compareTo(rightChildHash) > 0){
+          // Do the swap
+          val tmpSwap = leftChildHash
+          leftChildHash = rightChildHash
+          rightChildHash = tmpSwap
+        }
+
+        b match {
+          case b:Join =>
+            // Join should consider combing Filters and Projects
+            // Consider only same join condition
+            hashVal = Util.hash(className + b.joinType + b.condition + leftChildHash + rightChildHash)
+
+          // override all signature, only consider identical expressions
+          case b:Intersect =>
+            hashVal = Util.hash(className + b.hashCode().toString)
+          case b:Except =>
+            hashVal = Util.hash(className + b.hashCode().toString)
+          case _ => throw new IllegalArgumentException("not supported binary node")
+        }
+      }
+
+      case u:Union =>{
+        val childrenHash = u.children.map(c => computeTreeHash(c, hashTree)).mkString(" ")
+        // Union should consider combining Filters, not Projects
+        hashVal = Util.hash(className + childrenHash)
+      }
+
+      // ================================================================
+      // Unary Node case: `logicalPlan` has 1 child
+      // ================================================================
+      case u: UnaryNode =>{
+        val childHash = computeTreeHash(u.child, hashTree)
+        u match{
+          case u@(_:Filter | _:Project) => hashVal = Util.hash(className + childHash)
+
+          case u@(_:GlobalLimit | _:LocalLimit | _:Sort | _:Aggregate) => // Only consider identical expression
+            val childHash = Util.hash(u.hashCode().toString)
+            hashVal = Util.hash(className + childHash)
+
+          case _ =>
+            val childHash = Util.hash(u.hashCode().toString)
+            hashVal = Util.hash(className + childHash)
+        }
+      }
+
+      // ================================================================
+      // Unary Node case: `logicalPlan` doesn't have any child
+      // ================================================================
+      case l: LeafNode => l match {
+        case leaf:LogicalRelation =>
+          val inputPath = Util.extractInputPath(leaf.relation)
+          hashVal = Util.hash(className + inputPath)
+        case _ => throw new IllegalArgumentException("unsupported leaf")
+      }
+
+      case _ => throw new IllegalArgumentException("unsupported logical plan")
+    }
+
+    updateHashTree(plan, hashVal)
+    hashVal
   }
 
-
+  private def buildHashTree(rootPlan:LogicalPlan):mutable.HashMap[LogicalPlan, BigInteger]={
+    val res = new mutable.HashMap[LogicalPlan, BigInteger]()
+    computeTreeHash(rootPlan, res)
+    res
+  }
 
   /**
     * PROBLEM: AttributeReference#ID
@@ -360,32 +355,14 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     outPlan
   }
 
-  /**
-    * Find all LogicalRelation nodes of a plan
-    * The leaf nodes of a logical plan are very usually Logical Relations - loading up the data
- *
-    * @param plan: the logical plan (query)
-    * @return sequence of LogicalRelations
-    */
-  def getLogicalRelations(plan:LogicalPlan):Seq[LogicalRelation]={
-    plan.collect{
-      case n:LogicalRelation => n
-    }
-  }
-
-  def containCacheUnfriendlyOperator(plan:LogicalPlan):Boolean={
-    plan.foreach {
-      case p: Join => return true
-      case p: Union => return true
-      case _ =>
-    }
+  def containCacheUnfriendlyOperator(plan:LogicalPlan): Boolean={
+    plan.foreach(f => if(isUnfriendlyOperator(f)) return true)
     false
   }
 
-  def isUnfriendlyOperator(plan:LogicalPlan):Boolean={
+  def isUnfriendlyOperator(plan:LogicalPlan): Boolean={
     plan match{
-      case p:Join => true
-      case p:Union => true
+      case p @(_:Join | _:Union) => true
       case _ => false
     }
   }

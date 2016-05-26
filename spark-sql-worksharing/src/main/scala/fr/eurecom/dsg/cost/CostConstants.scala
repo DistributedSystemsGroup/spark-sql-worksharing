@@ -12,5 +12,5 @@ object CostConstants {
   val UNKNOWN:Long = -1
   val CACHE_CAPACITY = 2
 
-  val DEFAULT_SELECTIVITY_FACTOR = 0.33f
+  val DEFAULT_SELECTIVITY = 0.33f
 }

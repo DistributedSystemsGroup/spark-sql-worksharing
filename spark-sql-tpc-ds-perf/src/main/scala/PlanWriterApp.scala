@@ -14,11 +14,13 @@ import scala.collection.mutable.HashMap
 object PlanWriterApp {
 
   def main(args: Array[String]) {
-    if(args.length < 6){
-      System.err.println("Usage: <inputPath> <outputPath> <scaleFactor> <format> <iterations> <dsdgenDir>")
+    if(args.length != 2){
+      System.err.println("Usage: <inputPath> <format>")
       // scaleFactor: number of GB of data to be generated
       System.exit(-1)
     }
+      val inputPath = args(0)
+      val format = args(1)
 
     val conf = new SparkConf().setAppName(this.getClass.getName())
     conf.set("spark.sql.perf.results", args(1))
@@ -493,9 +495,9 @@ object PlanWriterApp {
       "date_dim", "household_demographics", "income_band", "item", "promotion", "reason",
       "ship_mode", "store", "time_dim", "warehouse", "web_page", "web_site").foreach(tableName => {
       sqlContext.read
-        .format("csv")
+        .format(format)
         .schema(allTables.get(tableName).get)
-        .load("/home/ntkhoa/tpcds-csv" + "/" + tableName)
+        .load(inputPath + "/" + tableName)
         .registerTempTable(tableName)
     })
 

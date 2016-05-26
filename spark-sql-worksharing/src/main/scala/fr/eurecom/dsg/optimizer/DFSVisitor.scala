@@ -42,7 +42,8 @@ class DFSVisitor(val plan:LogicalPlan) {
     currentNode match {
       case b:BinaryNode => b.children.foreach(stack.push)
       case u:UnaryNode => stack.push(u.child)
-      case l:LeafNode =>
+      case l:LeafNode => // do nothing
+      case _ => throw new NotImplementedError("not implemented" + currentNode.getClass)
     }
   }
 }
