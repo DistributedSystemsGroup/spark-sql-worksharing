@@ -3,7 +3,7 @@
 \label{sec:cardinality}
 We design a cardinality and cost estimator to estimate the query's output size and execution cost. Just as traditional work, the system analyzes relational operators and uses some pre-computed statistics data of the input tables.
 
-In our work, computing the query's output size mainly relies on the statistics data, which are computed in 2 levels: relation and column. In relation level, the system obtains the number of records and average record size. In more detail level - column, the system collects the min, max, the cardinality and builds an equi-width histogram for each column. The output size of each operator is estimated under the uniform distribution assumption. Although simple, we just want a good estimation to avoid obviously bad plans. More complex histogram techniques could be used to improve the estimation accuracy.
+In our work, computing the query's output size mainly relies on the statistics data, which are computed in 2 levels: relation and column. In relation level, the system obtains the number of records and average record size. In more detail level - column, the system collects the min, max, the cardinality and builds an equi-width histogram for each column. Our current prototype implementation uses simple techniques; more advanced ones can be easily integrated. \{The output size of each operator is estimated under the uniform distribution assumption. Although simple, we just want a good estimation to avoid obviously bad plans. More complex histogram techniques could be used to improve the estimation accuracy.\}
 
 The executing cost comprises of CPU, disk I/O and network costs. Those costs are the results of the multiplication between the pre-defined constants and the estimated number of records.
 
