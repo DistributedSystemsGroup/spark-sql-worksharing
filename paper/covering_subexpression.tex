@@ -26,7 +26,6 @@ CE will be executed and materialized to RAM once. Then the result is read back t
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Pruning bad SEs}
 \label{sec:se-prune}
@@ -43,10 +42,5 @@ For each $SE_j$ in $g_i$, remove $SE_j$ from $g_i$ if $output\_size(SE_j) > T2$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Dependent SE groups}
-Check for independent groups
-
-Eliminate the worse (heuristics)
-
-Generate final classes for multiple choice Knapsack in next phase.
-
+For SEs in Section \ref{sec:common_sub} that have \emph{cache unfriendly operators}, we produce multiple groups (sharing options). Dependent SE groups are groups that have the same number of consumers and have the parent-child relationship. Among dependent SE groups, we generate all options to build the \emph{CEs}. Those options are put into a class where one item represent a feasible way to build the \emph{cache plans} in the final execution strategy.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
