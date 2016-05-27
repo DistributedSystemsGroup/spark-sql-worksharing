@@ -3,7 +3,7 @@ package fr.eurecom.dsg.applications
 import fr.eurecom.dsg.statistics.StatisticsProvider
 import fr.eurecom.dsg.util.{Tables, QueryExecutor, QueryProvider, SparkSQLServerLogging}
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.myExtensions.cost.CostEstimator
+import org.apache.spark.sql.extensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**

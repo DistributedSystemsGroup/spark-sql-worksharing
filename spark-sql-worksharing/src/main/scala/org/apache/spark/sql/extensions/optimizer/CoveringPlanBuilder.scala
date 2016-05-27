@@ -4,7 +4,7 @@ import java.math.BigInteger
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
-import org.apache.spark.sql.myExtensions.cost.CostEstimator
+import org.apache.spark.sql.extensions.cost.CostEstimator
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.extensions.Util
@@ -33,7 +33,9 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
       val peerPlans = groupI._2.map(ele => ele._1)
       peerPlans.indices.foreach { i =>
         val cost = CostEstimator.estimateCost(peerPlans(i))
-        logInfo("Cost = ".format(cost))
+        println("===========================Cost estimation===========================")
+        println(peerPlans(i))
+        println("Cost = %s".format(cost))
       }
 
 
@@ -68,6 +70,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
   /**
     * combines logical plans to a common sharing plan
     * The LogicalPlans in plans must be the common subtrees in order to be able to be combined
+ *
     * @param plans: array of logical plans
     * @return (common sharing plan, isIdentical).
     *         isIdentical = true means the sharing plan is the same as all plan in plans
@@ -89,6 +92,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
     * combines 2 logical plans to a common sharing plan
     * This is a recursive method.
     * planA and planB must be the common subtrees in order to be able to be combined
+ *
     * @param planA: the first logical plan
     * @param planB: the second logical plan
     * @return (common sharing plan, isIdentical).

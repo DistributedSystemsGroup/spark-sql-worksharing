@@ -28,7 +28,7 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
     "NumNotNull=%d, NumNull=%d, Min=%f, Max=%f, NumDistinct=%d, Buckets=%s".format(numNotNull, numNull, min, max, numDistincts, histBuckets.mkString(", "))
   }
 
-  val nBins: Int = histBuckets.length
+  def nBins = histBuckets.length
 
   def binWidth = (max - min) / nBins
 
