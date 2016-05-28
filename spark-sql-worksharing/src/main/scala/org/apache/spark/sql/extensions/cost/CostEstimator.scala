@@ -46,13 +46,12 @@ object CostEstimator extends SparkSQLServerLogging {
       // sel (a OR b) = sel(a) + sel(b) - sel(a) * sel(b)
       // OR equivalent to
       // 1 - [(1-sel(a)) * (1-sel(b))]
-      case or:Or =>{
+      case or:Or =>
         val leftSel = estimateSelectivity(or.left, relationNames)
         val rightSel = estimateSelectivity(or.right, relationNames)
         selectivity = leftSel + rightSel - leftSel*rightSel
-      }
 
-      case eq:EqualTo =>{
+      case eq:EqualTo =>
         (eq.left, eq.right) match{
 
           // colA = colB
@@ -70,6 +69,8 @@ object CostEstimator extends SparkSQLServerLogging {
                   selectivity = colAStat.numNotNull * 1.0 / (colAStat.numNotNull + colBStat.numNotNull)
                 else if (colAStat.getUniquenessDegree() >= 0.9f && colBStat.getUniquenessDegree() >= 0.9f)
                   selectivity = Math.max(colAStat.numNotNull, colBStat.numNotNull) * 1.0 / (colAStat.numNotNull + colBStat.numNotNull)
+
+              case _ =>
             }
 
           // col = c
@@ -77,6 +78,7 @@ object CostEstimator extends SparkSQLServerLogging {
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value)
+              case None =>
             }
 
           // c = col
@@ -84,75 +86,75 @@ object CostEstimator extends SparkSQLServerLogging {
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value)
+              case None =>
             }
           case _ => throw new NotImplementedError(eq.left.toString() + " EqualTo " + eq.right.toString())
         }
-      }
 
       // col Like c
-      case l:Like =>{
+      case l:Like =>
         (l.left, l.right) match {
           case (col:AttributeReference, c:Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(colStat) => selectivity = colStat.getEqualityEstimation(c.value)
+              case None =>
             }
 
           case _ => throw new NotImplementedError(l.left.toString() + " Like " + l.right.toString())
         }
-      }
 
       // sel(col > C)
-      case gt:GreaterThan =>{
+      case gt:GreaterThan =>
         (gt.left, gt.right) match{
           // col > c
           case (col:AttributeReference, c:Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getGreaterThanEstimation(c.value)
+              case None =>
             }
           case _ => throw new NotImplementedError(gt.left.toString() + " GreaterThan " + gt.right.toString())
         }
-      }
 
       // sel(col < c)
-      case lt:LessThan =>{
+      case lt:LessThan =>
         (lt.left, lt.right) match{
           // col < c
           case (col:AttributeReference, c:Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getLessThanEstimation(c.value)
+              case None =>
             }
           case _ => throw new NotImplementedError(lt.left.toString() + " LessThan " + lt.right.toString())
         }
-      }
 
       // sel(col >= c)
-      case gteq:GreaterThanOrEqual => {
+      case gteq:GreaterThanOrEqual =>
         (gteq.left, gteq.right) match{
           // col < c
           case (col:AttributeReference, c:Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value) + columnStat.getGreaterThanEstimation(c.value)
+              case None =>
             }
           case _ => throw new NotImplementedError(gteq.left.toString() + " GreaterThanOrEqual " + gteq.right.toString())
         }
-      }
 
       // sel(col <= c)
-      case lteq:LessThanOrEqual =>{
+      case lteq:LessThanOrEqual =>
         (lteq.left, lteq.right) match{
           // col < c
           case (col:AttributeReference, c:Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value) + columnStat.getLessThanEstimation(c.value)
+              case None =>
             }
           case _ => throw new NotImplementedError(lteq.left.toString() + " GreaterThanOrEqual " + lteq.right.toString())
         }
-      }
 
       case notNul:IsNotNull =>
         notNul.child match {
@@ -160,14 +162,14 @@ object CostEstimator extends SparkSQLServerLogging {
             val columnStat = tryGetColumnStat(relationNames, a.name)
             columnStat match {
               case Some(c) => selectivity = c.numNotNull*1.0 / (c.numNull + c.numNotNull)
+              case None =>
             }
           case _ => throw new NotImplementedError(predicate.getClass.toString)
         }
 
 
-      case nul:IsNull =>{
+      case nul:IsNull =>
         throw new NotImplementedError(predicate.getClass.toString)
-      }
 
       case _ => throw new NotImplementedError(predicate.getClass.toString)
     }
@@ -208,7 +210,7 @@ object CostEstimator extends SparkSQLServerLogging {
         case _ => throw new NotImplementedError(l.toString())
       }
 
-      case u: UnaryNode => {
+      case u: UnaryNode =>
         val childCost = estimateCost(u.child)
         u match {
           case p@Project(projectList, child) =>
@@ -307,7 +309,6 @@ object CostEstimator extends SparkSQLServerLogging {
 
           case _ => throw new NotImplementedError(u.toString)
         }
-      }
 
       case b: BinaryNode =>
         val costLeftChild = estimateCost(b.left)
@@ -327,7 +328,7 @@ object CostEstimator extends SparkSQLServerLogging {
           estimatedResult.addNetworkCost(costRightChild.getNumRecOutput * CostConstants.COST_NETWORK)
 
         b match {
-          case j@Join(left, right, joinType, condition) => {
+          case j@Join(left, right, joinType, condition) =>
             // TODO: broadcast join vs shuffle join should be handled differently
 
             // add expensive cpu & network cost
@@ -356,11 +357,11 @@ object CostEstimator extends SparkSQLServerLogging {
                     val f = nOutRec*1.0 / estimatedResult.getNumRecOutput
                     estimatedResult.setNumRecOutput(nOutRec)
                     estimatedResult.setOutputSize((estimatedResult.getOutputSize * f).toLong)
+                  case _ =>
                 }
 
               case _ => throw new NotImplementedError(condition.get.toString)
             }
-          }
 
           case e@Except(left, right) => throw new NotImplementedError(e.toString)
 

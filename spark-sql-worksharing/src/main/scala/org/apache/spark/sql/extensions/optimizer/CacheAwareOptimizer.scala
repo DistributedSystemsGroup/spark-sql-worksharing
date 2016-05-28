@@ -132,16 +132,13 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     }
 
     logInfo("Input of %d plan(s)".format(trees.length))
-//    trees.foreach(t => log.info(t.toString()))
 
     // Build fingerPrintMap
     trees.indices.foreach(i => {
-      logInfo("Checking tree %d".format(i))
       var isAllowedToMatchAfter = true // a flag variable
       val visitor = new DFSVisitor(trees(i))
       while (visitor.hasNext){
         val iPlan = visitor.getNext
-        logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val isFoundCommonSubtree = fingerPrintMap.contains(iPlanFingerprint)
@@ -151,12 +148,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
         if(isFoundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
           logInfo("At tree %d: Found a match for: \n%s".format(i,iPlan.toString()))
-          logInfo("Stopped the find on this branch")
           isAllowedToMatchAfter = true
         }
         else
         {
-          logInfo("Keep finding on this branch")
           visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
           if(isFoundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
             if(isAllowedToMatchAfter)
@@ -179,12 +174,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // Re-scan one more time. Why? because of the case subexpression in subexpression.
     // TODO: explain more
     trees.indices.foreach(i => {
-      logInfo("Checking tree %d".format(i))
       val visitor = new DFSVisitor(trees(i))
 
       while (visitor.hasNext){
         val iPlan = visitor.getNext
-        logInfo("Checking operator %s".format(iPlan.getClass.getSimpleName))
         val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val found = (fingerPrintMap.contains(iPlanFingerprint)
@@ -234,7 +227,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       // ================================================================
       // Binary Node case: `logicalPlan` has 2 children
       // ================================================================
-      case b: BinaryNode => {
+      case b: BinaryNode =>
         var leftChildHash = computeTreeHash(b.left, hashTree)
         var rightChildHash = computeTreeHash(b.right, hashTree)
         // Unifying the order of left & right child before computing the hash of the parent node
@@ -260,18 +253,16 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
             hashVal = Util.hash(className + b.hashCode().toString)
           case _ => throw new IllegalArgumentException("not supported binary node")
         }
-      }
 
-      case u:Union =>{
+      case u:Union =>
         val childrenHash = u.children.map(c => computeTreeHash(c, hashTree)).mkString(" ")
         // Union should consider combining Filters, not Projects
         hashVal = Util.hash(className + childrenHash)
-      }
 
       // ================================================================
       // Unary Node case: `logicalPlan` has 1 child
       // ================================================================
-      case u: UnaryNode =>{
+      case u: UnaryNode =>
         val childHash = computeTreeHash(u.child, hashTree)
         u match{
           case u@(_:Filter | _:Project) => hashVal = Util.hash(className + childHash)
@@ -284,7 +275,6 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
             val childHash = Util.hash(u.hashCode().toString)
             hashVal = Util.hash(className + childHash)
         }
-      }
 
       // ================================================================
       // Unary Node case: `logicalPlan` doesn't have any child
