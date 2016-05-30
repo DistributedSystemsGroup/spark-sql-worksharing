@@ -1,15 +1,24 @@
 package org.apache.spark.sql.extensions.optimizer
 
 import java.math.BigInteger
+
+import fr.eurecom.dsg.cost.CostConstants
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
 import org.apache.spark.sql.extensions.cost.CostEstimator
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.extensions.Util
 
 class CoveringPlanBuilder extends SparkSQLServerLogging{
+
+  /**
+    *
+    * @param commonSubExpressionsMap
+    * @return
+    */
   def buildCoveringPlans(commonSubExpressionsMap: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
   :mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]= {
     // For each group
@@ -21,22 +30,55 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
     //    + CPU intensive & Network I/O heavy expression: contains join, sort, aggregate, but #out is fit in memory
     // - has high number of consumers (to be reused many times) (to be adjusted)
     //
+    // Heuristics:
+    // 1. Prune small profit SE group
+    // 2. Prune SEs having big output
+    commonSubExpressionsMap.foreach(groupI =>{
+      logInfo("Handling group %d".format(groupI._1))
+      val peerPlans = groupI._2.map(ele => ele._1)
+      val nConsumers = peerPlans.length
+
+      val estimates = peerPlans.map(p => CostEstimator.estimateCost(p))
+      val totalExecCosts = estimates.map(e => e.getExecutionCost).sum
+      val minEstimate = estimates.minBy(e => e.getExecutionCost)
+
+      val maximumSaving  = totalExecCosts -
+        (minEstimate.getExecutionCost
+        + CostEstimator.estimateMaterializingCost(minEstimate.getOutputSize)
+        + CostEstimator.estimateRetrievingCost(minEstimate.getOutputSize) * nConsumers)
+
+      if(maximumSaving < CostConstants.MIN_SAVING){
+        println("pruned group " + groupI)
+        // dont share this group of SE
+      }else{
+        for(i <- 0 until(nConsumers)){
+          println(peerPlans(i))
+          println(estimates(i))
+        }
+        println("Maximum savving = %s".format(maximumSaving))
+
+        for(i <- 0 until(nConsumers)){
+          if (estimates(i).getOutputSize > CostConstants.MAX_CACHE_SIZE){
+
+          }
+        }
+
+
+      }
+
+
+
     // Step 2: for each group, build a covering expression that covers all its consumers
     // TODO: explain why cover all is enough?
     // Tradeoff: wider subexpression can serves more #consumers, but its' output will be large
     // leading to high materializing (to RAM) cost
     //
+
+
+
+
     // Step 3: output the result
 
-    commonSubExpressionsMap.foreach(groupI =>{
-      logInfo("Handling group %d".format(groupI._1))
-      val peerPlans = groupI._2.map(ele => ele._1)
-      peerPlans.indices.foreach { i =>
-        val cost = CostEstimator.estimateCost(peerPlans(i))
-        println("===========================Cost estimation===========================")
-        println(peerPlans(i))
-        println("Cost = %s".format(cost))
-      }
 
 
 
