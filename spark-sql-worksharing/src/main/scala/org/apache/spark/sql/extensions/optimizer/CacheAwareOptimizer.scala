@@ -4,7 +4,7 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.util.SparkSQLServerLogging
-import nw.fr.eurecom.dsg.optimizer.{DFSVisitor, StrategyGenerator}
+import nw.fr.eurecom.dsg.optimizer.{DFSVisitor}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
@@ -19,8 +19,8 @@ import scala.collection.mutable
   * (currently supports only structured data sources which go with schemas, eg: json, parquet, csv, ...)
   *
   * Phases:
-  * - Detects the sharing opportunities among the queries which are called "common sub-expressions"
-  * - Build covering expression candidates (cache plans candidates) for each group of common sub-trees
+  * - Detects the sharing opportunities among the queries which are called Similar sub-Expressions (SEs)
+  * - Build Covering Expression (CE) candidates for each group of SEs
   * which then might be cached in memory to speed up the query execution.
   * - Strategy Generation: Each strategy is a selection of zero or some cache plan(s).
   * - Strategy Selection phase: by estimating the cost of each individual strategy, produces the best strategy as the output.
@@ -70,20 +70,23 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // Step 1: Identifying all common subexpressions
     // ==============================================================
     logInfo("========================================================")
-    logInfo("Step 1: Identifying all common subexpressions")
-    val commonSubExpressionsMap = identifyCommonSubExpressions(outputPlans)
+    logInfo("Step 1: Identifying all SEs")
+    val SEsMap = identifySEs(outputPlans)
     // common subexpressions are grouped by their table signature
     // HashMap<TableSignature, List<(CommonSubExpression, queryIndex)>>
 
     // ==============================================================
-    // Step 2: Build covering expressions from the common subexpressions
+    // Step 2: Build CEs from the SEs
     // ==============================================================
     logInfo("========================================================")
-    logInfo("Step 2: Building covering expression candidates")
-    val coveringExpressions = new CoveringPlanBuilder().buildCoveringPlans(commonSubExpressionsMap)
-    // common subexpressions are grouped by a single covering expression
+    logInfo("Step 2: Building CEs")
+    val CEs = new CoveringPlanBuilder().buildCoveringPlans(SEsMap)
+    // SEs are grouped by a single CE
     // producer - consumer relationship
-    // HashMap<CoveringExpression, List<(CommonSubExpression, queryIndex)>>
+
+    // now put in into classes and knapsack solver
+
+
 
     // ==============================================================
     // Step 3: Strategy Generation
@@ -92,7 +95,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // ==============================================================
     logInfo("========================================================")
     logInfo("Step 3: Strategy Generation")
-    new StrategyGenerator(outputPlans, coveringExpressions)
+    new StrategyGenerator(outputPlans, CEs)
     // We return this, the consumer can pull a strategy and judge its quality (step 4)
 
 
@@ -113,13 +116,14 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
 
 
-  private def identifyCommonSubExpressions(trees:Array[LogicalPlan])
+  private def identifySEs(trees:Array[LogicalPlan])
   :mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]={
+    logInfo("Input of %d plan(s)".format(trees.length))
 
     // - Key: fingerprint/ signature
     // - Value: a set of (logical plan, tree index)
-    // At least 2 logical plan(s) having the same signature is considered as a common subexpression
-    // We will produce one common subexpression for each key that has the length(value) >= 2
+    // At least 2 logical plan(s) having the same signature is considered as a SE
+    // We will produce one group of SE for each key that has the length(value) >= 2
     val fingerPrintMap = new mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]
     def createNewList() = new mutable.ListBuffer[(LogicalPlan, Int)]()
 
@@ -131,7 +135,6 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       hashTrees(iPlan) = buildHashTree(trees(iPlan))
     }
 
-    logInfo("Input of %d plan(s)".format(trees.length))
 
     // Build fingerPrintMap
     trees.indices.foreach(i => {
@@ -147,18 +150,12 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
           fingerPrintMap.getOrElseUpdate(iPlanFingerprint, createNewList()).append(Tuple2(iPlan, i))
 
         if(isFoundCommonSubtree && !containCacheUnfriendlyOperator(iPlan)){
-          logInfo("At tree %d: Found a match for: \n%s".format(i,iPlan.toString()))
           isAllowedToMatchAfter = true
         }
         else
         {
           visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
           if(isFoundCommonSubtree && containCacheUnfriendlyOperator(iPlan)){
-            if(isAllowedToMatchAfter)
-              logInfo("At tree %d: Found a match for \n%s".format(i,iPlan.toString()))
-            else
-              logInfo("Found a match but we already have a previous better solution")
-
             if(isUnfriendlyOperator(iPlan)){
               isAllowedToMatchAfter = true // re-enable
             }
@@ -170,7 +167,6 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       }
     })
 
-    logInfo("Rescanning again to detect expression in expression sharing")
     // Re-scan one more time. Why? because of the case subexpression in subexpression.
     // TODO: explain more
     trees.indices.foreach(i => {
@@ -193,11 +189,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
     // Keep only those keys that have the length(value) >= 2 (common subtrees)
     val groupedCommonSubExpressions = fingerPrintMap.filter(keyvaluePair => keyvaluePair._2.size >= 2)
-    logInfo("========================================================")
-    logInfo("Found %d group(s) of common subexpressions".format(groupedCommonSubExpressions.size))
+    println("Found %d group(s) of SEs".format(groupedCommonSubExpressions.size))
     groupedCommonSubExpressions.foreach(element => {
-      logInfo("fingerprint: %d, %d consumers".format(element._1, element._2.length))
-      element._2.foreach(e => println(e._1))
+      println("fingerprint: %d, %d consumers".format(element._1, element._2.length))
+      element._2.foreach(e => println(e._1.toString()))
     })
 
     groupedCommonSubExpressions

@@ -185,7 +185,7 @@ object App extends SparkSQLServerLogging{
 
 //    df3.write.save("/home/ntkhoa/output")
 
-    QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
+//    QueryExecutor.executeWorkSharing(strategyIndex, sqlc, Seq(df3, df42), outputDir)
 //    while(true){
 //      Thread.sleep(1000)
 //    }

@@ -379,11 +379,12 @@ object CostEstimator extends SparkSQLServerLogging {
 
 
   def estimateMaterializingCost(amount:Long):Double = {
-    amount * CostConstants.COST_RAM_WRITE
+    // byte => KB
+    amount*1.0/1024 * CostConstants.COST_RAM_WRITE
   }
 
   def estimateRetrievingCost(amount:Long):Double = {
-    amount * CostConstants.COST_RAM_WRITE
+    amount*1.0/1024 * CostConstants.COST_RAM_READ
   }
 
 

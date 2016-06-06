@@ -3,6 +3,7 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.cost.CostConstants
+import fr.eurecom.dsg.optimizer.{KnapsackItem}
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
@@ -16,97 +17,100 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
 
   /**
     *
-    * @param commonSubExpressionsMap
+    * @param SEGroups
     * @return
     */
-  def buildCoveringPlans(commonSubExpressionsMap: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
-  :mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]= {
-    // For each group
-    // Step 1: keep only good candidates (prune bad candidates)
-    // Good candidate:
-    // - expensive to run (otherwise, re-run from scratch may be better)
-    //    + Disk I/O heavy expression, determined by: big #in and small #out/#in fraction
-    //    OR
-    //    + CPU intensive & Network I/O heavy expression: contains join, sort, aggregate, but #out is fit in memory
-    // - has high number of consumers (to be reused many times) (to be adjusted)
-    //
-    // Heuristics:
-    // 1. Prune small profit SE group
-    // 2. Prune SEs having big output
-    commonSubExpressionsMap.foreach(groupI =>{
+  def buildCoveringPlans(SEGroups: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
+  :ArrayBuffer[KnapsackItem]= {
+    val res = new ArrayBuffer[KnapsackItem]()
+
+    SEGroups.foreach(groupI => {
+      // For each group of SEs
       logInfo("Handling group %d".format(groupI._1))
-      val peerPlans = groupI._2.map(ele => ele._1)
-      val nConsumers = peerPlans.length
+      val SEs = groupI._2
+      var nConsumers = SEs.length
 
-      val estimates = peerPlans.map(p => CostEstimator.estimateCost(p))
-      val totalExecCosts = estimates.map(e => e.getExecutionCost).sum
-      val minEstimate = estimates.minBy(e => e.getExecutionCost)
+      // For each group
+      // Step 1: keep only good candidates (prune bad candidates)
+      // Good candidate:
+      // - expensive to run (otherwise, re-run from scratch may be better)
+      //    + Disk I/O heavy expression, determined by: big #in and small #out/#in fraction
+      //    OR
+      //    + CPU intensive & Network I/O heavy expression: contains join, sort, aggregate, but #out is fit in memory
+      // - has high number of consumers (to be reused many times) (to be adjusted)
+      //
+      // Heuristics:
+      // 1. Prune small profit SE group
+      // 2. Prune SEs having big output
 
-      val maximumSaving  = totalExecCosts -
-        (minEstimate.getExecutionCost
-        + CostEstimator.estimateMaterializingCost(minEstimate.getOutputSize)
-        + CostEstimator.estimateRetrievingCost(minEstimate.getOutputSize) * nConsumers)
+      // obtain the estimates (cost, input, output, ...) for each SE using CostEstimator
+      val estimates = SEs.map(p => CostEstimator.estimateCost(p._1))
 
-      if(maximumSaving < CostConstants.MIN_SAVING){
-        println("pruned group " + groupI)
-        // dont share this group of SE
-      }else{
-        for(i <- 0 until(nConsumers)){
-          println(peerPlans(i))
-          println(estimates(i))
-        }
-        println("Maximum savving = %s".format(maximumSaving))
-
-        for(i <- 0 until(nConsumers)){
-          if (estimates(i).getOutputSize > CostConstants.MAX_CACHE_SIZE){
-
-          }
-        }
-
-
+      for (i <- 0 until (nConsumers)) {
+        println(SEs(i))
+        println(estimates(i))
       }
 
+      // compute total execution cost for this group of SEs
+      val totalExecCost = estimates.map(e => e.getExecutionCost).sum
+      // get the smallest execution cost among the SEs in this group
+      val minEstimate = estimates.minBy(e => e.getExecutionCost)
 
+      val maximumSaving = totalExecCost -
+        (minEstimate.getExecutionCost
+          + CostEstimator.estimateMaterializingCost(minEstimate.getOutputSize)
+          + CostEstimator.estimateRetrievingCost(minEstimate.getOutputSize) * nConsumers)
 
-    // Step 2: for each group, build a covering expression that covers all its consumers
-    // TODO: explain why cover all is enough?
-    // Tradeoff: wider subexpression can serves more #consumers, but its' output will be large
-    // leading to high materializing (to RAM) cost
-    //
+      println("Maximum savving = %s".format(maximumSaving))
 
+      if (maximumSaving < CostConstants.MIN_SAVING) {
+        println("pruned this whole group of SEs: " + groupI)
+        // dont share this group of SE (dont build a CE for this group)
+      } else {
+        // Prune SEs having big output
+        var executionCostWithoutOpt:Double = 0
 
-
-
-    // Step 3: output the result
-
-
-
-
-      // (plan, tree index)
-
-
-      // Good candidates:
-
-
-
-      //val coveringExp = combinePlans(peerPlans.map(ele => ele._1))._1
+        val filteredSEs = SEs.zipWithIndex.filter {
+          case ((p: LogicalPlan, id: Int), i: Int) => {
+            if (estimates(i).getOutputSize <= CostConstants.MAX_CACHE_SIZE){
+              executionCostWithoutOpt += estimates(i).getExecutionCost
+              true
+            }
+            else {
+              println("Removed SE due to big output: " + estimates(i).getOutputSize)
+              println(p)
+              false
+            }
+          }
+        }.map(_._1)
+        if(filteredSEs.length >= 2){
+          nConsumers = filteredSEs.length
+          // now, build a CE for the filtered SEs. Then wrap it in the Knapsack item
+          val (ce, changed) = combinePlans(filteredSEs.map(ele => ele._1).toArray)
+          val ceEstimate = CostEstimator.estimateCost(ce)
+          val executingCECost = ceEstimate.getExecutionCost
+          val materializingCost = CostEstimator.estimateMaterializingCost(ceEstimate.getOutputSize)
+          val retrievingCost = CostEstimator.estimateRetrievingCost(ceEstimate.getOutputSize) * nConsumers
+          val COMPCosts = 0 //TODO: compute COMPCosts
+          val executionCostWithOpt = executingCECost + materializingCost + retrievingCost + COMPCosts
+          val profit = executionCostWithoutOpt - executionCostWithOpt
+          if(profit > 0){
+            val weight = ceEstimate.getOutputSize
+            res.append(new KnapsackItem(ce, filteredSEs.toSet, profit, weight))
+          }
+          else{
+            println("warning, profit < 0")
+          }
+        }
+        else{
+          println("removed group due to there is less than 2 consumers")
+        }
+      }
     })
 
-    // Step 3: Build and output a cache plan for each cluster, with the consumers are members belonging to that group
-    val coveringExpressions= new mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]
-    // (covering plan, (original plan, consumer indexes))
-
-    commonSubExpressionsMap.foreach(item =>{
-      val plans = item._2.toArray
-      // (plan, tree index)
-
-      val coveringExp = combinePlans(plans.map(ele => ele._1))._1
-      logInfo("Built covering expression for %d:\n%s".format(item._1, coveringExp))
-      coveringExpressions.put(coveringExp, plans.toSet)
-    })
-
-    coveringExpressions
+    res
   }
+
 
 
   /**
@@ -146,7 +150,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
       return (planA, true)
 
     (planA, planB) match{
-      case (a@Project(projectListA, _), b@Project(projectListB, _)) => {
+      case (a@Project(projectListA, _), b@Project(projectListB, _)) =>
         // =================================================================================
         // PROJECT($"colA", $"colB")
         // PROJECT($"colA", $"colC", $"colD")
@@ -156,12 +160,21 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
         // =================================================================================
 
         val combinedProjectList = ArrayBuffer[NamedExpression]()
-        projectListA.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
-        projectListB.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item)
+        val addedIDs = ArrayBuffer[Long]()
+
+        def update(item:NamedExpression): Unit ={
+          if(!addedIDs.contains(item.exprId.id)) {
+            combinedProjectList += item
+            addedIDs.append(item.exprId.id)
+          }
+        }
+
+        projectListA.foreach(update)
+        projectListB.foreach(update)
 
         def addRequiredProjectRefs(plan:LogicalPlan): Unit ={
           val filtersOps = plan.collect{case n:Filter => n}.toArray
-          filtersOps.foreach(f => f.references.foreach(item => if(!combinedProjectList.contains(item)) combinedProjectList += item))
+          filtersOps.foreach(f => f.references.foreach(update))
         }
 
         addRequiredProjectRefs(a)
@@ -169,7 +182,6 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
 
         val (combinedChild, _) = combinePlans(a.child, b.child)
         (Project(combinedProjectList, combinedChild), false)
-      }
 
       // =================================================================================
       // FILTER(conditionA)

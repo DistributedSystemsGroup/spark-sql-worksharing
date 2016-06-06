@@ -12,7 +12,7 @@ import org.apache.spark.sql.extensions.Util
   * @param inPlans
   * @param coveringExpressions: HashMap(covering plan, Set(original plan, consumer indexes))
   */
-class StrategyGenerator (inPlans:Array[LogicalPlan],
+class StrategyGenerator2 (inPlans:Array[LogicalPlan],
                          coveringExpressions:mutable.HashMap[LogicalPlan, Set[(LogicalPlan, Int)]]){
 
   // GENERATE the power set of cachingPlans

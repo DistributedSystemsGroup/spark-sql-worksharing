@@ -2,6 +2,7 @@ package fr.eurecom.dsg.applications
 
 import fr.eurecom.dsg.statistics.StatisticsProvider
 import fr.eurecom.dsg.util.{tpcds, Tables, QueryExecutor, QueryProvider}
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.extensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -28,7 +29,8 @@ object AppTmp {
       conf.setMaster("local[2]")
 
     val sc = new SparkContext(conf)
-    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
+//    val sqlc= new org.apache.spark.sql.hive.HiveContext(sc)
+    val sqlc = new SQLContext(sc)
 
     sqlc.setConf("spark.sql.parquet.cacheMetadata", "false")
     sqlc.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false")
@@ -42,16 +44,16 @@ object AppTmp {
     CostEstimator.setStatsProvider(stats)
     println("Statistics data is loaded!")
 
-    val df3 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q3").take(1)(0)._2)
-    val df42 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q42").take(1)(0)._2)
+    val df3 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q3").take(1).head._2)
+    val df42 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q42").take(1).head._2)
+
+//    QueryExecutor.executeSequential(sqlc, Seq(df3, df42), outputDir)
 
     QueryExecutor.executeWorkSharing(sqlc, Seq(df3, df42), outputDir)
 
-
-
-//        while(true){
-//          Thread.sleep(1000)
-//        }
+    while(true){
+      Thread.sleep(1000)
+    }
 
   }
 }
