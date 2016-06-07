@@ -1,17 +1,24 @@
 package fr.eurecom.dsg.optimizer
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-trait IKnapsackItem {
-  def profit:Double
-  def weight:Long
+class KnapsackItem {
+  var profit:Double = 0
+  var weight:Double = 0
+  var content:ArrayBuffer[Object] = new ArrayBuffer[Object]()
 }
 
 
-
+class KnapsackClass(){
+  val items = new ArrayBuffer[KnapsackItem]()
+  def nItems = items.length
+  def addItem(item: KnapsackItem): Unit ={
+    items.append(item)
+  }
+}
 
 trait MCKnapsackSolver{
-  def optimize(classesOfItems: Array[Array[IKnapsackItem]], capacity:Long):Array[IKnapsackItem]
+  def optimize(classesOfItems: Array[KnapsackClass], capacity:Long):Array[KnapsackItem]
 }
 
 /**
@@ -25,20 +32,20 @@ object SimpleMCKPSolver extends MCKnapsackSolver{
     * @param capacity
     * @return List of chosen items
     */
-  override def optimize(classesOfItems: Array[Array[IKnapsackItem]], capacity:Long):Array[IKnapsackItem]={
-    val chosenItems = new ListBuffer[IKnapsackItem]()
-    val bestItemsInEachClass = new ListBuffer[IKnapsackItem]()
+  override def optimize(classesOfItems: Array[KnapsackClass], capacity:Long):Array[KnapsackItem]={
+    val chosenItems = new ListBuffer[KnapsackItem]()
+    val bestItemsInEachClass = new ListBuffer[KnapsackItem]()
     for(c <- classesOfItems.indices){
-      bestItemsInEachClass.append(classesOfItems(c).sortBy(item => -item.profit/item.weight).head)
+      bestItemsInEachClass.append(classesOfItems(c).items.sortBy(item => -item.profit/item.weight).head)
     }
     val sortedItems = bestItemsInEachClass.sortBy(item => -item.profit/item.weight)
     val nItems = sortedItems.length
 
     var i = 0
-    var totalWeight:Long = 0
+    var totalWeight:Double = 0
 
     while(i < nItems && (totalWeight + sortedItems(i).weight) <= capacity){
-      chosenItems +=(sortedItems(i))
+      chosenItems += sortedItems(i)
       totalWeight += sortedItems(i).weight
       i+=1
     }

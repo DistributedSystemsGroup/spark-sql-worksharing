@@ -17,9 +17,9 @@ object QueryExecutor{
   def executeWorkSharing(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
     val plans = dfs.map(df => df.queryExecution.optimizedPlan).toArray
     val strategyGenerator = CacheAwareOptimizer.optimizePlans(plans, sqlContext)
-    val bestStrategy = strategyGenerator.get(4)
-    println("profit = " + strategyGenerator.CEs(4).profit)
-    println("weight = " + strategyGenerator.CEs(4).weight)
+    val bestStrategy = strategyGenerator.get()
+    println("profit = " + strategyGenerator.getProfit())
+    println("weight = " + strategyGenerator.getWeight())
 
 
     val df = bestStrategy.execute(sqlContext)
@@ -27,23 +27,5 @@ object QueryExecutor{
       .option("header", "true")
       .save(outputPath + "_worksharing_" + i.toString))
   }
-
-//  def executeWorkSharing(strategyIndex:Int, sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String): Unit ={
-//    val plans = dfs.map(df => df.queryExecution.optimizedPlan).toArray
-//    val strategyGenerator = CacheAwareOptimizer.optimizePlans(plans, sqlContext)
-//    var i = -1
-//
-//    while(strategyGenerator.hasNext()){
-//      val bestStrategy = strategyGenerator.next()
-//      i+=1
-//      if(i == strategyIndex){
-//        val df = bestStrategy.execute(sqlContext)
-//            df.indices.foreach(i => df(i).write.format("com.databricks.spark.csv")
-//              .option("header", "true")
-//              .save(outputPath + "/" + strategyIndex + "/"+ i.toString))
-//      }
-//    }
-//
-//  }
 
 }

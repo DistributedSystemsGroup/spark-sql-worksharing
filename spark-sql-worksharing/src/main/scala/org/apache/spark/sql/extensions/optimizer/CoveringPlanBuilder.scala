@@ -3,7 +3,7 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.cost.CostConstants
-import fr.eurecom.dsg.optimizer.{KnapsackItem}
+import fr.eurecom.dsg.optimizer.{CEContainer}
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
@@ -20,9 +20,9 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
     * @param SEGroups
     * @return
     */
-  def buildCoveringPlans(SEGroups: mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]])
-  :ArrayBuffer[KnapsackItem]= {
-    val res = new ArrayBuffer[KnapsackItem]()
+  def buildCoveringPlans(SEGroups: mutable.HashMap[BigInteger, mutable.ArrayBuffer[(LogicalPlan, Int)]])
+  :ArrayBuffer[CEContainer]= {
+    val res = new ArrayBuffer[CEContainer]()
 
     SEGroups.foreach(groupI => {
       // For each group of SEs
@@ -96,7 +96,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           val profit = executionCostWithoutOpt - executionCostWithOpt
           if(profit > 0){
             val weight = ceEstimate.getOutputSize
-            res.append(new KnapsackItem(ce, filteredSEs.toSet, profit, weight))
+            res.append(new CEContainer(ce, filteredSEs, profit, weight))
           }
           else{
             println("warning, profit < 0")

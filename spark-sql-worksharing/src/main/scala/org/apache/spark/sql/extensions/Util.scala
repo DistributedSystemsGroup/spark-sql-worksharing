@@ -86,7 +86,7 @@ object Util {
     CacheAwareOptimizer.computeTreeHash(planA) == CacheAwareOptimizer.computeTreeHash(planB)
   }
 
-  def containsChild(parentPlan:LogicalPlan, child:LogicalPlan): Boolean ={
+  def containsDescendant(parentPlan:LogicalPlan, child:LogicalPlan): Boolean ={
     parentPlan.find(f => f.fastEquals(child)) match {
       case Some(item) => true
       case None => false
@@ -101,6 +101,18 @@ object Util {
         math.max(leftChildHeight, rightChildHeight) + 1
       }
       case u:UnaryNode => getHeight(u.child) + 1
+      case l: LeafNode => 1
+    }
+  }
+
+  def getNDescendants(plan:LogicalPlan):Int ={
+    plan match{
+      case b:BinaryNode =>{
+        val lDescendants = getNDescendants(b.left)
+        val rDescendants = getNDescendants(b.right)
+        lDescendants + rDescendants + 1
+      }
+      case u:UnaryNode => getNDescendants(u.child) + 1
       case l: LeafNode => 1
     }
   }

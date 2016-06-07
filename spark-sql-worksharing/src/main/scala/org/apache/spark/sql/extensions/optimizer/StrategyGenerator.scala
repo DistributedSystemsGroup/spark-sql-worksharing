@@ -1,6 +1,6 @@
 package org.apache.spark.sql.extensions.optimizer
 
-import fr.eurecom.dsg.optimizer.KnapsackItem
+import fr.eurecom.dsg.optimizer.CEContainer
 import org.apache.spark.sql.catalyst.expressions.{NamedExpression, And}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.extensions.Util
@@ -10,16 +10,17 @@ import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 /**
   * Created by ntkhoa on 06/06/16.
   */
-class StrategyGenerator(inPlans: Array[LogicalPlan], val CEs: ArrayBuffer[KnapsackItem]) {
+class StrategyGenerator(inPlans: Array[LogicalPlan], val CEs: Array[CEContainer]) {
+  def getWeight(): Double = CEs.map(ce => ce.weight).sum
+
+  def getProfit(): Double = CEs.map(ce => ce.profit).sum
 
 
-  def get(i:Int):Strategy = {
+  def get():Strategy = {
     val rewrittenPlans = new Array[LogicalPlan](inPlans.length)
     inPlans.copyToArray(rewrittenPlans)
-    val selectedCoveringExpression = (CEs(i).CE, CEs(i).SEs.toArray.sortBy(ele => Util.getHeight(ele._1) * -1))
-    val selectedCoveringExpressions = new ArrayBuffer[(LogicalPlan, Array[(LogicalPlan, Int)])]()
-    selectedCoveringExpressions.append(selectedCoveringExpression)
     // sort it to solve the expression in expression problem
+    val selectedCoveringExpressions = CEs.map(ce => (ce.CE, ce.SEs.toArray.sortBy(ele => Util.getHeight(ele._1) * -1)))
 
     val cachePlans = new ListBuffer[LogicalPlan]()
     selectedCoveringExpressions.indices.foreach { i =>

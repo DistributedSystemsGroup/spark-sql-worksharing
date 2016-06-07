@@ -3,6 +3,8 @@ package org.apache.spark.sql.extensions.optimizer
 
 import java.math.BigInteger
 
+import fr.eurecom.dsg.cost.CostConstants
+import fr.eurecom.dsg.optimizer.{SimpleMCKPSolver, KnapsackItem, CEContainer, KnapsackClass}
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import nw.fr.eurecom.dsg.optimizer.{DFSVisitor}
 import org.apache.spark.sql.SQLContext
@@ -12,6 +14,7 @@ import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.extensions.Util
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -26,6 +29,84 @@ import scala.collection.mutable
   * - Strategy Selection phase: by estimating the cost of each individual strategy, produces the best strategy as the output.
   */
 object CacheAwareOptimizer  extends SparkSQLServerLogging{
+
+  def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[KnapsackClass] = {
+    val res = new ArrayBuffer[KnapsackClass]()
+    val partitionsByNumConsumers = CEContainers.groupBy(_.SEs.length)
+    partitionsByNumConsumers.foreach(p1 =>{
+      val partitionsByConsumers = p1._2.groupBy(_.SEs.map(_._2).mkString(" "))
+      partitionsByConsumers.foreach(p2 =>{
+        val c = new KnapsackClass()
+        val subsets = p2._2.toSet.subsets
+        subsets.foreach(s => {
+          val S = s.toList
+          if(S.length > 0){
+            if(S.length == 1){
+              val item = new KnapsackItem()
+              item.profit = s.head.profit
+              item.weight = s.head.weight
+              item.content.append(s.head)
+              c.addItem(item)
+            }else{
+              var keep = true
+
+              for(i <- 0 until S.size)
+                for(j<- 0 until S.size){
+                  if(i != j && Util.containsDescendant(S(i).SEs(0)._1, S(j).SEs(0)._1))
+                    keep = false
+                }
+              if(keep){
+                val item = new KnapsackItem()
+                for(i<- 0 until S.size){
+                  item.profit = item.profit + S(i).profit
+                  item.weight = item.weight+ S(i).weight
+                  item.content.append(S(i))
+                }
+                c.addItem(item)
+              }
+            }
+          }
+        })
+
+//        val ces = p2._2.sortBy(x => -Util.getNDescendants(x.CE))
+//        val c = new KnapsackClass()
+//        for(i <- 0 until ces.length){
+//          val item = new KnapsackItem()
+//          item.profit = ces(i).profit
+//          item.weight = ces(i).weight
+//          item.content.append(ces(i))
+//          c.addItem(item)
+//
+//          for(j <- i+1 until ces.length){
+//            if(!Util.containsDescendant(ces(i).SEs(0)._1, ces(j).SEs(0)._1)){
+//              val lastItem = c.items.last
+//
+//              val item = new KnapsackItem()
+//              item.profit = ces(i).profit + ces(j).profit
+//              item.weight = ces(i).weight + ces(j).weight
+//              item.content.append(ces(i))
+//              item.content.append(ces(j))
+//              c.addItem(item)
+//
+////              val item = new KnapsackItem()
+////              item.profit = lastItem.profit + ces(j).profit
+////              item.weight = lastItem.weight + ces(j).weight
+////              item.content ++= lastItem.content
+////              item.content.append(ces(j))
+////              c.addItem(item)
+//            }
+//          }
+//        }
+        res.append(c)
+      })
+    })
+
+    res.toArray
+  }
+
+
+
+
   /**
     * Use the caching technique to globally optimize a given bag of (ìndividually) optimized Logical Plans (queries).
     * (currently, it supports only structured data sources which goes with the schema, eg: json, parquet, csv, ...)
@@ -80,13 +161,28 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // ==============================================================
     logInfo("========================================================")
     logInfo("Step 2: Building CEs")
-    val CEs = new CoveringPlanBuilder().buildCoveringPlans(SEsMap)
+    val CEContainers = new CoveringPlanBuilder().buildCoveringPlans(SEsMap)
     // SEs are grouped by a single CE
     // producer - consumer relationship
 
+    // log how many CEs were built
+    println("%d CEs were built".format(CEContainers.length))
+
     // now put in into classes and knapsack solver
+    val knapsackClasses:Array[KnapsackClass] = classifyCEs(CEContainers)
 
+    // log how many classes?
+    println("Classes for the MCKP")
+    knapsackClasses.foreach(c =>{
+      println("class i has %d items".format(c.items.length))
+    })
 
+    val selectedItems = SimpleMCKPSolver.optimize(knapsackClasses, CostConstants.CACHE_CAPACITY)
+    val selectedCEs = selectedItems.flatMap(kitem => kitem.content.asInstanceOf[ArrayBuffer[CEContainer]])
+
+    // log selected items
+    println("%d CEs were finally selected as cache plans".format(selectedCEs.length))
+    selectedCEs.foreach(ce => println(ce.CE))
 
     // ==============================================================
     // Step 3: Strategy Generation
@@ -95,37 +191,22 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // ==============================================================
     logInfo("========================================================")
     logInfo("Step 3: Strategy Generation")
-    new StrategyGenerator(outputPlans, CEs)
+    new StrategyGenerator(outputPlans, selectedCEs)
     // We return this, the consumer can pull a strategy and judge its quality (step 4)
-
-
-    // ==============================================================
-    // Step 4: Strategy Selection
-    // estimates the cost of each individual strategy, produces
-    // the best strategy as the output.
-    // ==============================================================
-
-//    var bestStrategy = generator.next()
-//    while(generator.hasNext()){
-//    val strategy = generator.next()
-//     comparing the cost
-//    }
-//    bestStrategy
-//    val dataFrames = bestStrategy.execute(sqlContext)
   }
 
 
 
   private def identifySEs(trees:Array[LogicalPlan])
-  :mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]={
+  :mutable.HashMap[BigInteger, mutable.ArrayBuffer[(LogicalPlan, Int)]]={
     logInfo("Input of %d plan(s)".format(trees.length))
 
     // - Key: fingerprint/ signature
     // - Value: a set of (logical plan, tree index)
     // At least 2 logical plan(s) having the same signature is considered as a SE
     // We will produce one group of SE for each key that has the length(value) >= 2
-    val fingerPrintMap = new mutable.HashMap[BigInteger, mutable.ListBuffer[(LogicalPlan, Int)]]
-    def createNewList() = new mutable.ListBuffer[(LogicalPlan, Int)]()
+    val fingerPrintMap = new mutable.HashMap[BigInteger, mutable.ArrayBuffer[(LogicalPlan, Int)]]
+    def createNewList() = new mutable.ArrayBuffer[(LogicalPlan, Int)]()
 
     // Build a hash tree for each tree
     // key: plan, value: (fingerprint, plan's height)
