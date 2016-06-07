@@ -97,6 +97,9 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           if(profit > 0){
             val weight = ceEstimate.getOutputSize
             res.append(new CEContainer(ce, filteredSEs, profit, weight))
+            println("built a CE " + ce)
+            println("profit = " + profit)
+            println("weight = " + weight)
           }
           else{
             println("warning, profit < 0")

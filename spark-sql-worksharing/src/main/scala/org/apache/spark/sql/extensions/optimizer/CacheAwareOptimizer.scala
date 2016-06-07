@@ -177,7 +177,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       println("class i has %d items".format(c.items.length))
     })
 
-    val selectedItems = SimpleMCKPSolver.optimize(knapsackClasses, CostConstants.CACHE_CAPACITY)
+    val selectedItems = SimpleMCKPSolver.optimize(knapsackClasses, CostConstants.MAX_CACHE_SIZE)
     val selectedCEs = selectedItems.flatMap(kitem => kitem.content.asInstanceOf[ArrayBuffer[CEContainer]])
 
     // log selected items

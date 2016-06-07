@@ -27,5 +27,4 @@ object QueryExecutor{
       .option("header", "true")
       .save(outputPath + "_worksharing_" + i.toString))
   }
-
 }

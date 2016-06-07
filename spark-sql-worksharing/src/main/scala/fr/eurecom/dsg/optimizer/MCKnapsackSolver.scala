@@ -33,22 +33,24 @@ object SimpleMCKPSolver extends MCKnapsackSolver{
     * @return List of chosen items
     */
   override def optimize(classesOfItems: Array[KnapsackClass], capacity:Long):Array[KnapsackItem]={
+
     val chosenItems = new ListBuffer[KnapsackItem]()
-    val bestItemsInEachClass = new ListBuffer[KnapsackItem]()
-    for(c <- classesOfItems.indices){
-      bestItemsInEachClass.append(classesOfItems(c).items.sortBy(item => -item.profit/item.weight).head)
-    }
-    val sortedItems = bestItemsInEachClass.sortBy(item => -item.profit/item.weight)
-    val nItems = sortedItems.length
-
-    var i = 0
-    var totalWeight:Double = 0
-
-    while(i < nItems && (totalWeight + sortedItems(i).weight) <= capacity){
-      chosenItems += sortedItems(i)
-      totalWeight += sortedItems(i).weight
-      i+=1
-    }
+    chosenItems.append(classesOfItems(0).items(4))
+//    val bestItemsInEachClass = new ListBuffer[KnapsackItem]()
+//    for(c <- classesOfItems.indices){
+//      bestItemsInEachClass.append(classesOfItems(c).items.sortBy(item => -item.profit/item.weight).head)
+//    }
+//    val sortedItems = bestItemsInEachClass.sortBy(item => -item.profit/item.weight)
+//    val nItems = sortedItems.length
+//
+//    var i = 0
+//    var totalWeight:Double = 0
+//
+//    while(i < nItems && (totalWeight + sortedItems(i).weight) <= capacity){
+//      chosenItems += sortedItems(i)
+//      totalWeight += sortedItems(i).weight
+//      i+=1
+//    }
     chosenItems.toArray
   }
 }

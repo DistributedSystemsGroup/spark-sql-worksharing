@@ -9,8 +9,6 @@ object CostConstants {
   val COST_RAM_READ:Double = 0.01f
   val COST_RAM_WRITE = 1
 
-  val CACHE_CAPACITY = 2000000000 // 2GB
-
   val DEFAULT_SELECTIVITY:Double = 0.33f
 
 
