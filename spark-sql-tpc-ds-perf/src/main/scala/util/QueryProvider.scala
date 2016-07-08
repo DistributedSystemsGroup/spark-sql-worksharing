@@ -1,4 +1,4 @@
-package fr.eurecom.dsg.util
+package util
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext}
@@ -13,7 +13,7 @@ import scala.collection.mutable.HashMap
   * @param tables name of tables to be registered
   * @param format {parquet, com.databricks.spark.csv}
   */
-class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[String], format: String) extends SparkSQLServerLogging {
+class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[String], format: String){
   // Due to the bug of cannot parsing a nullable datetime from csv datasource, I have to change the datatype of schema of some tables
 
   import sqlContext.implicits._
@@ -473,7 +473,7 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
       'web_tax_percentage       .decimal(5,2)))
   )
 
-  logInfo("Registering tables ...")
+  println("Registering tables ...")
   tables.foreach(tableName => {
     sqlContext.read
       .format(format)
@@ -484,7 +484,7 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
       // Thus, we prefer to disable this, and use our own schema
       .load(inputDir + "/" + tableName)
       .registerTempTable(tableName)
-    logInfo("Registered table %s".format(tableName))
+      println("Registered table %s".format(tableName))
   })
 
   def getDF(queryStr: String): DataFrame = {

@@ -24,7 +24,6 @@ object GenApp {
       conf.setMaster("local[2]")
 
     val sparkContext = new SparkContext(conf)
-
     val sqlContext= new SQLContext(sparkContext)
 
     // Tables in TPC-DS benchmark used by experiments.

@@ -2,28 +2,31 @@
 
 ## Dependencies
 - spark-hive (in build.sbt): to be able to use the HiveContext instead of SparkContext in generating the database
-- spark-sql-perf (in lib/): from DataBrick [Github url](https://github.com/databricks/spark-sql-perf). Cloned version is included in this repository (/spark-sql-perf)
-`cp ../spark-sql-perf/target/scala-2.10/*.jar lib/`
+- spark-sql-perf (being put in lib/): from DataBrick [Github url](https://github.com/databricks/spark-sql-perf). Cloned version is included in this repository (/spark-sql-perf)
 - tpc-ds-tool/ : folder containing official tpc-ds tool to generate data
-- old versions (prior to 1.6.x) of spark require `spark-csv` & `commons-csv` library to be able to read and write csv files.
+- old versions (prior to 1.6.x) of spark require `spark-csv` & `commons-csv` library to be able to read and write csv files. Since spark 2.0, spark-csv is already integrated.
 
 ## How to use?
 
 ### GenApp: 
 Application to generate the dataset for the benchmark
-- arguments: <inputPath> <scaleFactor> <format> <dsdgenDir>
+- arguments: <inputPath> <outputPath> <scaleFactor> <format> <dsdgenDir>
     + master: {local, cluster}
     + outputPath: where to save the generated data
     + scaleFactor: number of GB of data to be generated, eg: 10, 100, ...
     + format: {parquet, csv}
-    + dsdgenDir: folder tpc-ds-tool/
+    + dsdgenDir: folder tpc-ds-tool, need to be copied to every executors
 - Example: local /home/ntkhoa/tpcds-csv 1 csv tpc-ds-tool
 - Example: local /home/ntkhoa/tpcds-parquet 1 parquet tpc-ds-tool
     
 ### BenchmarkApp: 
 Application for doing benchmarking the TPC-DS 1.4 queries
-- arguments: <inputPath> <outputPath> <scaleFactor> <format> <iterations> <dsdgenDir>
-- Example: local /home/ntkhoa/tpcds-csv /home/ntkhoa/out 1 csv 1 tpc-ds-tool
+- arguments: <master> <inputPath> <outputPath> <format> <iterations>
+- Example: local /home/ntkhoa/tpcds-csv /home/ntkhoa/out csv 1
+
+### PlanWriterApp:
+Application for generating the LogicalPlans of all queries in the TPC-DS 1.4 benchmark  
+Visualized version can be viewed using this tool http://ironcreek.net/phpsyntaxtree/?
 
 ## Issues & resolve:
 - Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "main": give Spark more memory to initialize HiveContext.
@@ -89,6 +92,6 @@ Host spark-worker6
   IdentityFile ~/.ssh/bigfoot
 ```
 
+### Unable to parse queries:
 cannot parsed: 16, 23a, 32, 41, 92, 95
-cannot benchmarked: 9
-
+Use LocalRelation: 4, 11, 74

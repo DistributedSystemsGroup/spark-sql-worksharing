@@ -1,7 +1,7 @@
 # Spark SQL Performance
 This is the library provided by Databricks that supports running TPC-DS queries on Spark SQL.  
-Repository URL: <https://github.com/databricks/spark-sql-perf>
-
+The build.sbt is configured to build for Spark at version 2.0.1-SNAPSHOT (newest version)  
+Repository URL: <https://github.com/databricks/spark-sql-perf>  
 You can get it by:
 ```
 git clone https://github.com/databricks/spark-sql-perf.git
@@ -30,7 +30,7 @@ override def bufferEncoder = implicitly[Encoder[SumAndCount]]
 override def outputEncoder = implicitly[Encoder[Double]]
 ```
 
-### Modification required to support CSV header
+### Modification required to support CSV header (only if you need csv header)
 
 ```
 //1. In Tables.scala, function genData
