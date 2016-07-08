@@ -12,8 +12,6 @@
 - 
 
 
-
-
 ### Precomputed statistics
 - check class `StatisticsProvider`. Method `collect(tables)` will start computing stats for given list of tables. Method `saveToFile`, `readFromFile`  
 - Statistics are of 2 levels: 
@@ -31,7 +29,13 @@
         * count distinct
         * histograms (equal-width histograms)
         
-    
+### Micro-benchmark script
+resources/generator.py  
+generate random data for the micro-benchmark  
+schema: n1 -> n10, d1->d10, s1->s10  
+
+
+
 
 
 

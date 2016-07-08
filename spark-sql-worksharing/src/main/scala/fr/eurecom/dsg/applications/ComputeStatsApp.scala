@@ -44,8 +44,8 @@ object ComputeStatsApp {
 
     val newStats = stats.readFromFile(savePath)
 
-    while(true){
-
-    }
+//    while(true){
+//
+//    }
   }
 }
