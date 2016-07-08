@@ -86,7 +86,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
         if(filteredSEs.length >= 2){
           nConsumers = filteredSEs.length
           // now, build a CE for the filtered SEs. Then wrap it in the Knapsack item
-          val (ce, changed) = combinePlans(filteredSEs.map(ele => ele._1).toArray)
+          val (ce, identical) = combinePlans(filteredSEs.map(ele => ele._1).toArray)
           val ceEstimate = CostEstimator.estimateCost(ce)
           val executingCECost = ceEstimate.getExecutionCost
           val materializingCost = CostEstimator.estimateMaterializingCost(ceEstimate.getOutputSize)
@@ -175,13 +175,29 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
         projectListA.foreach(update)
         projectListB.foreach(update)
 
-        def addRequiredProjectRefs(plan:LogicalPlan): Unit ={
-          val filtersOps = plan.collect{case n:Filter => n}.toArray
-          filtersOps.foreach(f => f.references.foreach(update))
-        }
 
-        addRequiredProjectRefs(a)
-        addRequiredProjectRefs(b)
+//        def addRequiredProjectRefs(plan:LogicalPlan): Unit ={
+//          val filtersOps = plan.collect{case n:Filter => n}.toArray
+//          filtersOps.foreach(f => f.references.foreach(update))
+//        }
+//
+//        addRequiredProjectRefs(a)
+//        addRequiredProjectRefs(b)
+
+        val filtersOpsA = a.collect{case fNode:Filter => fNode}.toList
+        val filtersOpsB = b.collect{case fNode:Filter => fNode}.toList
+
+        val symmetricDifference = new ArrayBuffer[Filter]()
+        (filtersOpsA++filtersOpsB).foreach(f =>{
+          val idx = symmetricDifference.indexOf(f)
+          if(idx != -1)
+            symmetricDifference.remove(idx)
+          else
+            symmetricDifference.append(f)
+          }
+        )
+
+        symmetricDifference.foreach(f => f.references.foreach(update))
 
         val (combinedChild, _) = combinePlans(a.child, b.child)
         (Project(combinedProjectList, combinedChild), false)

@@ -102,10 +102,11 @@ object Util {
       }
       case u:UnaryNode => getHeight(u.child) + 1
       case l: LeafNode => 1
+      case u:Union => u.children.map(c => getHeight(c)).max + 1
     }
   }
 
-  def getNDescendants(plan:LogicalPlan):Int ={
+  private def getNDescendants(plan:LogicalPlan):Int ={
     plan match{
       case b:BinaryNode =>{
         val lDescendants = getNDescendants(b.left)
@@ -116,4 +117,32 @@ object Util {
       case l: LeafNode => 1
     }
   }
+
+
+  /**
+    * Use the format of the following site
+    * http://ironcreek.net/phpsyntaxtree/?
+    * Paste the result and you can get the image of the tree visualized
+    * @param p
+    * @return
+    */
+  def getVisualizedString(p:LogicalPlan):String ={
+    val opName = p.getClass.getSimpleName
+
+    p match {
+      case b: BinaryNode =>
+        return "[%s %s %s]".format(opName, getVisualizedString(b.left), getVisualizedString(b.right))
+      case u: UnaryNode =>
+        return "[%s %s]".format(opName, getVisualizedString(u.child))
+      case l: LeafNode =>
+        val path = l.asInstanceOf[LogicalRelation].relation.asInstanceOf[HadoopFsRelation].inputFiles.mkString(" ")
+        return "%s".format(path.substring(path.lastIndexOf('/')+1))
+      case u:Union =>
+        var res = opName
+        u.children.foreach(c => res = res + " " + getVisualizedString(c))
+        return "[" + res + "]"
+    }
+    ""
+  }
+
 }

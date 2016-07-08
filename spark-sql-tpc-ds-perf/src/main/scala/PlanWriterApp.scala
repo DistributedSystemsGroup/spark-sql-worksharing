@@ -3,9 +3,10 @@ import java.lang.Exception
 
 import com.databricks.spark.sql.perf.Query
 import com.databricks.spark.sql.perf.tpcds.{TPCDS, Tables}
+import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
 
@@ -527,7 +528,10 @@ object PlanWriterApp {
           val file = new File(i + ".txt")
           val bw = new BufferedWriter(new FileWriter(file))
           bw.write(queryText + "\n")
-          bw.write(lp.toString())
+          bw.write(lp.toString() + "\n")
+
+          bw.write(getVisualizedString(lp))
+
           bw.close()
         }
         catch{
@@ -537,4 +541,23 @@ object PlanWriterApp {
     }
     dfs.foreach(lp => writeLPToTextFile(lp._1, lp._2))
   }
+
+    def getVisualizedString(p:LogicalPlan):String ={
+        val opName = p.getClass.getSimpleName
+
+        p match {
+            case b: BinaryNode =>
+                return "[%s %s %s]".format(opName, getVisualizedString(b.left), getVisualizedString(b.right))
+            case u: UnaryNode =>
+                return "[%s %s]".format(opName, getVisualizedString(u.child))
+            case l: LeafNode =>
+                val path = l.asInstanceOf[LogicalRelation].relation.asInstanceOf[HadoopFsRelation].inputFiles.mkString(" ")
+                return "%s".format(path.substring(path.lastIndexOf('/')+1))
+            case u:Union =>
+                var res = opName
+                u.children.foreach(c => res = res + " " + getVisualizedString(c))
+                return "[" + res + "]"
+        }
+        ""
+    }
 }

@@ -13,5 +13,6 @@ object CostConstants {
 
 
   val MIN_SAVING:Double = 20000f
-  val MAX_CACHE_SIZE:Long = 1000000000 // 1 GB
+//  val MAX_CACHE_SIZE:Long = 1000000000 // 1 GB
+  val MAX_CACHE_SIZE:Long = 400000000 // 1 GB
 }

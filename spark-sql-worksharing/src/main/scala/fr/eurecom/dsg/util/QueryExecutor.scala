@@ -11,18 +11,18 @@ object QueryExecutor{
   }
 
   def executeSequential(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
-    dfs.zipWithIndex.foreach{case(df,i) => df.write.format("csv").save(outputPath + "_seqential_" + i.toString)}
+    dfs.zipWithIndex.foreach{case(df,i) => df.write.format("csv").option("header", "true").save(outputPath + "_sequential_" + i.toString)}
   }
 
   def executeWorkSharing(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
     val plans = dfs.map(df => df.queryExecution.optimizedPlan).toArray
-    val strategyGenerator = CacheAwareOptimizer.optimizePlans(plans, sqlContext)
+    val strategyGenerator = CacheAwareOptimizer.optimizePlans(plans)
     val bestStrategy = strategyGenerator.get()
     println("profit = " + strategyGenerator.getProfit())
     println("weight = " + strategyGenerator.getWeight())
 
-
     val df = bestStrategy.execute(sqlContext)
+
     df.indices.foreach(i => df(i).write.format("csv")
       .option("header", "true")
       .save(outputPath + "_worksharing_" + i.toString))

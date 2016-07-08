@@ -1,6 +1,6 @@
 package nw.fr.eurecom.dsg.optimizer
 
-import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, LeafNode, LogicalPlan, UnaryNode}
+import org.apache.spark.sql.catalyst.plans.logical._
 
 import scala.collection.mutable
 
@@ -43,6 +43,7 @@ class DFSVisitor(val plan:LogicalPlan) {
       case b:BinaryNode => b.children.foreach(stack.push)
       case u:UnaryNode => stack.push(u.child)
       case l:LeafNode => // do nothing
+      case u:Union => u.children.foreach(c => stack.push(c))
       case _ => throw new NotImplementedError("not implemented" + currentNode.getClass)
     }
   }

@@ -3,6 +3,9 @@ package fr.eurecom.dsg.statistics
 import com.fasterxml.jackson.annotation.JsonCreator
 import fr.eurecom.dsg.util.Constants
 import org.apache.spark.sql.extensions.Util
+import org.apache.spark.unsafe.types.UTF8String
+
+import scala.util.control.Exception
 
 /**
   * POJO class
@@ -63,22 +66,23 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
     var valueFrom: Double = 0
     var valueTo: Double = 0
 
-    if (from.isInstanceOf[String] && to.isInstanceOf[String]) {
-      valueFrom = Util.stringToInt(from.toString, nBins)
-      valueTo = Util.stringToInt(to.toString, nBins)
-    }
-    else {
+    try{
       valueFrom = from.toString.toDouble
       valueTo = to.toString.toDouble
+    }
+    catch {
+      case _ =>
+        valueFrom = Util.stringToInt(from.toString, nBins)
+        valueTo = Util.stringToInt(to.toString, nBins)
     }
 
     if (valueFrom < min) valueFrom = min.toInt
     if (valueTo > max) valueTo = max.toInt
     val iBucketFromDouble = (valueFrom - min.toInt) / binWidth
-    val iBucketFrom = iBucketFromDouble.toInt
+    val iBucketFrom = Math.max(0, Math.min(nBins-1, iBucketFromDouble.toInt))
 
     val iBucketToDouble = (valueTo - min.toInt) / binWidth
-    val iBucketTo = iBucketToDouble.toInt
+    val iBucketTo = Math.max(0, Math.min(nBins-1, iBucketToDouble.toInt))
 
     val estimationForBinFrom = histBuckets(iBucketFrom) * (1 - (iBucketFromDouble - iBucketFrom))
     val estimationForBinTo = histBuckets(iBucketTo) * (iBucketToDouble - iBucketTo)
@@ -104,13 +108,13 @@ class ColumnStatistics(val numNotNull: Long = Constants.UNKNOWN_VAL,
 
     var value: Double = 0
 
-    if (key.isInstanceOf[String])
+    if (key.isInstanceOf[String] || key.isInstanceOf[UTF8String])
       value = Util.stringToInt(key.toString, nBins)
     else
       value = key.toString.toDouble
 
     if (value < min || value > max) return 0
-    val iBucket = ((value - min.toInt) / binWidth).toInt
+    val iBucket = Math.max(0, Math.min(((value - min.toInt) / binWidth).toInt, nBins - 1))
     (histBuckets(iBucket)*1.0 / Math.max(binWidth, 1)) / (numNull + numNotNull)
   }
 

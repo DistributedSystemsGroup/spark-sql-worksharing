@@ -1503,7 +1503,7 @@ object tpcds {
               |  ,rank_within_parent
               | limit 100
             """.stripMargin),
-    // Modifications: "+ days" -> date_add
+     //Modifications: "+ days" -> date_add
     ("q37", """
               | select i_item_id, i_item_desc, i_current_price
               | from item, inventory, date_dim, catalog_sales

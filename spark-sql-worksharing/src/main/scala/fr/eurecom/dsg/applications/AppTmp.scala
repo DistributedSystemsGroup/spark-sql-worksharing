@@ -45,11 +45,14 @@ object AppTmp {
     println("Statistics data is loaded!")
 
     val df3 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q3").take(1).head._2)
+
+    df3.queryExecution.optimizedPlan
+
     val df42 = queryProvider.getDF(tpcds.tpcds1_4Queries.filter(q => q._1 == "q42").take(1).head._2)
 
 //    QueryExecutor.executeSequential(sqlc, Seq(df3, df42), outputDir)
 
-    QueryExecutor.executeWorkSharing(sqlc, Seq(df3, df42), outputDir)
+//    QueryExecutor.executeWorkSharing(sqlc, Seq(df3, df42), outputDir)
 
     while(true){
       Thread.sleep(1000)

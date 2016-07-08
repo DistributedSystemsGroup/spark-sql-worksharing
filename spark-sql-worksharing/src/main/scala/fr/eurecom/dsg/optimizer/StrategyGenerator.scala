@@ -35,7 +35,7 @@ class StrategyGenerator2 (inPlans:Array[LogicalPlan],
         val consumerIndex = consumer._2
 
         if(!originalPlan.fastEquals(coveringExpression)){
-          if(CacheAwareOptimizer.containCacheUnfriendlyOperator(coveringExpression)){
+          if(CacheAwareOptimizer.containsCacheUnfriendlyOperator(coveringExpression)){
             // extractPlan = ANDING filters & projects from originalPlan
             // Thay originalPlan = extractPlan on top of coveringPlan
             val extractPlan = buildExtractionPlan(originalPlan, coveringExpression)

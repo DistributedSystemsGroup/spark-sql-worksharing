@@ -10,7 +10,11 @@ class Strategy(inPlans:Array[LogicalPlan], cachePlans:Array[LogicalPlan]) extend
       Dataset.ofRows(sQLContext.sparkSession, p).cache()
       logInfo("Registered a cache plan: %s".format(p))
     })
-    inPlans.map(p => Dataset.ofRows(sQLContext.sparkSession, p))
+    inPlans.map(p => {
+      println(p)
+      Dataset.ofRows(sQLContext.sparkSession, p)
+
+    })
   }
 
   override def toString():String ={
