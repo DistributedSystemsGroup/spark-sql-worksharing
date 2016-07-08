@@ -1,0 +1,5 @@
+spark-sql-tpc-ds-perf/*.txt
+**.log
+**.scala~
+**/.idea
+**.md~
