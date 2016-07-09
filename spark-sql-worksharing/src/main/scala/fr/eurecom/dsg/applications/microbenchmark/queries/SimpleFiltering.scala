@@ -1,9 +1,6 @@
 package fr.eurecom.dsg.applications.microbenchmark.queries
 import org.apache.spark.sql.{DataFrame}
 
-/**
-  * Created by ntkhoa on 30/06/16.
-  */
 class SimpleFiltering(data:DataFrame) extends MicroBQuery(data){
   val where1 = "(20 <= n1 and n1 <= 70)"
   val where2 = "(50 <= n1 and n1 <= 75)"

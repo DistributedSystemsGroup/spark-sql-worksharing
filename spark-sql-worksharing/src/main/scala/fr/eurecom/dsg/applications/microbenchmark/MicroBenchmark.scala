@@ -12,10 +12,13 @@ import scala.collection.mutable.ArrayBuffer
   */
 object MicroBenchmark {
   def main(args: Array[String]) {
-    val inputFile = args(0)
-    val format = args(1)
+    val master = args(0)
+    val inputFile = args(1)
+    val format = args(2)
 
-    val conf = new SparkConf().setAppName("Micro-benchmark").setMaster("local[2]")
+    val conf = new SparkConf().setAppName(this.getClass.toString)
+    if(master.toLowerCase == "local")
+      conf.setMaster("local[2]")
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
 

@@ -13,8 +13,6 @@ class SimpleProjection (data:DataFrame) extends MicroBQuery(data){
   override val q1: DataFrame = data.select(columns1.head, columns1.tail:_*)
   override val q2: DataFrame = data.select(columns2.head, columns2.tail:_*)
 
-
-
   override val cachePlan: DataFrame = data.select(unionColumns.head, unionColumns.tail:_*)
   override val q1Opt: DataFrame = cachePlan.select(columns1.head, columns1.tail:_*)
   override val q2Opt: DataFrame = cachePlan.select(columns2.head, columns2.tail:_*)

@@ -7,16 +7,20 @@ import org.apache.spark.{SparkContext, SparkConf}
   */
 object ConvertData {
   def main(args: Array[String]) {
-    val inputFile = args(0)
+    val master = args(0)
+    val inputFile = args(1)
+    val outputPath = args(2)
 
-    val conf = new SparkConf().setAppName("Convert data").setMaster("local[2]")
+    val conf = new SparkConf().setAppName("Convert data")
+    if(master.toLowerCase == "local")
+      conf.setMaster("local[2]")
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
     import sqlContext.implicits._
     val logData = sc.textFile(inputFile).map(line => new DataRow(line.split(" "))).toDS()
 
-    logData.write.csv("/home/ntkhoa/micro/dat_micro_csv")
-    logData.write.parquet("/home/ntkhoa/micro/dat_micro_parquet")
+    logData.write.csv(outputPath + "/dat_micro_csv")
+    logData.write.parquet(outputPath + "/dat_micro_parquet")
   }
 
 }

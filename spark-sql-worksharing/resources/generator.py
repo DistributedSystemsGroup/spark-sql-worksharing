@@ -45,6 +45,26 @@ def genRecord():
     print(output.strip())
 
 
+def genRecord2():
+    integerFields = []
+    doubleFields = []
+    strFields = []
+    i1 = randint(1, 100)
+    integerFields.append(i1)
+
+    f1 = randomDouble(0, 1)
+    doubleFields.append(f1)
+
+    str1 = randomWord(20)
+    strFields.append(str1)
+
+    fields = integerFields + doubleFields + strFields
+    output = ""
+    for item in fields:
+        output += (str(item) + " ")
+    print(output.strip())
+
+
 nRecords = int(sys.argv[1])
 start_time = time.time()
 for i in range(0, nRecords):

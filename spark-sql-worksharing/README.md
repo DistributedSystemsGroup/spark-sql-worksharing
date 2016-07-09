@@ -29,12 +29,13 @@
         * count distinct
         * histograms (equal-width histograms)
         
-### Micro-benchmark script
+### Micro-benchmark - generating data
 resources/generator.py  
 generate random data for the micro-benchmark  
 schema: n1 -> n10, d1->d10, s1->s10  
+``python generator.py 1000000 | hdfs dfs -put - tmp/random-data.txt``
 
-
+### Micro-benchmark
 
 
 
