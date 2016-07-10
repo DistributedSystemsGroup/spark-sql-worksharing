@@ -42,5 +42,7 @@ object GenApp {
       clusterByPartitionColumns = false,
       filterOutNullPartitionValues = false
     )
+
+    sparkContext.stop()
   }
 }
