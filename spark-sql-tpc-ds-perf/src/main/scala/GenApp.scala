@@ -39,7 +39,7 @@ object GenApp {
       overwrite = false,
       partitionTables = false,
       useDoubleForDecimal = false,
-      clusterByPartitionColumns = false,
+      clusterByPartitionColumns = true,
       filterOutNullPartitionValues = false
     )
 
