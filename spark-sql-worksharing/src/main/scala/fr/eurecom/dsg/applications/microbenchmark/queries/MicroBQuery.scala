@@ -6,12 +6,12 @@ import org.apache.spark.sql.{DataFrame}
   * Created by ntkhoa on 30/06/16.
   */
 abstract class MicroBQuery(data:DataFrame) {
-  val q1:DataFrame
-  val q2:DataFrame
+  def q1:DataFrame
+  def q2:DataFrame
 
-  val cachePlan:DataFrame
-  val q1Opt:DataFrame
-  val q2Opt:DataFrame
+  def cachePlan:DataFrame
+  def q1Opt:DataFrame
+  def q2Opt:DataFrame
 
   def warmUp():Unit = {
     data.foreach(_ => ())
