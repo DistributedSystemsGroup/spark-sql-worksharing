@@ -36,11 +36,15 @@ schema: n1 -> n10, d1->d10, s1->s10
 ``python generator.py 1000000 | hdfs dfs -put - tmp/random-data.txt``
 
 ### Micro-benchmark
-
-
-
-
-
+fr.eurecom.dsg.microbenchmark.MicroBenchmark
+Application to benchmark on simple queries
+- arguments: <master> <inputFile> <format> <query> <mode>
+    + master: {local, cluster}
+    + inputFile
+    + format: {parquet, csv}
+    + query: {0, 1, 2, 3, 4}
+    + mode: {wopt, opt} // witout optimization, with optimization
+- Example: local /home/ntkhoa/random/random-csv csv 0 wopt
 
 
 
