@@ -41,6 +41,8 @@ sqlContext.read.format(format).option("header", "true").option("inferSchema", "t
 
 ```
 
+### Modification to not do the partitioning
+Tables.scala
 
 ### How to build?
 `./build/sbt package`

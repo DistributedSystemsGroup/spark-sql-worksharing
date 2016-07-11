@@ -159,7 +159,8 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
         }
       } else {
         // If the table is not partitioned, coalesce the data to a single file.
-        data.coalesce(1).write
+        //data.coalesce(1).write
+	data.write
       }
       writer.format(format).mode(mode)
       if (partitionColumns.nonEmpty) {
