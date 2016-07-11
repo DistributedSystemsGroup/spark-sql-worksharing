@@ -1,6 +1,5 @@
 package fr.eurecom.dsg.applications.microbenchmark
 
-import com.sun.javaws.exceptions.InvalidArgumentException
 import fr.eurecom.dsg.applications.microbenchmark.queries._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkConf, SparkContext}
@@ -45,8 +44,11 @@ object MicroBenchmark {
     }
 
     mode match{
-      case "opt" => q.runWithOpt()
-      case "wopt" => q.runWithoutOpt()
+      case "opt" =>
+        q.runWithOpt()
+        Thread.sleep(10000) // sleep for 10 secs, so that I can check how much memory has been cached
+      case "wopt" =>
+        q.runWithoutOpt()
       case _ => throw new IllegalArgumentException("mode = " + mode)
     }
 
