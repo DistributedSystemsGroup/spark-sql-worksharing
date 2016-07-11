@@ -1,20 +1,18 @@
 package fr.eurecom.dsg.applications.microbenchmark
 
-import fr.eurecom.dsg.applications.microbenchmark.queries.{SimpleProjection, SimpleFiltering, MicroBQuery}
-import org.apache.spark.sql.types.{IntegerType, StructField, StructType, StringType, DoubleType}
-import org.apache.spark.sql.{Dataset, DataFrame}
-import org.apache.spark.{SparkContext, SparkConf}
+import com.sun.javaws.exceptions.InvalidArgumentException
+import fr.eurecom.dsg.applications.microbenchmark.queries._
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.{SparkConf, SparkContext}
 
-import scala.collection.mutable.ArrayBuffer
 
-/**
-  * Created by ntkhoa on 30/06/16.
-  */
 object MicroBenchmark {
   def main(args: Array[String]) {
     val master = args(0)
     val inputFile = args(1)
     val format = args(2)
+    val query = args(3).toInt
+    val mode = args(4)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
     if(master.toLowerCase == "local")
@@ -26,8 +24,6 @@ object MicroBenchmark {
     sqlContext.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false")
     sqlContext.setConf("spark.sql.inMemoryColumnarStorage.partitionPruning", "true") // them cai nay vao bao cao
     sqlContext.setConf("spark.sql.parquet.filterPushdown", "false")
-
-    import sqlContext.implicits._
     var data:DataFrame = null
 
     if(format == "csv"){
@@ -39,11 +35,20 @@ object MicroBenchmark {
       data.printSchema()
     }
 
-    val q = new SimpleProjection(data)
+    var q:MicroBQuery = null
+    query match{
+      case 0 => q = new SimpleFiltering(data)
+      case 1 => q = new SimpleProjection(data)
+      case 2 => q = new SimpleFilteringProjection(data)
+      case 3 => q = new SimpleJoining(data)
+      case _ => throw new IllegalArgumentException("query = " + query.toString)
+    }
 
-//    q.runWithoutOpt()
-    q.runWithOpt()
-
+    mode match{
+      case "opt" => q.runWithOpt()
+      case "wopt" => q.runWithoutOpt()
+      case _ => throw new IllegalArgumentException("mode = " + mode)
+    }
 
     sc.stop()
 
