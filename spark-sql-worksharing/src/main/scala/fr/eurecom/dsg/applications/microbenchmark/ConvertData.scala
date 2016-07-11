@@ -17,6 +17,8 @@ object ConvertData {
 
     logData.write.csv(outputPath + "-csv")
     logData.write.parquet(outputPath + "-parquet")
+
+    sc.stop()
   }
 
 }

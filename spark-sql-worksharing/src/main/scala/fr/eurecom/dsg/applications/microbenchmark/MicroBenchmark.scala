@@ -44,8 +44,8 @@ object MicroBenchmark {
 //    q.runWithoutOpt()
     q.runWithOpt()
 
-    while (true){
-    }
+
+    sc.stop()
 
   }
 }

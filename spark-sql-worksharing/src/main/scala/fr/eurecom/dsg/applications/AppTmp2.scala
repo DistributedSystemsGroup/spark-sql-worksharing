@@ -98,10 +98,8 @@ object AppTmp2 {
 
 
 
-    while(true){
-      Thread.sleep(1000)
-    }
 
+    sc.stop()
 
 
     // observation: q1: a CTE

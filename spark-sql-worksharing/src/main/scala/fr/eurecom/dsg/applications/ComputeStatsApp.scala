@@ -43,6 +43,7 @@ object ComputeStatsApp {
     stats.saveToFile(savePath)
 
     val newStats = stats.readFromFile(savePath)
+    sc.stop()
 
 //    while(true){
 //

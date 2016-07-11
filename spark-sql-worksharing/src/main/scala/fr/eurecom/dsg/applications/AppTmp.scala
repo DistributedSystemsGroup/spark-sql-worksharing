@@ -54,9 +54,8 @@ object AppTmp {
 
 //    QueryExecutor.executeWorkSharing(sqlc, Seq(df3, df42), outputDir)
 
-    while(true){
-      Thread.sleep(1000)
-    }
+
+    sc.stop()
 
   }
 }
