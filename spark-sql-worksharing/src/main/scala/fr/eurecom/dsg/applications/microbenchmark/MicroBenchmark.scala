@@ -14,7 +14,7 @@ object MicroBenchmark {
     val query = args(3).toInt
     val mode = args(4)
 
-    val conf = new SparkConf().setAppName("%s %s %s %s".format(this.getClass.toString, inputFile , query.toString, mode))
+    val conf = new SparkConf().setAppName("%s %s %s %s".format(this.getClass.getName, inputFile , query.toString, mode))
     if(master.toLowerCase == "local")
       conf.setMaster("local[2]")
     val sc = new SparkContext(conf)
