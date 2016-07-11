@@ -41,9 +41,13 @@ sqlContext.read.format(format).option("header", "true").option("inferSchema", "t
 
 ```
 
-### Modification to not do the partitioning
+### Modification to not do the partitioning by columns
 Tables.scala
-
+```
+if (clusterByPartitionColumns && partitionColumns.nonEmpty) {
+	writer.partitionBy(partitionColumns : _*)
+}
+```
 ### How to build?
 `./build/sbt package`
 

@@ -159,11 +159,10 @@ class Tables(sqlContext: SQLContext, dsdgenDir: String, scaleFactor: Int) extend
         }
       } else {
         // If the table is not partitioned, coalesce the data to a single file.
-        //data.coalesce(1).write
-	data.write
+        data.coalesce(1).write
       }
       writer.format(format).mode(mode)
-      if (partitionColumns.nonEmpty) {
+      if (clusterByPartitionColumns && partitionColumns.nonEmpty) {
         writer.partitionBy(partitionColumns : _*)
       }
       println(s"Generating table $name in database to $location with save mode $mode.")
