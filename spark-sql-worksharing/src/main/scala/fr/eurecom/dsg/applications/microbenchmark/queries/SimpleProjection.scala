@@ -17,3 +17,9 @@ class SimpleProjection (data:DataFrame) extends MicroBQuery(data){
   override val q1Opt: DataFrame = cachePlan.select(columns1.head, columns1.tail:_*)
   override val q2Opt: DataFrame = cachePlan.select(columns2.head, columns2.tail:_*)
 }
+
+
+// simple projection with full cache
+class SimpleProjectionFC(data:DataFrame) extends SimpleProjection(data){
+  override val cachePlan: DataFrame = data
+}

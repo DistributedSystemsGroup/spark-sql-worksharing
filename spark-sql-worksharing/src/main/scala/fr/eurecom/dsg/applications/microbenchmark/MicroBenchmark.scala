@@ -40,6 +40,14 @@ object MicroBenchmark {
       case 1 => q = new SimpleProjection(data)
       case 2 => q = new SimpleFilteringProjection(data)
       case 3 => q = new SimpleJoining(data)
+
+
+
+      case 100 => q = new SimpleFilteringFC(data)
+      case 101 => q = new SimpleProjectionFC(data)
+      case 102 => q = new SimpleFilteringProjectionFC(data)
+      case 103 => q = new SimpleJoining(data)
+
       case _ => throw new IllegalArgumentException("query = " + query.toString)
     }
 

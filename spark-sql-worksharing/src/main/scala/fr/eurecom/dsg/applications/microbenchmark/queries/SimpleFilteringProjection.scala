@@ -18,3 +18,8 @@ class SimpleFilteringProjection (data:DataFrame) extends MicroBQuery(data) {
   override val q1Opt: DataFrame = cachePlan.where(where1).select(columns1.head, columns1.tail:_*)
   override val q2Opt: DataFrame = cachePlan.where(where2).select(columns2.head, columns2.tail:_*)
 }
+
+// simple filtering with full cache
+class SimpleFilteringProjectionFC(data:DataFrame) extends SimpleFilteringProjection(data){
+  override val cachePlan: DataFrame = data
+}
