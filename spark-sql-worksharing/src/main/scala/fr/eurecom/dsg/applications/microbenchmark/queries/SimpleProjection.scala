@@ -7,7 +7,8 @@ import org.apache.spark.sql._
   */
 class SimpleProjection (data:DataFrame) extends MicroBQuery(data){
   def columns1 = Seq("n1", "n2", "n3", "n4", "n5", "d1", "d2", "d3", "d4", "d5", "s1", "s2", "s3", "s4", "s5")
-  def columns2 = Seq("n1", "n2", "n3", "d1", "d2", "d3", "s1", "s2", "s3")
+//  def columns2 = Seq("n1", "n2", "n3", "d1", "d2", "d3", "s1", "s2", "s3")
+  def columns2 = Seq("n1", "n2", "n3", "d5", "d6", "d7", "s5", "s6", "s7")
   def unionColumns = (columns1.toSet ++ columns2.toSet).toSeq
 
   override def q1: DataFrame = data.select(columns1.head, columns1.tail:_*)

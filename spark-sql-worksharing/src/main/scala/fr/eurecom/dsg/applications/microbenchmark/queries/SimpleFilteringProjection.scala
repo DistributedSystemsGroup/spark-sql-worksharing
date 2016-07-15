@@ -7,7 +7,8 @@ class SimpleFilteringProjection (data:DataFrame) extends MicroBQuery(data) {
   def where2 = "(50 <= n1 and n1 <= 75)"
 
   def columns1 = Seq("n1", "n2", "n3", "n4", "n5", "d1", "d2", "d3", "d4", "d5", "s1", "s2", "s3", "s4", "s5")
-  def columns2 = Seq("n1", "n2", "n3", "d1", "d2", "d3", "s1", "s2", "s3")
+//  def columns2 = Seq("n1", "n2", "n3", "d1", "d2", "d3", "s1", "s2", "s3")
+  def columns2 = Seq("n1", "n2", "n3", "d5", "d6", "d7", "s5", "s6", "s7")
   def unionColumns = (columns1.toSet ++ columns2.toSet).toSeq // be aware of the fields in the where statements
 
   override def q1: DataFrame = data.where(where1).select(columns1.head, columns1.tail:_*)
