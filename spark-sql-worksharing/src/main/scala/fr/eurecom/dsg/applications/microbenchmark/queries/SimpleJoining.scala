@@ -41,9 +41,17 @@ class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBQuery(data)
 
   override def runWithOpt():Unit = {
     warmUp()
-    cachePlan.count()
+    cachePlan.count() // run this to get the cardinality information
     cachePlan.cache()
     q1Opt.foreach(_ => ())
     q2Opt.foreach(_ => ())
+  }
+
+  override def runWithoutOpt(): Unit ={
+    warmUp()
+    q1.count()
+    q2.count()
+    q1.foreach(_ => ())
+    q2.foreach(_ => ())
   }
 }

@@ -76,9 +76,9 @@ object MicroBenchmark {
       case _ => throw new IllegalArgumentException("mode = " + mode)
     }
 
-    while(true){
-      Thread.sleep(1000)
-    }
+//    while(true){
+//      Thread.sleep(1000)
+//    }
 
     sc.stop()
 
