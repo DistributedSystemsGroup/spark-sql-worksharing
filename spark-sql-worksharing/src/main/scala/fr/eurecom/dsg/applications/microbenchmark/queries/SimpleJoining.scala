@@ -6,7 +6,7 @@ class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBQuery(data)
 
   val whereLeft1 = "(20 <= n1 and n1 <= 70)"
   val whereLeft2 = "(50 <= n1 and n1 <= 75)"
-  val whereRight1 = "(ref_n1 <= 100000)"
+  val whereRight1 = "(ref_n1 <= 200000)"
   val whereRight2 = "(ref_n1 <= 200000)"
 
   val columnsLeft1 = Seq("n1", "n4", "d1", "d2", "s1", "s2")
