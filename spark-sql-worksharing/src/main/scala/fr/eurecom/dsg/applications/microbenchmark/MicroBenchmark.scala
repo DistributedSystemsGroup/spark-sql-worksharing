@@ -40,17 +40,17 @@ object MicroBenchmark {
       case 1 => q = new SimpleProjection(data)
       case 2 => q = new SimpleFilteringProjection(data)
       case 3 => q ={
-        val refTable = "data/random/random-1M-csv"
-//        val refTable = "/home/ntkhoa/micro/dat_micro_csv"
+        val refTable = "data/random/ref-1M-"
+//        val refTable = "/home/ntkhoa/micro/rd-csv"
 
         var refData:DataFrame = null
         if(format == "csv"){
-          refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable)
+          refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
         }
         else{
-          refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable)
+          refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
         }
-        new SimpleJoining(data, refData, sqlContext)
+        new SimpleJoining(data, refData)
       }
 
       case 100 => q = new SimpleFilteringFC(data)
@@ -63,10 +63,21 @@ object MicroBenchmark {
     mode match{
       case "opt" =>
         q.runWithOpt()
+//        q.cachePlan.foreach(_ => ())
+//        val res = q.cachePlan.count()
+//        println(res)
+
+
+
         Thread.sleep(10000) // sleep for 10 secs, so that I can check how much memory has been cached
       case "wopt" =>
+
         q.runWithoutOpt()
       case _ => throw new IllegalArgumentException("mode = " + mode)
+    }
+
+    while(true){
+      Thread.sleep(1000)
     }
 
     sc.stop()
