@@ -18,52 +18,40 @@ def randomDouble(min, max):
     return format(uniform(min, max), '.2f')
 
 def genRecord():
-    integerFields = []
-    doubleFields = []
-    strFields = []
-    n1 = randint(1, 100)
-    integerFields.append(n1)
-    n2 = randint(1, 1000)
-    integerFields.append(n2)
-    for i in range(2, N_INT):
-        integerFields.append(randint(1, 10000))
+    output = ""
+    x = 10
+    for i in range(0, N_INT):
+        if x < 1000000:
+            x *= 10
+        output += (str(randint(1, x)) + " ")
 
-    d1 = randomDouble(0, 1)
-    doubleFields.append(d1)
-    d2 = randomDouble(0, 2)
-    doubleFields.append(d2)
-    for i in range(2, N_DOUBLE):
-        doubleFields.append(randomDouble(1, 2))
+    x = str(randomDouble(0, 1))
+    for i in range(0, N_DOUBLE):
+        output += (x + " ")
 
+    word = randomWord(20)
     for i in range(0, N_STR):
-        doubleFields.append(randomWord(20))
+        output += (word + " ")
 
-    fields = integerFields + doubleFields + strFields
-    output = ""
-    for item in fields:
-        output += (str(item) + " ")
     print(output.strip())
 
-
-def genRecord2():
-    integerFields = []
-    doubleFields = []
-    strFields = []
-    i1 = randint(1, 100)
-    integerFields.append(i1)
-
-    f1 = randomDouble(0, 1)
-    doubleFields.append(f1)
-
-    str1 = randomWord(20)
-    strFields.append(str1)
-
-    fields = integerFields + doubleFields + strFields
+def genRecordRef():
     output = ""
-    for item in fields:
-        output += (str(item) + " ")
-    print(output.strip())
+    x = 1000
+    for i in range(0, N_INT):
+        if x < 1000000:
+            x *= 10
+        output += (str(randint(1, x)) + " ")
 
+    x = str(randomDouble(0, 1))
+    for i in range(0, N_DOUBLE):
+        output += (x + " ")
+
+    word = randomWord(20)
+    for i in range(0, N_STR):
+        output += (word + " ")
+
+    print(output.strip())
 
 nRecords = int(sys.argv[1])
 start_time = time.time()
