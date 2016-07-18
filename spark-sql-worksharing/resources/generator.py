@@ -35,10 +35,14 @@ def genRecord():
 
     print(output.strip())
 
+id = 1
+
 def genRecordRef():
+    global id
     output = ""
-    x = 1000
-    for i in range(0, N_INT):
+    output += (str(id) + " ")
+    x = 10
+    for i in range(1, N_INT):
         if x < 1000000:
             x *= 10
         output += (str(randint(1, x)) + " ")
@@ -52,6 +56,7 @@ def genRecordRef():
         output += (word + " ")
 
     print(output.strip())
+    id += 1
 
 nRecords = int(sys.argv[1])
 start_time = time.time()
