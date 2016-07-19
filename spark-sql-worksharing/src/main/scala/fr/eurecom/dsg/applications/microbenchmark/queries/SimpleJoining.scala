@@ -1,6 +1,6 @@
 package fr.eurecom.dsg.applications.microbenchmark.queries
 
-import org.apache.spark.sql.{SQLContext, DataFrame}
+import org.apache.spark.sql.DataFrame
 
 class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBQuery(data){
 
