@@ -1,0 +1,840 @@
+params: 10 csv 100 wopt
+took 13.111053 s
+took 9.630220 s
+params: 10 csv 100 wopt
+took 14.055968 s
+took 11.246024 s
+params: 10 csv 100 wopt
+took 12.778652 s
+took 10.497016 s
+params: 10 csv 100 wopt
+took 12.512768 s
+took 10.786510 s
+params: 10 csv 100 wopt
+took 18.359082 s
+took 11.766678 s
+params: 40 csv 100 wopt
+took 31.820437 s
+took 34.767568 s
+params: 40 csv 100 wopt
+took 32.894779 s
+took 26.760696 s
+params: 40 csv 100 wopt
+took 38.720355 s
+took 29.168975 s
+params: 40 csv 100 wopt
+took 36.850595 s
+took 32.140047 s
+params: 40 csv 100 wopt
+took 41.895077 s
+took 34.843769 s
+params: 70 csv 100 wopt
+took 64.095072 s
+took 54.124317 s
+params: 70 csv 100 wopt
+took 60.007046 s
+took 57.263186 s
+params: 70 csv 100 wopt
+took 56.226397 s
+took 56.340823 s
+params: 70 csv 100 wopt
+took 71.622166 s
+took 56.527662 s
+params: 70 csv 100 wopt
+took 59.753359 s
+took 58.269194 s
+params: 100 csv 100 wopt
+took 84.328128 s
+took 80.256377 s
+params: 100 csv 100 wopt
+took 90.807136 s
+took 79.648840 s
+params: 100 csv 100 wopt
+took 85.318694 s
+took 78.870254 s
+params: 100 csv 100 wopt
+took 107.472641 s
+took 79.276584 s
+params: 100 csv 100 wopt
+took 90.671182 s
+took 81.408687 s
+params: 10 csv 100 opt
+took 19.940053 s
+took 1.147083 s
+params: 10 csv 100 opt
+took 15.529316 s
+took 1.008836 s
+params: 10 csv 100 opt
+took 19.318113 s
+took 1.231843 s
+params: 10 csv 100 opt
+took 19.073464 s
+took 1.048228 s
+params: 10 csv 100 opt
+took 16.361420 s
+took 0.888962 s
+params: 40 csv 100 opt
+took 39.148122 s
+took 3.007828 s
+params: 40 csv 100 opt
+took 45.870350 s
+took 3.240521 s
+params: 40 csv 100 opt
+took 39.429883 s
+took 3.132173 s
+params: 40 csv 100 opt
+took 48.569350 s
+took 4.015595 s
+params: 40 csv 100 opt
+took 38.665852 s
+took 3.573820 s
+params: 70 csv 100 opt
+took 70.557331 s
+took 5.108683 s
+params: 70 csv 100 opt
+took 94.414665 s
+took 6.239579 s
+params: 70 csv 100 opt
+took 68.433436 s
+took 4.652280 s
+params: 70 csv 100 opt
+took 70.409784 s
+took 5.041376 s
+params: 70 csv 100 opt
+took 76.422564 s
+took 5.339777 s
+params: 100 csv 100 opt
+took 119.076315 s
+took 21.440399 s
+params: 100 csv 100 opt
+took 123.774564 s
+took 19.511799 s
+params: 100 csv 100 opt
+took 123.113985 s
+took 18.412574 s
+params: 100 csv 100 opt
+took 114.060705 s
+took 23.306475 s
+params: 100 csv 100 opt
+took 121.743381 s
+took 22.766825 s
+params: 10 csv 101 wopt
+took 11.884930 s
+took 18.233599 s
+params: 10 csv 101 wopt
+took 17.467900 s
+took 9.498298 s
+params: 10 csv 101 wopt
+took 11.890412 s
+took 15.971821 s
+params: 10 csv 101 wopt
+took 18.779280 s
+took 6.778570 s
+params: 10 csv 101 wopt
+took 13.415116 s
+took 17.321493 s
+params: 40 csv 101 wopt
+took 36.493045 s
+took 27.970991 s
+params: 40 csv 101 wopt
+took 35.057007 s
+took 31.383732 s
+params: 40 csv 101 wopt
+took 32.953717 s
+took 32.666163 s
+params: 40 csv 101 wopt
+took 42.910721 s
+took 23.142062 s
+params: 40 csv 101 wopt
+took 41.518455 s
+took 37.271953 s
+params: 70 csv 101 wopt
+took 57.950828 s
+took 41.403085 s
+params: 70 csv 101 wopt
+took 63.211604 s
+took 47.214332 s
+params: 70 csv 101 wopt
+took 43.005550 s
+took 53.838653 s
+params: 70 csv 101 wopt
+took 50.972772 s
+took 52.297671 s
+params: 70 csv 101 wopt
+took 59.814202 s
+took 51.020204 s
+params: 100 csv 101 wopt
+took 86.829881 s
+took 86.763831 s
+params: 100 csv 101 wopt
+took 91.674123 s
+took 73.577752 s
+params: 100 csv 101 wopt
+took 74.168364 s
+took 76.607061 s
+params: 100 csv 101 wopt
+took 88.603706 s
+took 67.078577 s
+params: 100 csv 101 wopt
+took 90.464355 s
+took 90.547561 s
+params: 10 csv 101 opt
+took 16.547313 s
+took 0.777994 s
+params: 10 csv 101 opt
+took 21.364861 s
+took 0.837334 s
+params: 10 csv 101 opt
+took 16.717382 s
+took 0.942808 s
+params: 10 csv 101 opt
+took 22.095846 s
+took 0.919953 s
+params: 10 csv 101 opt
+took 16.038625 s
+took 0.934705 s
+params: 40 csv 101 opt
+took 46.077784 s
+took 2.544710 s
+params: 40 csv 101 opt
+took 45.829792 s
+took 1.916276 s
+params: 40 csv 101 opt
+took 37.852308 s
+took 1.723060 s
+params: 40 csv 101 opt
+took 36.333542 s
+took 2.036033 s
+params: 40 csv 101 opt
+took 36.966123 s
+took 2.423406 s
+params: 70 csv 101 opt
+took 71.484618 s
+took 18.908472 s
+params: 70 csv 101 opt
+took 66.617886 s
+took 4.879457 s
+params: 70 csv 101 opt
+took 78.074886 s
+took 6.866078 s
+params: 70 csv 101 opt
+took 62.727544 s
+took 3.825898 s
+params: 70 csv 101 opt
+took 71.194373 s
+took 5.168736 s
+params: 100 csv 101 opt
+took 123.273963 s
+took 17.872214 s
+params: 100 csv 101 opt
+took 115.972023 s
+took 18.659371 s
+params: 100 csv 101 opt
+took 116.245878 s
+took 23.461565 s
+params: 100 csv 101 opt
+took 110.743703 s
+took 22.134148 s
+params: 100 csv 101 opt
+took 116.231830 s
+took 20.123780 s
+params: 10 csv 102 wopt
+took 15.718180 s
+took 6.813990 s
+params: 10 csv 102 wopt
+took 15.696025 s
+took 9.360813 s
+params: 10 csv 102 wopt
+took 15.711892 s
+took 7.067945 s
+params: 10 csv 102 wopt
+took 13.129379 s
+took 11.476473 s
+params: 10 csv 102 wopt
+took 14.209372 s
+took 7.575113 s
+params: 40 csv 102 wopt
+took 45.019892 s
+took 29.337136 s
+params: 40 csv 102 wopt
+took 42.487899 s
+took 30.207001 s
+params: 40 csv 102 wopt
+took 34.467046 s
+took 32.941312 s
+params: 40 csv 102 wopt
+took 45.083186 s
+took 29.229322 s
+params: 40 csv 102 wopt
+took 42.741669 s
+took 28.761227 s
+params: 70 csv 102 wopt
+took 53.489114 s
+took 43.863049 s
+params: 70 csv 102 wopt
+took 56.341662 s
+took 47.463428 s
+params: 70 csv 102 wopt
+took 68.732274 s
+took 52.742196 s
+params: 70 csv 102 wopt
+took 52.999763 s
+took 43.022709 s
+params: 70 csv 102 wopt
+took 55.687079 s
+took 47.296693 s
+params: 100 csv 102 wopt
+took 69.667326 s
+took 71.098510 s
+params: 100 csv 102 wopt
+took 73.121291 s
+took 77.474121 s
+params: 100 csv 102 wopt
+took 97.757199 s
+took 72.852284 s
+params: 100 csv 102 wopt
+took 72.465694 s
+took 67.366051 s
+params: 100 csv 102 wopt
+took 70.697768 s
+took 73.508886 s
+params: 10 csv 102 opt
+took 15.968512 s
+took 0.649941 s
+params: 10 csv 102 opt
+took 22.375755 s
+took 0.605614 s
+params: 10 csv 102 opt
+took 18.597305 s
+took 0.549067 s
+params: 10 csv 102 opt
+took 16.948598 s
+took 0.593426 s
+params: 10 csv 102 opt
+took 19.169241 s
+took 0.584867 s
+params: 40 csv 102 opt
+took 45.255384 s
+took 1.491243 s
+params: 40 csv 102 opt
+took 36.980200 s
+took 1.072176 s
+params: 40 csv 102 opt
+took 41.667129 s
+took 1.687248 s
+params: 40 csv 102 opt
+took 40.388087 s
+took 1.277655 s
+params: 40 csv 102 opt
+took 46.940255 s
+took 1.428143 s
+params: 70 csv 102 opt
+took 65.926006 s
+took 1.956748 s
+params: 70 csv 102 opt
+took 71.160363 s
+took 2.695367 s
+params: 70 csv 102 opt
+took 67.785042 s
+took 2.135665 s
+params: 70 csv 102 opt
+took 73.875408 s
+took 3.838818 s
+params: 70 csv 102 opt
+took 63.475885 s
+took 1.977771 s
+params: 100 csv 102 opt
+took 115.429150 s
+took 18.955121 s
+params: 100 csv 102 opt
+took 118.737051 s
+took 14.577726 s
+params: 100 csv 102 opt
+took 112.969507 s
+took 18.580925 s
+params: 100 csv 102 opt
+took 119.064432 s
+took 19.570335 s
+params: 100 csv 102 opt
+took 114.330394 s
+took 19.770844 s
+params: 10 parquet 100 wopt
+took 17.792598 s
+took 19.067336 s
+took 8.343269 s
+params: 10 parquet 100 wopt
+took 18.835294 s
+took 18.883456 s
+took 8.168632 s
+params: 10 parquet 100 wopt
+took 17.204426 s
+took 18.756841 s
+took 6.849441 s
+params: 10 parquet 100 wopt
+took 16.007418 s
+took 17.966228 s
+took 8.377965 s
+params: 10 parquet 100 wopt
+took 19.135907 s
+took 17.391558 s
+took 8.858047 s
+params: 40 parquet 100 wopt
+took 43.718347 s
+took 29.963988 s
+took 22.037828 s
+params: 40 parquet 100 wopt
+took 39.032404 s
+took 28.000632 s
+took 20.444063 s
+params: 40 parquet 100 wopt
+took 39.917180 s
+took 26.063384 s
+took 24.360779 s
+params: 40 parquet 100 wopt
+took 46.128566 s
+took 24.530400 s
+took 18.815150 s
+params: 40 parquet 100 wopt
+took 42.515847 s
+took 23.251796 s
+took 19.515021 s
+params: 70 parquet 100 wopt
+took 64.605207 s
+took 49.065635 s
+took 38.559217 s
+params: 70 parquet 100 wopt
+took 61.673768 s
+took 42.717197 s
+took 44.451431 s
+params: 70 parquet 100 wopt
+took 63.555649 s
+took 44.288256 s
+took 45.922912 s
+params: 70 parquet 100 wopt
+took 60.495516 s
+took 37.798578 s
+took 40.827830 s
+params: 70 parquet 100 wopt
+took 55.320846 s
+took 51.088441 s
+took 40.101023 s
+params: 100 parquet 100 wopt
+took 90.280749 s
+took 61.867505 s
+took 63.204276 s
+params: 100 parquet 100 wopt
+took 83.453010 s
+took 67.038587 s
+took 56.610009 s
+params: 100 parquet 100 wopt
+took 91.648232 s
+took 70.885277 s
+took 64.167027 s
+params: 100 parquet 100 wopt
+took 90.936600 s
+took 82.856064 s
+took 69.329511 s
+params: 100 parquet 100 wopt
+took 87.271818 s
+took 69.190850 s
+took 69.313247 s
+params: 10 parquet 100 opt
+took 17.075741 s
+took 19.425919 s
+took 1.020609 s
+params: 10 parquet 100 opt
+took 18.195456 s
+took 17.310450 s
+took 1.009302 s
+params: 10 parquet 100 opt
+took 17.529132 s
+took 19.177972 s
+took 1.037706 s
+params: 10 parquet 100 opt
+took 17.229544 s
+took 17.245396 s
+took 0.963068 s
+params: 10 parquet 100 opt
+took 15.857903 s
+took 18.956904 s
+took 1.142192 s
+params: 40 parquet 100 opt
+took 39.454340 s
+took 36.678067 s
+took 2.842074 s
+params: 40 parquet 100 opt
+took 37.949236 s
+took 34.321661 s
+took 2.530111 s
+params: 40 parquet 100 opt
+took 44.886186 s
+took 30.451885 s
+took 3.124883 s
+params: 40 parquet 100 opt
+took 44.704940 s
+took 28.058743 s
+took 3.181437 s
+params: 40 parquet 100 opt
+took 39.098071 s
+took 30.909774 s
+took 2.666009 s
+params: 70 parquet 100 opt
+took 59.616616 s
+took 55.931450 s
+took 4.429035 s
+params: 70 parquet 100 opt
+took 66.027463 s
+took 57.291615 s
+took 4.359344 s
+params: 70 parquet 100 opt
+took 83.635485 s
+took 54.145359 s
+took 4.283634 s
+params: 70 parquet 100 opt
+took 65.175908 s
+took 56.272139 s
+took 4.149025 s
+params: 70 parquet 100 opt
+took 63.296885 s
+took 51.951897 s
+took 4.233659 s
+params: 100 parquet 100 opt
+took 85.644242 s
+took 103.382327 s
+took 21.131500 s
+params: 100 parquet 100 opt
+took 93.390922 s
+took 104.857918 s
+took 25.574109 s
+params: 100 parquet 100 opt
+took 92.234860 s
+took 106.641156 s
+took 26.990114 s
+params: 100 parquet 100 opt
+took 85.409935 s
+took 107.833965 s
+took 18.919281 s
+params: 100 parquet 100 opt
+took 98.685775 s
+took 102.438160 s
+took 22.678176 s
+params: 10 parquet 101 wopt
+took 16.999742 s
+took 16.332505 s
+took 3.434267 s
+params: 10 parquet 101 wopt
+took 18.094217 s
+took 12.480581 s
+took 2.979054 s
+params: 10 parquet 101 wopt
+took 16.142712 s
+took 14.648642 s
+took 3.725823 s
+params: 10 parquet 101 wopt
+took 20.286305 s
+took 19.140890 s
+took 2.608360 s
+params: 10 parquet 101 wopt
+took 18.012596 s
+took 11.498649 s
+took 3.218536 s
+params: 40 parquet 101 wopt
+took 41.652196 s
+took 16.439512 s
+took 8.002844 s
+params: 40 parquet 101 wopt
+took 41.034345 s
+took 17.796167 s
+took 8.975057 s
+params: 40 parquet 101 wopt
+took 39.816630 s
+took 18.371821 s
+took 8.844227 s
+params: 40 parquet 101 wopt
+took 41.703426 s
+took 16.576358 s
+took 12.608764 s
+params: 40 parquet 101 wopt
+took 41.491136 s
+took 13.622831 s
+took 10.882221 s
+params: 70 parquet 101 wopt
+took 67.915791 s
+took 24.463044 s
+took 14.202301 s
+params: 70 parquet 101 wopt
+took 68.985755 s
+took 29.315866 s
+took 15.419489 s
+params: 70 parquet 101 wopt
+took 63.590300 s
+took 28.973289 s
+took 16.890960 s
+params: 70 parquet 101 wopt
+took 67.755793 s
+took 25.494166 s
+took 16.970071 s
+params: 70 parquet 101 wopt
+took 60.299739 s
+took 28.649047 s
+took 17.120843 s
+params: 100 parquet 101 wopt
+took 86.663377 s
+took 34.009244 s
+took 21.145966 s
+params: 100 parquet 101 wopt
+took 86.846340 s
+took 37.252454 s
+took 26.007259 s
+params: 100 parquet 101 wopt
+took 89.143137 s
+took 36.069105 s
+took 20.145570 s
+params: 100 parquet 101 wopt
+took 88.267551 s
+took 37.116776 s
+took 24.099513 s
+params: 100 parquet 101 wopt
+took 81.838095 s
+took 43.224029 s
+took 24.437823 s
+params: 10 parquet 101 opt
+took 16.679726 s
+took 23.313328 s
+took 0.845967 s
+params: 10 parquet 101 opt
+took 16.292075 s
+took 20.775058 s
+took 0.632149 s
+params: 10 parquet 101 opt
+took 19.967606 s
+took 18.999167 s
+took 0.890792 s
+params: 10 parquet 101 opt
+took 16.768485 s
+took 20.406834 s
+took 0.881658 s
+params: 10 parquet 101 opt
+took 18.605734 s
+took 22.527342 s
+took 0.811514 s
+params: 40 parquet 101 opt
+took 39.091093 s
+took 26.752643 s
+took 1.463044 s
+params: 40 parquet 101 opt
+took 37.456395 s
+took 30.049760 s
+took 1.543625 s
+params: 40 parquet 101 opt
+took 41.429515 s
+took 29.024486 s
+took 1.603599 s
+params: 40 parquet 101 opt
+took 39.161983 s
+took 35.721910 s
+took 1.524533 s
+params: 40 parquet 101 opt
+took 41.254714 s
+took 27.978468 s
+took 1.488864 s
+params: 70 parquet 101 opt
+took 59.430204 s
+took 55.753189 s
+took 2.329690 s
+params: 70 parquet 101 opt
+took 61.162349 s
+took 51.593355 s
+took 3.057153 s
+params: 70 parquet 101 opt
+took 66.862526 s
+took 52.825736 s
+took 2.293502 s
+params: 70 parquet 101 opt
+took 63.322452 s
+took 52.717522 s
+took 2.350597 s
+params: 70 parquet 101 opt
+took 64.855286 s
+took 58.052077 s
+took 2.962034 s
+params: 100 parquet 101 opt
+took 96.387792 s
+took 98.936078 s
+took 23.825661 s
+params: 100 parquet 101 opt
+took 90.612445 s
+took 99.639670 s
+took 23.930803 s
+params: 100 parquet 101 opt
+took 89.615614 s
+took 102.618342 s
+took 28.670639 s
+params: 100 parquet 101 opt
+took 83.956313 s
+took 101.616236 s
+took 21.126029 s
+params: 100 parquet 101 opt
+took 121.173280 s
+took 111.886552 s
+took 19.346906 s
+params: 10 parquet 102 wopt
+took 19.997420 s
+took 13.279805 s
+took 3.162458 s
+params: 10 parquet 102 wopt
+took 19.108534 s
+took 13.824470 s
+took 3.488778 s
+params: 10 parquet 102 wopt
+took 20.849849 s
+took 16.060613 s
+took 2.423059 s
+params: 10 parquet 102 wopt
+took 19.072919 s
+took 10.855597 s
+took 2.296425 s
+params: 10 parquet 102 wopt
+took 17.870803 s
+took 11.264737 s
+took 2.660522 s
+params: 40 parquet 102 wopt
+took 43.938767 s
+took 15.310206 s
+took 10.076489 s
+params: 40 parquet 102 wopt
+took 43.651729 s
+took 14.501049 s
+took 8.134051 s
+params: 40 parquet 102 wopt
+took 37.504990 s
+took 16.355802 s
+took 8.109729 s
+params: 40 parquet 102 wopt
+took 40.127722 s
+took 15.496548 s
+took 10.727139 s
+params: 40 parquet 102 wopt
+took 39.886505 s
+took 13.445362 s
+took 9.386517 s
+params: 70 parquet 102 wopt
+took 70.504912 s
+took 20.834715 s
+took 17.773694 s
+params: 70 parquet 102 wopt
+took 70.310587 s
+took 31.889961 s
+took 15.291128 s
+params: 70 parquet 102 wopt
+took 64.385137 s
+took 27.795546 s
+took 15.278122 s
+params: 70 parquet 102 wopt
+took 68.060147 s
+took 26.735199 s
+took 14.635063 s
+params: 70 parquet 102 wopt
+took 66.863083 s
+took 28.078923 s
+took 14.588478 s
+params: 100 parquet 102 wopt
+took 92.526056 s
+took 51.616276 s
+took 22.670024 s
+params: 100 parquet 102 wopt
+took 88.642982 s
+took 33.028113 s
+took 23.572408 s
+params: 100 parquet 102 wopt
+took 110.085212 s
+took 36.584021 s
+took 22.522019 s
+params: 100 parquet 102 wopt
+took 90.261585 s
+took 37.784575 s
+took 23.933612 s
+params: 100 parquet 102 wopt
+took 90.165030 s
+took 34.261725 s
+took 23.035198 s
+params: 10 parquet 102 opt
+took 22.675130 s
+took 21.052809 s
+took 0.856095 s
+params: 10 parquet 102 opt
+took 18.881046 s
+took 20.380944 s
+took 0.708221 s
+params: 10 parquet 102 opt
+took 21.711368 s
+took 23.139015 s
+took 0.844032 s
+params: 10 parquet 102 opt
+took 16.839404 s
+took 21.481794 s
+took 0.635905 s
+params: 10 parquet 102 opt
+took 17.619805 s
+took 16.701428 s
+took 0.893169 s
+params: 40 parquet 102 opt
+took 44.040597 s
+took 40.176631 s
+took 1.454025 s
+params: 40 parquet 102 opt
+took 40.126525 s
+took 38.764012 s
+took 1.528120 s
+params: 40 parquet 102 opt
+took 44.062163 s
+took 30.237489 s
+took 1.417570 s
+params: 40 parquet 102 opt
+took 47.915156 s
+took 29.767984 s
+took 1.315897 s
+params: 40 parquet 102 opt
+took 45.356768 s
+took 29.089278 s
+took 1.185994 s
+params: 70 parquet 102 opt
+took 62.012252 s
+took 49.000932 s
+took 1.801349 s
+params: 70 parquet 102 opt
+took 77.306196 s
+took 46.731120 s
+took 2.646163 s
+params: 70 parquet 102 opt
+took 71.229641 s
+took 51.422686 s
+took 1.644289 s
+params: 70 parquet 102 opt
+took 58.388307 s
+took 62.045472 s
+took 8.040446 s
+params: 70 parquet 102 opt
+took 65.570424 s
+took 52.986027 s
+took 1.658922 s
+params: 100 parquet 102 opt
+took 92.432631 s
+took 105.334631 s
+took 22.052358 s
+params: 100 parquet 102 opt
+took 82.893112 s
+took 96.188746 s
+took 22.393174 s
+params: 100 parquet 102 opt
+took 84.778079 s
+took 99.453987 s
+took 24.137297 s
+params: 100 parquet 102 opt
+took 92.035280 s
+took 103.780761 s
+took 18.793833 s
+params: 100 parquet 102 opt
+took 89.738948 s
+took 103.284472 s
+took 23.258987 s
