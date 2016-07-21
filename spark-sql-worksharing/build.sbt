@@ -17,3 +17,7 @@ libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0" % "test"
 libraryDependencies += "com.typesafe.scala-logging" % "scala-logging-slf4j_2.10" % "2.1.2"
 
 libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.4.4"
+
+resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
+
+libraryDependencies += "me.lessis" %% "courier" % "0.1.3"
