@@ -19,7 +19,7 @@ object Emailer {
       .subject(subject)
       .content(Text(msg)))
 
-    Await.ready(f, scala.concurrent.duration.Duration.Inf).value.get
+    println(Await.ready(f, scala.concurrent.duration.Duration.Inf).value.get)
   }
 
 }
