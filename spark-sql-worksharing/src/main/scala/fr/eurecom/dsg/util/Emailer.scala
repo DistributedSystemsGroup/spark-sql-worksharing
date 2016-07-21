@@ -9,7 +9,7 @@ object Emailer {
   val toAddr = "ngtrkhoa@gmail.com"
 
   def sendMessage(subject:String, msg:String): Unit ={
-    val mailer = Mailer("smtp.gmail.com", 587)
+    val mailer = Mailer("smtp.gmail.com", 25)
       .auth(true)
       .as(senderAddr, password)
       .startTtls(true)()
