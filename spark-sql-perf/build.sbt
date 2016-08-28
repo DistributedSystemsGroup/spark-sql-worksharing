@@ -30,7 +30,7 @@ initialCommands in console :=
   """.stripMargin
 
 // TODO: remove after Spark 2.0.0 is released:
-//resolvers += "apache-snapshots" at "https://repository.apache.org/snapshots/"
+// resolvers += "apache-snapshots" at "https://repository.apache.org/snapshots/"
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.5"
 
