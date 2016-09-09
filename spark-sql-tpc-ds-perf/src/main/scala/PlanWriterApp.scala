@@ -60,7 +60,7 @@ object PlanWriterApp {
         val queryText = lp_queryText._3
 
         try {
-          val file = new File(name + ".txt")
+          val file = new File("plans/" + name + ".txt")
           val bw = new BufferedWriter(new FileWriter(file))
           bw.write(queryText + "\n")
           bw.write(lp.toString() + "\n")
