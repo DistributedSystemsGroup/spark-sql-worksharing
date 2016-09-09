@@ -90,11 +90,11 @@ object AppTmp2 {
       && !startWith.contains(q._1)
     )
     println("#runable queries: " + runableQueries.length)
-    println("queries: " + runableQueries.take(56).map(_._1).mkString(" "))
+    println("queries: " + runableQueries.take(5).map(_._1).mkString(" "))
 
-    QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(56).map(x => queryProvider.getDF(x._2)), outputDir)
+    //QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(5).map(x => queryProvider.getDF(x._2)), outputDir)
 
-//    QueryExecutor.executeSequential(sqlc, runableQueries.take(56).map(x => queryProvider.getDF(x._2)), outputDir)
+    //QueryExecutor.executeSequential(sqlc, runableQueries.take(5).map(x => queryProvider.getDF(x._2)), outputDir)
 
 
 

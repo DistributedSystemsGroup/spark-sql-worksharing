@@ -2,7 +2,7 @@ name := "spark-sql-worksharing"
 
 version := "1.0"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.6"
 
 //resolvers += "apache-snapshots" at "https://repository.apache.org/snapshots/"
 
@@ -20,4 +20,4 @@ libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" 
 
 resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
 
-libraryDependencies += "me.lessis" %% "courier" % "0.1.3"
+libraryDependencies += "me.lessis" %% "courier" % "0.1.3" // include the courier & mail library when building artifacts
