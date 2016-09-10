@@ -1,0 +1,38 @@
+
+ select i_item_id, i_item_desc, i_current_price
+ from item, inventory, date_dim, catalog_sales
+ where i_current_price between 68 and 68 + 30
+   and inv_item_sk = i_item_sk
+   and d_date_sk=inv_date_sk
+   and d_date between cast('2000-02-01' as date) and date_add(cast('2000-02-01' as date), 60)
+   and i_manufact_id in (677,940,694,808)
+   and inv_quantity_on_hand between 100 and 500
+   and cs_item_sk = i_item_sk
+ group by i_item_id,i_item_desc,i_current_price
+ order by i_item_id
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [i_item_id#595 ASC], true
+      +- Aggregate [i_item_id#595, i_item_desc#598, i_current_price#599], [i_item_id#595, i_item_desc#598, i_current_price#599]
+         +- Project [i_item_id#595, i_item_desc#598, i_current_price#599]
+            +- Join Inner, (cs_item_sk#15 = i_item_sk#594)
+               :- Project [i_item_sk#594, i_item_id#595, i_item_desc#598, i_current_price#599]
+               :  +- Join Inner, (d_date_sk#516 = inv_date_sk#126)
+               :     :- Project [i_item_sk#594, i_item_id#595, i_item_desc#598, i_current_price#599, inv_date_sk#126]
+               :     :  +- Join Inner, (inv_item_sk#127 = i_item_sk#594)
+               :     :     :- Project [i_item_sk#594, i_item_id#595, i_item_desc#598, i_current_price#599]
+               :     :     :  +- Filter ((((isnotnull(i_current_price#599) && (cast(i_current_price#599 as decimal(12,2)) >= 68.00)) && (cast(i_current_price#599 as decimal(12,2)) <= 98.00)) && i_manufact_id#607 IN (677,940,694,808)) && isnotnull(i_item_sk#594))
+               :     :     :     +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+               :     :     +- Project [inv_date_sk#126, inv_item_sk#127]
+               :     :        +- Filter ((((isnotnull(inv_quantity_on_hand#129) && (inv_quantity_on_hand#129 >= 100)) && (inv_quantity_on_hand#129 <= 500)) && isnotnull(inv_item_sk#127)) && isnotnull(inv_date_sk#126))
+               :     :           +- Relation[inv_date_sk#126,inv_item_sk#127,inv_warehouse_sk#128,inv_quantity_on_hand#129] csv
+               :     +- Project [d_date_sk#516]
+               :        +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-02-01)) && (d_date#518 <= 2000-04-01)) && isnotnull(d_date_sk#516))
+               :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               +- Project [cs_item_sk#15]
+                  +- Filter isnotnull(cs_item_sk#15)
+                     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]] [Project [Filter part-r-00089-78d4ec2e-8ed9-4d5d-acee-0e9d9b9f9711.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]]]]]]]]

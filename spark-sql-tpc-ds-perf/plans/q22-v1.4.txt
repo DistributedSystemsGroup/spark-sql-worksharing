@@ -1,0 +1,35 @@
+
+ select i_product_name, i_brand, i_class, i_category, avg(inv_quantity_on_hand) qoh
+       from inventory, date_dim, item, warehouse
+       where inv_date_sk=d_date_sk
+              and inv_item_sk=i_item_sk
+              and inv_warehouse_sk = w_warehouse_sk
+              and d_month_seq between 1200 and 1200 + 11
+       group by rollup(i_product_name, i_brand, i_class, i_category)
+ order by qoh, i_product_name, i_brand, i_class, i_category
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [qoh#2564 ASC, i_product_name#2591 ASC, i_brand#2592 ASC, i_class#2593 ASC, i_category#2594 ASC], true
+      +- Aggregate [i_product_name#2591, i_brand#2592, i_class#2593, i_category#2594, spark_grouping_id#2586], [i_product_name#2591, i_brand#2592, i_class#2593, i_category#2594, avg(cast(inv_quantity_on_hand#129 as bigint)) AS qoh#2564]
+         +- Expand [List(inv_quantity_on_hand#129, i_product_name#2587, i_brand#2588, i_class#2589, i_category#2590, 0), List(inv_quantity_on_hand#129, i_product_name#2587, i_brand#2588, i_class#2589, null, 1), List(inv_quantity_on_hand#129, i_product_name#2587, i_brand#2588, null, null, 3), List(inv_quantity_on_hand#129, i_product_name#2587, null, null, null, 7), List(inv_quantity_on_hand#129, null, null, null, null, 15)], [inv_quantity_on_hand#129, i_product_name#2591, i_brand#2592, i_class#2593, i_category#2594, spark_grouping_id#2586]
+            +- Project [inv_quantity_on_hand#129, i_product_name#615 AS i_product_name#2587, i_brand#602 AS i_brand#2588, i_class#604 AS i_class#2589, i_category#606 AS i_category#2590]
+               +- Join Inner, (inv_warehouse_sk#128 = w_warehouse_sk#784)
+                  :- Project [inv_warehouse_sk#128, inv_quantity_on_hand#129, i_brand#602, i_class#604, i_category#606, i_product_name#615]
+                  :  +- Join Inner, (inv_item_sk#127 = i_item_sk#594)
+                  :     :- Project [inv_item_sk#127, inv_warehouse_sk#128, inv_quantity_on_hand#129]
+                  :     :  +- Join Inner, (inv_date_sk#126 = d_date_sk#516)
+                  :     :     :- Filter ((isnotnull(inv_date_sk#126) && isnotnull(inv_item_sk#127)) && isnotnull(inv_warehouse_sk#128))
+                  :     :     :  +- Relation[inv_date_sk#126,inv_item_sk#127,inv_warehouse_sk#128,inv_quantity_on_hand#129] csv
+                  :     :     +- Project [d_date_sk#516]
+                  :     :        +- Filter (((isnotnull(d_month_seq#519) && (d_month_seq#519 >= 1200)) && (d_month_seq#519 <= 1211)) && isnotnull(d_date_sk#516))
+                  :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  :     +- Project [i_item_sk#594, i_brand#602, i_class#604, i_category#606, i_product_name#615]
+                  :        +- Filter isnotnull(i_item_sk#594)
+                  :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+                  +- Project [w_warehouse_sk#784]
+                     +- Filter isnotnull(w_warehouse_sk#784)
+                        +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Expand [Project [Join [Project [Join [Project [Join [Filter part-r-00089-78d4ec2e-8ed9-4d5d-acee-0e9d9b9f9711.csv] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]]]]]]]

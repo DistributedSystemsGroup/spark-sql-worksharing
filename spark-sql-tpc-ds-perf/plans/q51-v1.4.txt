@@ -1,0 +1,69 @@
+
+ WITH web_v1 as (
+ select
+   ws_item_sk item_sk, d_date,
+   sum(sum(ws_sales_price))
+       over (partition by ws_item_sk order by d_date rows between unbounded preceding and current row) cume_sales
+ from web_sales, date_dim
+ where ws_sold_date_sk=d_date_sk
+   and d_month_seq between 1200 and 1200+11
+   and ws_item_sk is not NULL
+ group by ws_item_sk, d_date),
+ store_v1 as (
+ select
+   ss_item_sk item_sk, d_date,
+   sum(sum(ss_sales_price))
+       over (partition by ss_item_sk order by d_date rows between unbounded preceding and current row) cume_sales
+ from store_sales, date_dim
+ where ss_sold_date_sk=d_date_sk
+   and d_month_seq between 1200 and 1200+11
+   and ss_item_sk is not NULL
+ group by ss_item_sk, d_date)
+ select *
+ from (select item_sk, d_date, web_sales, store_sales
+      ,max(web_sales)
+          over (partition by item_sk order by d_date rows between unbounded preceding and current row) web_cumulative
+      ,max(store_sales)
+          over (partition by item_sk order by d_date rows between unbounded preceding and current row) store_cumulative
+      from (select case when web.item_sk is not null then web.item_sk else store.item_sk end item_sk
+                  ,case when web.d_date is not null then web.d_date else store.d_date end d_date
+                  ,web.cume_sales web_sales
+                  ,store.cume_sales store_sales
+            from web_v1 web full outer join store_v1 store on (web.item_sk = store.item_sk
+                                                           and web.d_date = store.d_date)
+           )x )y
+ where web_cumulative > store_cumulative
+ order by item_sk, d_date
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [item_sk#8448 ASC, d_date#8449 ASC], true
+      +- Filter ((isnotnull(web_cumulative#8452) && isnotnull(store_cumulative#8453)) && (web_cumulative#8452 > store_cumulative#8453))
+         +- Window [max(web_sales#8450) windowspecdefinition(item_sk#8448, d_date#8449 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS web_cumulative#8452, max(store_sales#8451) windowspecdefinition(item_sk#8448, d_date#8449 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS store_cumulative#8453], [item_sk#8448], [d_date#8449 ASC]
+            +- Project [CASE WHEN isnotnull(item_sk#8454) THEN item_sk#8454 ELSE item_sk#8456 END AS item_sk#8448, CASE WHEN isnotnull(d_date#518) THEN d_date#518 ELSE d_date#8508 END AS d_date#8449, cume_sales#8455 AS web_sales#8450, cume_sales#8457 AS store_sales#8451]
+               +- Join FullOuter, ((item_sk#8454 = item_sk#8456) && (d_date#518 = d_date#8508))
+                  :- Project [item_sk#8454, d_date#518, cume_sales#8455]
+                  :  +- Window [sum(_w0#8504) windowspecdefinition(ws_item_sk#229, d_date#518 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cume_sales#8455], [ws_item_sk#229], [d_date#518 ASC]
+                  :     +- Aggregate [ws_item_sk#229, d_date#518], [ws_item_sk#229 AS item_sk#8454, d_date#518, MakeDecimal(sum(UnscaledValue(ws_sales_price#247)),17,2) AS _w0#8504, ws_item_sk#229]
+                  :        +- Project [ws_item_sk#229, ws_sales_price#247, d_date#518]
+                  :           +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#516)
+                  :              :- Project [ws_sold_date_sk#226, ws_item_sk#229, ws_sales_price#247]
+                  :              :  +- Filter (isnotnull(ws_item_sk#229) && isnotnull(ws_sold_date_sk#226))
+                  :              :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+                  :              +- Project [d_date_sk#516, d_date#518]
+                  :                 +- Filter (((isnotnull(d_month_seq#519) && (d_month_seq#519 >= 1200)) && (d_month_seq#519 <= 1211)) && isnotnull(d_date_sk#516))
+                  :                    +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  +- Project [item_sk#8456, d_date#8508, cume_sales#8457]
+                     +- Window [sum(_w0#8505) windowspecdefinition(ss_item_sk#138, d_date#8508 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cume_sales#8457], [ss_item_sk#138], [d_date#8508 ASC]
+                        +- Aggregate [ss_item_sk#138, d_date#8508], [ss_item_sk#138 AS item_sk#8456, d_date#8508, MakeDecimal(sum(UnscaledValue(ss_sales_price#149)),17,2) AS _w0#8505, ss_item_sk#138]
+                           +- Project [ss_item_sk#138, ss_sales_price#149, d_date#8508]
+                              +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#8506)
+                                 :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_sales_price#149]
+                                 :  +- Filter (isnotnull(ss_item_sk#138) && isnotnull(ss_sold_date_sk#136))
+                                 :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                                 +- Project [d_date_sk#8506, d_date#8508]
+                                    +- Filter (((isnotnull(d_month_seq#8509) && (d_month_seq#8509 >= 1200)) && (d_month_seq#8509 <= 1211)) && isnotnull(d_date_sk#8506))
+                                       +- Relation[d_date_sk#8506,d_date_id#8507,d_date#8508,d_month_seq#8509,d_week_seq#8510,d_quarter_seq#8511,d_year#8512,d_dow#8513,d_moy#8514,d_dom#8515,d_qoy#8516,d_fy_year#8517,d_fy_quarter_seq#8518,d_fy_week_seq#8519,d_day_name#8520,d_quarter_name#8521,d_holiday#8522,d_weekend#8523,d_following_holiday#8524,d_first_dom#8525,d_last_dom#8526,d_same_day_ly#8527,d_same_day_lq#8528,d_current_day#8529,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Filter [Window [Project [Join [Project [Window [Aggregate [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]] [Project [Window [Aggregate [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]]]]]]

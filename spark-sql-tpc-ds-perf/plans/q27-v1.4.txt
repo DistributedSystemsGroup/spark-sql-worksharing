@@ -1,0 +1,51 @@
+
+ select i_item_id,
+        s_state, grouping(s_state) g_state,
+        avg(ss_quantity) agg1,
+        avg(ss_list_price) agg2,
+        avg(ss_coupon_amt) agg3,
+        avg(ss_sales_price) agg4
+ from store_sales, customer_demographics, date_dim, store, item
+ where ss_sold_date_sk = d_date_sk and
+       ss_item_sk = i_item_sk and
+       ss_store_sk = s_store_sk and
+       ss_cdemo_sk = cd_demo_sk and
+       cd_gender = 'M' and
+       cd_marital_status = 'S' and
+       cd_education_status = 'College' and
+       d_year = 2002 and
+       s_state in ('TN','TN', 'TN', 'TN', 'TN', 'TN')
+ group by rollup (i_item_id, s_state)
+ order by i_item_id, s_state
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [i_item_id#2922 ASC, s_state#2923 ASC], true
+      +- Aggregate [i_item_id#2922, s_state#2923, spark_grouping_id#2919], [i_item_id#2922, s_state#2923, cast((shiftright(spark_grouping_id#2919, 0) & 1) as tinyint) AS g_state#2892, avg(cast(ss_quantity#146 as bigint)) AS agg1#2893, cast((avg(UnscaledValue(ss_list_price#148)) / 100.0) as decimal(11,6)) AS agg2#2894, cast((avg(UnscaledValue(ss_coupon_amt#155)) / 100.0) as decimal(11,6)) AS agg3#2895, cast((avg(UnscaledValue(ss_sales_price#149)) / 100.0) as decimal(11,6)) AS agg4#2896]
+         +- Expand [List(ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, i_item_id#2920, s_state#2921, 0), List(ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, i_item_id#2920, null, 1), List(ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, null, null, 3)], [ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, i_item_id#2922, s_state#2923, spark_grouping_id#2919]
+            +- Project [ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, i_item_id#595 AS i_item_id#2920, s_state#726 AS s_state#2921]
+               +- Join Inner, (ss_item_sk#138 = i_item_sk#594)
+                  :- Project [ss_item_sk#138, ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155, s_state#726]
+                  :  +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+                  :     :- Project [ss_item_sk#138, ss_store_sk#143, ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155]
+                  :     :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+                  :     :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_store_sk#143, ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155]
+                  :     :     :  +- Join Inner, (ss_cdemo_sk#140 = cd_demo_sk#496)
+                  :     :     :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_cdemo_sk#140, ss_store_sk#143, ss_quantity#146, ss_list_price#148, ss_sales_price#149, ss_coupon_amt#155]
+                  :     :     :     :  +- Filter (((isnotnull(ss_cdemo_sk#140) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_store_sk#143)) && isnotnull(ss_item_sk#138))
+                  :     :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                  :     :     :     +- Project [cd_demo_sk#496]
+                  :     :     :        +- Filter ((((((isnotnull(cd_gender#497) && isnotnull(cd_marital_status#498)) && isnotnull(cd_education_status#499)) && (cd_gender#497 = M)) && (cd_marital_status#498 = S)) && (cd_education_status#499 = College)) && isnotnull(cd_demo_sk#496))
+                  :     :     :           +- Relation[cd_demo_sk#496,cd_gender#497,cd_marital_status#498,cd_education_status#499,cd_purchase_estimate#500,cd_credit_rating#501,cd_dep_count#502,cd_dep_employed_count#503,cd_dep_college_count#504] csv
+                  :     :     +- Project [d_date_sk#516]
+                  :     :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2002)) && isnotnull(d_date_sk#516))
+                  :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  :     +- Project [s_store_sk#702, s_state#726]
+                  :        +- Filter (s_state#726 IN (TN,TN,TN,TN,TN,TN) && isnotnull(s_store_sk#702))
+                  :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+                  +- Project [i_item_sk#594, i_item_id#595]
+                     +- Filter isnotnull(i_item_sk#594)
+                        +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Expand [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]]]]]]]

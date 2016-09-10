@@ -1,0 +1,34 @@
+
+ select ss_customer_sk, sum(act_sales) sumsales
+ from (select
+         ss_item_sk, ss_ticket_number, ss_customer_sk,
+         case when sr_return_quantity is not null then (ss_quantity-sr_return_quantity)*ss_sales_price
+                                                  else (ss_quantity*ss_sales_price) end act_sales
+       from store_sales
+       left outer join store_returns
+       on (sr_item_sk = ss_item_sk and sr_ticket_number = ss_ticket_number),
+       reason
+       where sr_reason_sk = r_reason_sk and r_reason_desc = 'reason 28') t
+ group by ss_customer_sk
+ order by sumsales, ss_customer_sk
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [sumsales#14068 ASC, ss_customer_sk#139 ASC], true
+      +- Aggregate [ss_customer_sk#139], [ss_customer_sk#139, sum(act_sales#14067) AS sumsales#14068]
+         +- Project [ss_customer_sk#139, CASE WHEN isnotnull(sr_return_quantity#194L) THEN CheckOverflow((cast(cast((cast(ss_quantity#146 as bigint) - sr_return_quantity#194L) as decimal(20,0)) as decimal(22,2)) * cast(ss_sales_price#149 as decimal(22,2))), DecimalType(28,2)) ELSE cast(CheckOverflow((cast(cast(ss_quantity#146 as decimal(10,0)) as decimal(12,2)) * cast(ss_sales_price#149 as decimal(12,2))), DecimalType(18,2)) as decimal(28,2)) END AS act_sales#14067]
+            +- Join Inner, (sr_reason_sk#192L = cast(r_reason_sk#680 as bigint))
+               :- Project [ss_customer_sk#139, ss_quantity#146, ss_sales_price#149, sr_reason_sk#192L, sr_return_quantity#194L]
+               :  +- Join Inner, ((sr_item_sk#186L = cast(ss_item_sk#138 as bigint)) && (sr_ticket_number#193L = cast(ss_ticket_number#145 as bigint)))
+               :     :- Project [ss_item_sk#138, ss_customer_sk#139, ss_ticket_number#145, ss_quantity#146, ss_sales_price#149]
+               :     :  +- Filter (isnotnull(ss_item_sk#138) && isnotnull(ss_ticket_number#145))
+               :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+               :     +- Project [sr_item_sk#186L, sr_reason_sk#192L, sr_ticket_number#193L, sr_return_quantity#194L]
+               :        +- Filter ((isnotnull(sr_reason_sk#192L) && isnotnull(sr_ticket_number#193L)) && isnotnull(sr_item_sk#186L))
+               :           +- Relation[sr_returned_date_sk#184L,sr_return_time_sk#185L,sr_item_sk#186L,sr_customer_sk#187L,sr_cdemo_sk#188L,sr_hdemo_sk#189L,sr_addr_sk#190L,sr_store_sk#191L,sr_reason_sk#192L,sr_ticket_number#193L,sr_return_quantity#194L,sr_return_amt#195,sr_return_tax#196,sr_return_amt_inc_tax#197,sr_fee#198,sr_return_ship_cost#199,sr_refunded_cash#200,sr_reversed_charge#201,sr_store_credit#202,sr_net_loss#203] csv
+               +- Project [r_reason_sk#680]
+                  +- Filter ((isnotnull(r_reason_desc#682) && (r_reason_desc#682 = reason 28)) && isnotnull(r_reason_sk#680))
+                     +- Relation[r_reason_sk#680,r_reason_id#681,r_reason_desc#682] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00069-f38c10ac-d356-4125-8995-32fd650e3fa9.csv]]]] [Project [Filter part-r-00000-790804e1-1e9f-44ac-b258-891d070bf054.csv]]]]]]]]

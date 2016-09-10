@@ -1,0 +1,124 @@
+
+ with v1 as(
+ select i_category, i_brand,
+        s_store_name, s_company_name,
+        d_year, d_moy,
+        sum(ss_sales_price) sum_sales,
+        avg(sum(ss_sales_price)) over
+          (partition by i_category, i_brand,
+                     s_store_name, s_company_name, d_year)
+          avg_monthly_sales,
+        rank() over
+          (partition by i_category, i_brand,
+                     s_store_name, s_company_name
+           order by d_year, d_moy) rn
+ from item, store_sales, date_dim, store
+ where ss_item_sk = i_item_sk and
+       ss_sold_date_sk = d_date_sk and
+       ss_store_sk = s_store_sk and
+       (
+         d_year = 1999 or
+         ( d_year = 1999-1 and d_moy =12) or
+         ( d_year = 1999+1 and d_moy =1)
+       )
+ group by i_category, i_brand,
+          s_store_name, s_company_name,
+          d_year, d_moy),
+ v2 as(
+ select v1.i_category, v1.i_brand, v1.s_store_name, v1.s_company_name, v1.d_year, 
+                     v1.d_moy, v1.avg_monthly_sales ,v1.sum_sales, v1_lag.sum_sales psum, 
+                     v1_lead.sum_sales nsum
+ from v1, v1 v1_lag, v1 v1_lead
+ where v1.i_category = v1_lag.i_category and
+       v1.i_category = v1_lead.i_category and
+       v1.i_brand = v1_lag.i_brand and
+       v1.i_brand = v1_lead.i_brand and
+       v1.s_store_name = v1_lag.s_store_name and
+       v1.s_store_name = v1_lead.s_store_name and
+       v1.s_company_name = v1_lag.s_company_name and
+       v1.s_company_name = v1_lead.s_company_name and
+       v1.rn = v1_lag.rn + 1 and
+       v1.rn = v1_lead.rn - 1)
+ select * from v2
+ where  d_year = 1999 and
+        avg_monthly_sales > 0 and
+        case when avg_monthly_sales > 0 then abs(sum_sales - avg_monthly_sales) / avg_monthly_sales else null end > 0.1
+ order by sum_sales - avg_monthly_sales, 3
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [CheckOverflow((cast(sum_sales#6047 as decimal(22,6)) - cast(avg_monthly_sales#6048 as decimal(22,6))), DecimalType(22,6)) ASC, s_store_name#707 ASC], true
+      +- Project [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, d_moy#524, avg_monthly_sales#6048, sum_sales#6047, sum_sales#7321 AS psum#6050, sum_sales#7796 AS nsum#6051]
+         +- Join Inner, (((((i_category#606 = i_category#7901) && (i_brand#602 = i_brand#7897)) && (s_store_name#707 = s_store_name#8058)) && (s_company_name#719 = s_company_name#8070)) && (rn#6049 = (rn#7607 - 1)))
+            :- Project [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, d_moy#524, sum_sales#6047, avg_monthly_sales#6048, rn#6049, sum_sales#7321]
+            :  +- Join Inner, (((((i_category#606 = i_category#7426) && (i_brand#602 = i_brand#7422)) && (s_store_name#707 = s_store_name#7583)) && (s_company_name#719 = s_company_name#7595)) && (rn#6049 = (rn#7132 + 1)))
+            :     :- Filter (((((isnotnull(rn#6049) && isnotnull(avg_monthly_sales#6048)) && isnotnull(d_year#522)) && (d_year#522 = 1999)) && (avg_monthly_sales#6048 > 0.000000)) && (CASE WHEN (avg_monthly_sales#6048 > 0.000000) THEN CheckOverflow((abs(CheckOverflow((cast(sum_sales#6047 as decimal(22,6)) - cast(avg_monthly_sales#6048 as decimal(22,6))), DecimalType(22,6))) / cast(avg_monthly_sales#6048 as decimal(22,6))), DecimalType(38,21)) ELSE null END > 0.100000000000000000000))
+            :     :  +- Window [rank(d_year#522, d_moy#524) windowspecdefinition(i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522 ASC, d_moy#524 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rn#6049], [i_category#606, i_brand#602, s_store_name#707, s_company_name#719], [d_year#522 ASC, d_moy#524 ASC]
+            :     :     +- Project [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, d_moy#524, sum_sales#6047, avg_monthly_sales#6048]
+            :     :        +- Window [avg(_w0#7129) windowspecdefinition(i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS avg_monthly_sales#6048], [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522]
+            :     :           +- Aggregate [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, d_moy#524], [i_category#606, i_brand#602, s_store_name#707, s_company_name#719, d_year#522, d_moy#524, MakeDecimal(sum(UnscaledValue(ss_sales_price#149)),17,2) AS sum_sales#6047, MakeDecimal(sum(UnscaledValue(ss_sales_price#149)),17,2) AS _w0#7129]
+            :     :              +- Project [i_brand#602, i_category#606, ss_sales_price#149, d_year#522, d_moy#524, s_store_name#707, s_company_name#719]
+            :     :                 +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+            :     :                    :- Project [i_brand#602, i_category#606, ss_store_sk#143, ss_sales_price#149, d_year#522, d_moy#524]
+            :     :                    :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+            :     :                    :     :- Project [i_brand#602, i_category#606, ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+            :     :                    :     :  +- Join Inner, (ss_item_sk#138 = i_item_sk#594)
+            :     :                    :     :     :- Project [i_item_sk#594, i_brand#602, i_category#606]
+            :     :                    :     :     :  +- Filter ((isnotnull(i_item_sk#594) && isnotnull(i_brand#602)) && isnotnull(i_category#606))
+            :     :                    :     :     :     +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+            :     :                    :     :     +- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_store_sk#143, ss_sales_price#149]
+            :     :                    :     :        +- Filter ((isnotnull(ss_item_sk#138) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_store_sk#143))
+            :     :                    :     :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :                    :     +- Project [d_date_sk#516, d_year#522, d_moy#524]
+            :     :                    :        +- Filter ((((d_year#522 = 1999) || ((d_year#522 = 1998) && (d_moy#524 = 12))) || ((d_year#522 = 2000) && (d_moy#524 = 1))) && isnotnull(d_date_sk#516))
+            :     :                    :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :                    +- Project [s_store_sk#702, s_store_name#707, s_company_name#719]
+            :     :                       +- Filter ((isnotnull(s_store_sk#702) && isnotnull(s_store_name#707)) && isnotnull(s_company_name#719))
+            :     :                          +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+            :     +- Project [i_category#7426, i_brand#7422, s_store_name#7583, s_company_name#7595, sum_sales#7321, rn#7132]
+            :        +- Filter isnotnull(rn#7132)
+            :           +- Window [rank(d_year#7511, d_moy#7513) windowspecdefinition(i_category#7426, i_brand#7422, s_store_name#7583, s_company_name#7595, d_year#7511 ASC, d_moy#7513 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rn#7132], [i_category#7426, i_brand#7422, s_store_name#7583, s_company_name#7595], [d_year#7511 ASC, d_moy#7513 ASC]
+            :              +- Aggregate [i_category#7426, i_brand#7422, s_store_name#7583, s_company_name#7595, d_year#7511, d_moy#7513], [i_category#7426, i_brand#7422, s_store_name#7583, s_company_name#7595, d_year#7511, d_moy#7513, MakeDecimal(sum(UnscaledValue(ss_sales_price#149)),17,2) AS sum_sales#7321]
+            :                 +- Project [i_brand#7422, i_category#7426, ss_sales_price#149, d_year#7511, d_moy#7513, s_store_name#7583, s_company_name#7595]
+            :                    +- Join Inner, (ss_store_sk#143 = s_store_sk#7578)
+            :                       :- Project [i_brand#7422, i_category#7426, ss_store_sk#143, ss_sales_price#149, d_year#7511, d_moy#7513]
+            :                       :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#7505)
+            :                       :     :- Project [i_brand#7422, i_category#7426, ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+            :                       :     :  +- Join Inner, (ss_item_sk#138 = i_item_sk#7414)
+            :                       :     :     :- Project [i_item_sk#7414, i_brand#7422, i_category#7426]
+            :                       :     :     :  +- Filter ((isnotnull(i_item_sk#7414) && isnotnull(i_category#7426)) && isnotnull(i_brand#7422))
+            :                       :     :     :     +- Relation[i_item_sk#7414,i_item_id#7415,i_rec_start_date#7416,i_rec_end_date#7417,i_item_desc#7418,i_current_price#7419,i_wholesale_cost#7420,i_brand_id#7421,i_brand#7422,i_class_id#7423,i_class#7424,i_category_id#7425,i_category#7426,i_manufact_id#7427,i_manufact#7428,i_size#7429,i_formulation#7430,i_color#7431,i_units#7432,i_container#7433,i_manager_id#7434,i_product_name#7435] csv
+            :                       :     :     +- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_store_sk#143, ss_sales_price#149]
+            :                       :     :        +- Filter ((isnotnull(ss_item_sk#138) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_store_sk#143))
+            :                       :     :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :                       :     +- Project [d_date_sk#7505, d_year#7511, d_moy#7513]
+            :                       :        +- Filter ((((d_year#7511 = 1999) || ((d_year#7511 = 1998) && (d_moy#7513 = 12))) || ((d_year#7511 = 2000) && (d_moy#7513 = 1))) && isnotnull(d_date_sk#7505))
+            :                       :           +- Relation[d_date_sk#7505,d_date_id#7506,d_date#7507,d_month_seq#7508,d_week_seq#7509,d_quarter_seq#7510,d_year#7511,d_dow#7512,d_moy#7513,d_dom#7514,d_qoy#7515,d_fy_year#7516,d_fy_quarter_seq#7517,d_fy_week_seq#7518,d_day_name#7519,d_quarter_name#7520,d_holiday#7521,d_weekend#7522,d_following_holiday#7523,d_first_dom#7524,d_last_dom#7525,d_same_day_ly#7526,d_same_day_lq#7527,d_current_day#7528,... 4 more fields] csv
+            :                       +- Project [s_store_sk#7578, s_store_name#7583, s_company_name#7595]
+            :                          +- Filter ((isnotnull(s_store_sk#7578) && isnotnull(s_store_name#7583)) && isnotnull(s_company_name#7595))
+            :                             +- Relation[s_store_sk#7578,s_store_id#7579,s_rec_start_date#7580,s_rec_end_date#7581,s_closed_date_sk#7582,s_store_name#7583,s_number_employees#7584,s_floor_space#7585,s_hours#7586,s_manager#7587,s_market_id#7588,s_geography_class#7589,s_market_desc#7590,s_market_manager#7591,s_division_id#7592,s_division_name#7593,s_company_id#7594,s_company_name#7595,s_street_number#7596,s_street_name#7597,s_street_type#7598,s_suite_number#7599,s_city#7600,s_county#7601,... 5 more fields] csv
+            +- Project [i_category#7901, i_brand#7897, s_store_name#8058, s_company_name#8070, sum_sales#7796, rn#7607]
+               +- Filter isnotnull(rn#7607)
+                  +- Window [rank(d_year#7986, d_moy#7988) windowspecdefinition(i_category#7901, i_brand#7897, s_store_name#8058, s_company_name#8070, d_year#7986 ASC, d_moy#7988 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rn#7607], [i_category#7901, i_brand#7897, s_store_name#8058, s_company_name#8070], [d_year#7986 ASC, d_moy#7988 ASC]
+                     +- Aggregate [i_category#7901, i_brand#7897, s_store_name#8058, s_company_name#8070, d_year#7986, d_moy#7988], [i_category#7901, i_brand#7897, s_store_name#8058, s_company_name#8070, d_year#7986, d_moy#7988, MakeDecimal(sum(UnscaledValue(ss_sales_price#149)),17,2) AS sum_sales#7796]
+                        +- Project [i_brand#7897, i_category#7901, ss_sales_price#149, d_year#7986, d_moy#7988, s_store_name#8058, s_company_name#8070]
+                           +- Join Inner, (ss_store_sk#143 = s_store_sk#8053)
+                              :- Project [i_brand#7897, i_category#7901, ss_store_sk#143, ss_sales_price#149, d_year#7986, d_moy#7988]
+                              :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#7980)
+                              :     :- Project [i_brand#7897, i_category#7901, ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+                              :     :  +- Join Inner, (ss_item_sk#138 = i_item_sk#7889)
+                              :     :     :- Project [i_item_sk#7889, i_brand#7897, i_category#7901]
+                              :     :     :  +- Filter ((isnotnull(i_item_sk#7889) && isnotnull(i_category#7901)) && isnotnull(i_brand#7897))
+                              :     :     :     +- Relation[i_item_sk#7889,i_item_id#7890,i_rec_start_date#7891,i_rec_end_date#7892,i_item_desc#7893,i_current_price#7894,i_wholesale_cost#7895,i_brand_id#7896,i_brand#7897,i_class_id#7898,i_class#7899,i_category_id#7900,i_category#7901,i_manufact_id#7902,i_manufact#7903,i_size#7904,i_formulation#7905,i_color#7906,i_units#7907,i_container#7908,i_manager_id#7909,i_product_name#7910] csv
+                              :     :     +- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_store_sk#143, ss_sales_price#149]
+                              :     :        +- Filter ((isnotnull(ss_item_sk#138) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_store_sk#143))
+                              :     :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                              :     +- Project [d_date_sk#7980, d_year#7986, d_moy#7988]
+                              :        +- Filter ((((d_year#7986 = 1999) || ((d_year#7986 = 1998) && (d_moy#7988 = 12))) || ((d_year#7986 = 2000) && (d_moy#7988 = 1))) && isnotnull(d_date_sk#7980))
+                              :           +- Relation[d_date_sk#7980,d_date_id#7981,d_date#7982,d_month_seq#7983,d_week_seq#7984,d_quarter_seq#7985,d_year#7986,d_dow#7987,d_moy#7988,d_dom#7989,d_qoy#7990,d_fy_year#7991,d_fy_quarter_seq#7992,d_fy_week_seq#7993,d_day_name#7994,d_quarter_name#7995,d_holiday#7996,d_weekend#7997,d_following_holiday#7998,d_first_dom#7999,d_last_dom#8000,d_same_day_ly#8001,d_same_day_lq#8002,d_current_day#8003,... 4 more fields] csv
+                              +- Project [s_store_sk#8053, s_store_name#8058, s_company_name#8070]
+                                 +- Filter ((isnotnull(s_store_sk#8053) && isnotnull(s_company_name#8070)) && isnotnull(s_store_name#8058))
+                                    +- Relation[s_store_sk#8053,s_store_id#8054,s_rec_start_date#8055,s_rec_end_date#8056,s_closed_date_sk#8057,s_store_name#8058,s_number_employees#8059,s_floor_space#8060,s_hours#8061,s_manager#8062,s_market_id#8063,s_geography_class#8064,s_market_desc#8065,s_market_manager#8066,s_division_id#8067,s_division_name#8068,s_company_id#8069,s_company_name#8070,s_street_number#8071,s_street_name#8072,s_street_type#8073,s_suite_number#8074,s_city#8075,s_county#8076,... 5 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Project [Join [Filter [Window [Project [Window [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]] [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]] [Project [Filter [Window [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]] [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]]] [Project [Filter [Window [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]] [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]]]]]]

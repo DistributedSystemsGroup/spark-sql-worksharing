@@ -1,0 +1,52 @@
+
+ select
+   w_state
+  ,i_item_id
+  ,sum(case when (cast(d_date as date) < cast('2000-03-11' as date))
+ 		then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_before
+  ,sum(case when (cast(d_date as date) >= cast('2000-03-11' as date))
+ 		then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_after
+ from
+   catalog_sales left outer join catalog_returns on
+       (cs_order_number = cr_order_number
+        and cs_item_sk = cr_item_sk)
+  ,warehouse, item, date_dim
+ where
+     i_current_price between 0.99 and 1.49
+ and i_item_sk          = cs_item_sk
+ and cs_warehouse_sk    = w_warehouse_sk
+ and cs_sold_date_sk    = d_date_sk
+ and d_date between date_sub(cast('2000-03-11' as date), 30)
+                and date_add(cast('2000-03-11' as date), 30)
+ group by w_state,i_item_id
+ order by w_state,i_item_id
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [w_state#794 ASC, i_item_id#595 ASC], true
+      +- Aggregate [w_state#794, i_item_id#595], [w_state#794, i_item_id#595, sum(CASE WHEN (cast(d_date#518 as date) < 11027) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(13,2)) - cast(coalesce(cast(cr_refunded_cash#93 as decimal(12,2)), 0.00) as decimal(13,2))), DecimalType(13,2)) ELSE 0.00 END) AS sales_before#5789, sum(CASE WHEN (cast(d_date#518 as date) >= 11027) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(13,2)) - cast(coalesce(cast(cr_refunded_cash#93 as decimal(12,2)), 0.00) as decimal(13,2))), DecimalType(13,2)) ELSE 0.00 END) AS sales_after#5790]
+         +- Project [cs_sales_price#21, cr_refunded_cash#93, w_state#794, i_item_id#595, d_date#518]
+            +- Join Inner, (cs_sold_date_sk#0 = d_date_sk#516)
+               :- Project [cs_sold_date_sk#0, cs_sales_price#21, cr_refunded_cash#93, w_state#794, i_item_id#595]
+               :  +- Join Inner, (i_item_sk#594 = cs_item_sk#15)
+               :     :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_sales_price#21, cr_refunded_cash#93, w_state#794]
+               :     :  +- Join Inner, (cs_warehouse_sk#14 = w_warehouse_sk#784)
+               :     :     :- Project [cs_sold_date_sk#0, cs_warehouse_sk#14, cs_item_sk#15, cs_sales_price#21, cr_refunded_cash#93]
+               :     :     :  +- Join LeftOuter, ((cs_order_number#17 = cr_order_number#86) && (cs_item_sk#15 = cr_item_sk#72))
+               :     :     :     :- Project [cs_sold_date_sk#0, cs_warehouse_sk#14, cs_item_sk#15, cs_order_number#17, cs_sales_price#21]
+               :     :     :     :  +- Filter ((isnotnull(cs_warehouse_sk#14) && isnotnull(cs_item_sk#15)) && isnotnull(cs_sold_date_sk#0))
+               :     :     :     :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+               :     :     :     +- Project [cr_item_sk#72, cr_order_number#86, cr_refunded_cash#93]
+               :     :     :        +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+               :     :     +- Project [w_warehouse_sk#784, w_state#794]
+               :     :        +- Filter isnotnull(w_warehouse_sk#784)
+               :     :           +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+               :     +- Project [i_item_sk#594, i_item_id#595]
+               :        +- Filter (((isnotnull(i_current_price#599) && (i_current_price#599 >= 0.99)) && (i_current_price#599 <= 1.49)) && isnotnull(i_item_sk#594))
+               :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+               +- Project [d_date_sk#516, d_date#518]
+                  +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-02-10)) && (d_date#518 <= 2000-04-10)) && isnotnull(d_date_sk#516))
+                     +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]]] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]

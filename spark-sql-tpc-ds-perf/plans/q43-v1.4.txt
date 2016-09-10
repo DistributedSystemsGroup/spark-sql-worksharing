@@ -1,0 +1,38 @@
+
+ select s_store_name, s_store_id,
+        sum(case when (d_day_name='Sunday') then ss_sales_price else null end) sun_sales,
+        sum(case when (d_day_name='Monday') then ss_sales_price else null end) mon_sales,
+        sum(case when (d_day_name='Tuesday') then ss_sales_price else  null end) tue_sales,
+        sum(case when (d_day_name='Wednesday') then ss_sales_price else null end) wed_sales,
+        sum(case when (d_day_name='Thursday') then ss_sales_price else null end) thu_sales,
+        sum(case when (d_day_name='Friday') then ss_sales_price else null end) fri_sales,
+        sum(case when (d_day_name='Saturday') then ss_sales_price else null end) sat_sales
+ from date_dim, store_sales, store
+ where d_date_sk = ss_sold_date_sk and
+       s_store_sk = ss_store_sk and
+       s_gmt_offset = -5 and
+       d_year = 2000
+ group by s_store_name, s_store_id
+ order by s_store_name, s_store_id,sun_sales,mon_sales,tue_sales,wed_sales,
+          thu_sales,fri_sales,sat_sales
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [s_store_name#707 ASC, s_store_id#703 ASC, sun_sales#5831 ASC, mon_sales#5832 ASC, tue_sales#5833 ASC, wed_sales#5834 ASC, thu_sales#5835 ASC, fri_sales#5836 ASC, sat_sales#5837 ASC], true
+      +- Aggregate [s_store_name#707, s_store_id#703], [s_store_name#707, s_store_id#703, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Sunday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sun_sales#5831, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Monday) THEN ss_sales_price#149 ELSE null END)),17,2) AS mon_sales#5832, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Tuesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS tue_sales#5833, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Wednesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS wed_sales#5834, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Thursday) THEN ss_sales_price#149 ELSE null END)),17,2) AS thu_sales#5835, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Friday) THEN ss_sales_price#149 ELSE null END)),17,2) AS fri_sales#5836, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Saturday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sat_sales#5837]
+         +- Project [d_day_name#530, ss_sales_price#149, s_store_id#703, s_store_name#707]
+            +- Join Inner, (s_store_sk#702 = ss_store_sk#143)
+               :- Project [d_day_name#530, ss_store_sk#143, ss_sales_price#149]
+               :  +- Join Inner, (d_date_sk#516 = ss_sold_date_sk#136)
+               :     :- Project [d_date_sk#516, d_day_name#530]
+               :     :  +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2000)) && isnotnull(d_date_sk#516))
+               :     :     +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               :     +- Project [ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+               :        +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_store_sk#143))
+               :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+               +- Project [s_store_sk#702, s_store_id#703, s_store_name#707]
+                  +- Filter ((isnotnull(s_gmt_offset#729) && (cast(s_gmt_offset#729 as decimal(12,2)) = -5.00)) && isnotnull(s_store_sk#702))
+                     +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]] [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]

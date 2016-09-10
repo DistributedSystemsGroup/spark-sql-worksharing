@@ -1,0 +1,114 @@
+
+select case when (select count(*) from store_sales
+                  where ss_quantity between 1 and 20) > 1000000
+            then (select avg(ss_ext_discount_amt) from store_sales
+                  where ss_quantity between 1 and 20)
+            else (select avg(ss_net_paid) from store_sales
+                  where ss_quantity between 1 and 20) end bucket1 ,
+       case when (select count(*) from store_sales
+                  where ss_quantity between 21 and 40) > 1000000
+            then (select avg(ss_ext_discount_amt) from store_sales
+                  where ss_quantity between 21 and 40)
+            else (select avg(ss_net_paid) from store_sales
+                  where ss_quantity between 21 and 40) end bucket2,
+       case when (select count(*) from store_sales
+                  where ss_quantity between 41 and 60) > 1000000
+            then (select avg(ss_ext_discount_amt) from store_sales
+                  where ss_quantity between 41 and 60)
+            else (select avg(ss_net_paid) from store_sales
+                  where ss_quantity between 41 and 60) end bucket3,
+       case when (select count(*) from store_sales
+                  where ss_quantity between 61 and 80) > 1000000
+            then (select avg(ss_ext_discount_amt) from store_sales
+                  where ss_quantity between 61 and 80)
+            else (select avg(ss_net_paid) from store_sales
+                  where ss_quantity between 61 and 80) end bucket4,
+       case when (select count(*) from store_sales
+                  where ss_quantity between 81 and 100) > 1000000
+            then (select avg(ss_ext_discount_amt) from store_sales
+                  where ss_quantity between 81 and 100)
+            else (select avg(ss_net_paid) from store_sales
+                  where ss_quantity between 81 and 100) end bucket5
+from reason
+where r_reason_sk = 1
+            
+Project [CASE WHEN (scalar-subquery#1493 [] > 1000000) THEN scalar-subquery#1494 [] ELSE scalar-subquery#1495 [] END AS bucket1#1496, CASE WHEN (scalar-subquery#1497 [] > 1000000) THEN scalar-subquery#1498 [] ELSE scalar-subquery#1499 [] END AS bucket2#1500, CASE WHEN (scalar-subquery#1501 [] > 1000000) THEN scalar-subquery#1502 [] ELSE scalar-subquery#1503 [] END AS bucket3#1504, CASE WHEN (scalar-subquery#1505 [] > 1000000) THEN scalar-subquery#1506 [] ELSE scalar-subquery#1507 [] END AS bucket4#1508, CASE WHEN (scalar-subquery#1509 [] > 1000000) THEN scalar-subquery#1510 [] ELSE scalar-subquery#1511 [] END AS bucket5#1512]
+:  :- SubqueryAlias scalar-subquery#1493 []
+:  :  +- Aggregate [count(1) AS count(1)#1549L]
+:  :     +- Project
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 1)) && (ss_quantity#146 <= 20))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1494 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_ext_discount_amt#150)) / 100.0) as decimal(11,6)) AS avg(ss_ext_discount_amt)#1551]
+:  :     +- Project [ss_ext_discount_amt#150]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 1)) && (ss_quantity#146 <= 20))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1495 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_net_paid#156)) / 100.0) as decimal(11,6)) AS avg(ss_net_paid)#1553]
+:  :     +- Project [ss_net_paid#156]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 1)) && (ss_quantity#146 <= 20))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1497 []
+:  :  +- Aggregate [count(1) AS count(1)#1555L]
+:  :     +- Project
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 21)) && (ss_quantity#146 <= 40))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1498 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_ext_discount_amt#150)) / 100.0) as decimal(11,6)) AS avg(ss_ext_discount_amt)#1557]
+:  :     +- Project [ss_ext_discount_amt#150]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 21)) && (ss_quantity#146 <= 40))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1499 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_net_paid#156)) / 100.0) as decimal(11,6)) AS avg(ss_net_paid)#1559]
+:  :     +- Project [ss_net_paid#156]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 21)) && (ss_quantity#146 <= 40))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1501 []
+:  :  +- Aggregate [count(1) AS count(1)#1561L]
+:  :     +- Project
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 41)) && (ss_quantity#146 <= 60))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1502 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_ext_discount_amt#150)) / 100.0) as decimal(11,6)) AS avg(ss_ext_discount_amt)#1563]
+:  :     +- Project [ss_ext_discount_amt#150]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 41)) && (ss_quantity#146 <= 60))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1503 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_net_paid#156)) / 100.0) as decimal(11,6)) AS avg(ss_net_paid)#1565]
+:  :     +- Project [ss_net_paid#156]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 41)) && (ss_quantity#146 <= 60))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1505 []
+:  :  +- Aggregate [count(1) AS count(1)#1567L]
+:  :     +- Project
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 61)) && (ss_quantity#146 <= 80))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1506 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_ext_discount_amt#150)) / 100.0) as decimal(11,6)) AS avg(ss_ext_discount_amt)#1569]
+:  :     +- Project [ss_ext_discount_amt#150]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 61)) && (ss_quantity#146 <= 80))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1507 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_net_paid#156)) / 100.0) as decimal(11,6)) AS avg(ss_net_paid)#1571]
+:  :     +- Project [ss_net_paid#156]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 61)) && (ss_quantity#146 <= 80))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1509 []
+:  :  +- Aggregate [count(1) AS count(1)#1573L]
+:  :     +- Project
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 81)) && (ss_quantity#146 <= 100))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  :- SubqueryAlias scalar-subquery#1510 []
+:  :  +- Aggregate [cast((avg(UnscaledValue(ss_ext_discount_amt#150)) / 100.0) as decimal(11,6)) AS avg(ss_ext_discount_amt)#1575]
+:  :     +- Project [ss_ext_discount_amt#150]
+:  :        +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 81)) && (ss_quantity#146 <= 100))
+:  :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+:  +- SubqueryAlias scalar-subquery#1511 []
+:     +- Aggregate [cast((avg(UnscaledValue(ss_net_paid#156)) / 100.0) as decimal(11,6)) AS avg(ss_net_paid)#1577]
+:        +- Project [ss_net_paid#156]
+:           +- Filter ((isnotnull(ss_quantity#146) && (ss_quantity#146 >= 81)) && (ss_quantity#146 <= 100))
+:              +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
++- Filter (isnotnull(r_reason_sk#680) && (r_reason_sk#680 = 1))
+   +- Relation[r_reason_sk#680,r_reason_id#681,r_reason_desc#682] csv
+
+[Project [Filter part-r-00000-790804e1-1e9f-44ac-b258-891d070bf054.csv]]

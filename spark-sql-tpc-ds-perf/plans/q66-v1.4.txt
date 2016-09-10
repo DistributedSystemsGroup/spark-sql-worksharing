@@ -1,0 +1,183 @@
+
+ select w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country,
+    ship_carriers, year
+ 	  ,sum(jan_sales) as jan_sales
+ 	  ,sum(feb_sales) as feb_sales
+ 	  ,sum(mar_sales) as mar_sales
+ 	  ,sum(apr_sales) as apr_sales
+ 	  ,sum(may_sales) as may_sales
+ 	  ,sum(jun_sales) as jun_sales
+ 	  ,sum(jul_sales) as jul_sales
+ 	  ,sum(aug_sales) as aug_sales
+ 	  ,sum(sep_sales) as sep_sales
+ 	  ,sum(oct_sales) as oct_sales
+ 	  ,sum(nov_sales) as nov_sales
+ 	  ,sum(dec_sales) as dec_sales
+ 	  ,sum(jan_sales/w_warehouse_sq_ft) as jan_sales_per_sq_foot
+ 	  ,sum(feb_sales/w_warehouse_sq_ft) as feb_sales_per_sq_foot
+ 	  ,sum(mar_sales/w_warehouse_sq_ft) as mar_sales_per_sq_foot
+ 	  ,sum(apr_sales/w_warehouse_sq_ft) as apr_sales_per_sq_foot
+ 	  ,sum(may_sales/w_warehouse_sq_ft) as may_sales_per_sq_foot
+ 	  ,sum(jun_sales/w_warehouse_sq_ft) as jun_sales_per_sq_foot
+ 	  ,sum(jul_sales/w_warehouse_sq_ft) as jul_sales_per_sq_foot
+ 	  ,sum(aug_sales/w_warehouse_sq_ft) as aug_sales_per_sq_foot
+ 	  ,sum(sep_sales/w_warehouse_sq_ft) as sep_sales_per_sq_foot
+ 	  ,sum(oct_sales/w_warehouse_sq_ft) as oct_sales_per_sq_foot
+ 	  ,sum(nov_sales/w_warehouse_sq_ft) as nov_sales_per_sq_foot
+ 	  ,sum(dec_sales/w_warehouse_sq_ft) as dec_sales_per_sq_foot
+ 	  ,sum(jan_net) as jan_net
+ 	  ,sum(feb_net) as feb_net
+ 	  ,sum(mar_net) as mar_net
+ 	  ,sum(apr_net) as apr_net
+ 	  ,sum(may_net) as may_net
+ 	  ,sum(jun_net) as jun_net
+ 	  ,sum(jul_net) as jul_net
+ 	  ,sum(aug_net) as aug_net
+ 	  ,sum(sep_net) as sep_net
+ 	  ,sum(oct_net) as oct_net
+ 	  ,sum(nov_net) as nov_net
+ 	  ,sum(dec_net) as dec_net
+ from (
+    (select
+ 	    w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country
+ 	        ,concat('DHL', ',', 'BARIAN') as ship_carriers
+      ,d_year as year
+ 	    ,sum(case when d_moy = 1 then ws_ext_sales_price * ws_quantity else 0 end) as jan_sales
+ 	    ,sum(case when d_moy = 2 then ws_ext_sales_price * ws_quantity else 0 end) as feb_sales
+ 	    ,sum(case when d_moy = 3 then ws_ext_sales_price * ws_quantity else 0 end) as mar_sales
+ 	    ,sum(case when d_moy = 4 then ws_ext_sales_price * ws_quantity else 0 end) as apr_sales
+ 	    ,sum(case when d_moy = 5 then ws_ext_sales_price * ws_quantity else 0 end) as may_sales
+ 	    ,sum(case when d_moy = 6 then ws_ext_sales_price * ws_quantity else 0 end) as jun_sales
+ 	    ,sum(case when d_moy = 7 then ws_ext_sales_price * ws_quantity else 0 end) as jul_sales
+ 	    ,sum(case when d_moy = 8 then ws_ext_sales_price * ws_quantity else 0 end) as aug_sales
+ 	    ,sum(case when d_moy = 9 then ws_ext_sales_price * ws_quantity else 0 end) as sep_sales
+ 	    ,sum(case when d_moy = 10 then ws_ext_sales_price * ws_quantity else 0 end) as oct_sales
+ 	    ,sum(case when d_moy = 11 then ws_ext_sales_price * ws_quantity else 0 end) as nov_sales
+ 	    ,sum(case when d_moy = 12 then ws_ext_sales_price * ws_quantity else 0 end) as dec_sales
+ 	    ,sum(case when d_moy = 1 then ws_net_paid * ws_quantity else 0 end) as jan_net
+ 	    ,sum(case when d_moy = 2 then ws_net_paid * ws_quantity else 0 end) as feb_net
+ 	    ,sum(case when d_moy = 3 then ws_net_paid * ws_quantity else 0 end) as mar_net
+ 	    ,sum(case when d_moy = 4 then ws_net_paid * ws_quantity else 0 end) as apr_net
+ 	    ,sum(case when d_moy = 5 then ws_net_paid * ws_quantity else 0 end) as may_net
+ 	    ,sum(case when d_moy = 6 then ws_net_paid * ws_quantity else 0 end) as jun_net
+ 	    ,sum(case when d_moy = 7 then ws_net_paid * ws_quantity else 0 end) as jul_net
+ 	    ,sum(case when d_moy = 8 then ws_net_paid * ws_quantity else 0 end) as aug_net
+ 	    ,sum(case when d_moy = 9 then ws_net_paid * ws_quantity else 0 end) as sep_net
+ 	    ,sum(case when d_moy = 10 then ws_net_paid * ws_quantity else 0 end) as oct_net
+ 	    ,sum(case when d_moy = 11 then ws_net_paid * ws_quantity else 0 end) as nov_net
+ 	    ,sum(case when d_moy = 12 then ws_net_paid * ws_quantity else 0 end) as dec_net
+    from
+      web_sales, warehouse, date_dim, time_dim, ship_mode
+    where
+      ws_warehouse_sk =  w_warehouse_sk
+      and ws_sold_date_sk = d_date_sk
+      and ws_sold_time_sk = t_time_sk
+ 	    and ws_ship_mode_sk = sm_ship_mode_sk
+      and d_year = 2001
+ 	    and t_time between 30838 and 30838+28800
+ 	    and sm_carrier in ('DHL','BARIAN')
+   group by
+      w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country, d_year)
+ union all
+    (select w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country
+ 	        ,concat('DHL', ',', 'BARIAN') as ship_carriers
+      ,d_year as year
+ 	    ,sum(case when d_moy = 1 then cs_sales_price * cs_quantity else 0 end) as jan_sales
+ 	    ,sum(case when d_moy = 2 then cs_sales_price * cs_quantity else 0 end) as feb_sales
+ 	    ,sum(case when d_moy = 3 then cs_sales_price * cs_quantity else 0 end) as mar_sales
+ 	    ,sum(case when d_moy = 4 then cs_sales_price * cs_quantity else 0 end) as apr_sales
+ 	    ,sum(case when d_moy = 5 then cs_sales_price * cs_quantity else 0 end) as may_sales
+ 	    ,sum(case when d_moy = 6 then cs_sales_price * cs_quantity else 0 end) as jun_sales
+ 	    ,sum(case when d_moy = 7 then cs_sales_price * cs_quantity else 0 end) as jul_sales
+ 	    ,sum(case when d_moy = 8 then cs_sales_price * cs_quantity else 0 end) as aug_sales
+ 	    ,sum(case when d_moy = 9 then cs_sales_price * cs_quantity else 0 end) as sep_sales
+ 	    ,sum(case when d_moy = 10 then cs_sales_price * cs_quantity else 0 end) as oct_sales
+ 	    ,sum(case when d_moy = 11 then cs_sales_price * cs_quantity else 0 end) as nov_sales
+ 	    ,sum(case when d_moy = 12 then cs_sales_price * cs_quantity else 0 end) as dec_sales
+ 	    ,sum(case when d_moy = 1 then cs_net_paid_inc_tax * cs_quantity else 0 end) as jan_net
+ 	    ,sum(case when d_moy = 2 then cs_net_paid_inc_tax * cs_quantity else 0 end) as feb_net
+ 	    ,sum(case when d_moy = 3 then cs_net_paid_inc_tax * cs_quantity else 0 end) as mar_net
+ 	    ,sum(case when d_moy = 4 then cs_net_paid_inc_tax * cs_quantity else 0 end) as apr_net
+ 	    ,sum(case when d_moy = 5 then cs_net_paid_inc_tax * cs_quantity else 0 end) as may_net
+ 	    ,sum(case when d_moy = 6 then cs_net_paid_inc_tax * cs_quantity else 0 end) as jun_net
+ 	    ,sum(case when d_moy = 7 then cs_net_paid_inc_tax * cs_quantity else 0 end) as jul_net
+ 	    ,sum(case when d_moy = 8 then cs_net_paid_inc_tax * cs_quantity else 0 end) as aug_net
+ 	    ,sum(case when d_moy = 9 then cs_net_paid_inc_tax * cs_quantity else 0 end) as sep_net
+ 	    ,sum(case when d_moy = 10 then cs_net_paid_inc_tax * cs_quantity else 0 end) as oct_net
+ 	    ,sum(case when d_moy = 11 then cs_net_paid_inc_tax * cs_quantity else 0 end) as nov_net
+ 	    ,sum(case when d_moy = 12 then cs_net_paid_inc_tax * cs_quantity else 0 end) as dec_net
+     from
+        catalog_sales, warehouse, date_dim, time_dim, ship_mode
+     where
+        cs_warehouse_sk =  w_warehouse_sk
+        and cs_sold_date_sk = d_date_sk
+        and cs_sold_time_sk = t_time_sk
+ 	      and cs_ship_mode_sk = sm_ship_mode_sk
+        and d_year = 2001
+ 	      and t_time between 30838 AND 30838+28800
+ 	      and sm_carrier in ('DHL','BARIAN')
+     group by
+        w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country, d_year
+     )
+ ) x
+ group by
+    w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country,
+    ship_carriers, year
+ order by w_warehouse_name
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [w_warehouse_name#786 ASC], true
+      +- Aggregate [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, ship_carriers#11645, year#11646], [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, ship_carriers#11645, year#11646, sum(jan_sales#11647) AS jan_sales#11697, sum(feb_sales#11648) AS feb_sales#11698, sum(mar_sales#11649) AS mar_sales#11699, sum(apr_sales#11650) AS apr_sales#11700, sum(may_sales#11651) AS may_sales#11701, sum(jun_sales#11652) AS jun_sales#11702, sum(jul_sales#11653) AS jul_sales#11703, sum(aug_sales#11654) AS aug_sales#11704, sum(sep_sales#11655) AS sep_sales#11705, sum(oct_sales#11656) AS oct_sales#11706, sum(nov_sales#11657) AS nov_sales#11707, sum(dec_sales#11658) AS dec_sales#11708, sum(CheckOverflow((jan_sales#11647 / cast(cast(w_warehouse_sq_ft#787 as decimal(10,0)) as decimal(28,2))), DecimalType(38,12))) AS jan_sales_per_sq_foot#11709, sum(CheckOverflow((feb_sales#11648 / cast(cast(w_warehouse_sq_ft#787 as decimal(10,0)) as decimal(28,2))), DecimalType(38,12))) AS feb_sales_per_sq_foot#11710, sum(CheckOverflow((mar_sales#11649 / cast(cast(w_warehouse_sq_ft#787 as decimal(10,0)) as decimal(28,2))), DecimalType(38,12))) AS mar_sales_per_sq_foot#11711, sum(CheckOverflow((apr_sales#11650 / cast(cast(w_warehouse_sq_ft#787 as decimal(10,0)) as decimal(28,2))), DecimalType(38,12))) AS apr_sales_per_sq_foot#11712, ... 20 more fields]
+         +- Union
+            :- Aggregate [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522], [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, DHL,BARIAN AS ship_carriers#11645, d_year#522 AS year#11646, sum(CASE WHEN (d_moy#524 = 1) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jan_sales#11647, sum(CASE WHEN (d_moy#524 = 2) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS feb_sales#11648, sum(CASE WHEN (d_moy#524 = 3) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS mar_sales#11649, sum(CASE WHEN (d_moy#524 = 4) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS apr_sales#11650, sum(CASE WHEN (d_moy#524 = 5) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS may_sales#11651, sum(CASE WHEN (d_moy#524 = 6) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jun_sales#11652, sum(CASE WHEN (d_moy#524 = 7) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jul_sales#11653, sum(CASE WHEN (d_moy#524 = 8) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS aug_sales#11654, sum(CASE WHEN (d_moy#524 = 9) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS sep_sales#11655, sum(CASE WHEN (d_moy#524 = 10) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS oct_sales#11656, sum(CASE WHEN (d_moy#524 = 11) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS nov_sales#11657, sum(CASE WHEN (d_moy#524 = 12) THEN CheckOverflow((cast(ws_ext_sales_price#249 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS dec_sales#11658, sum(CASE WHEN (d_moy#524 = 1) THEN CheckOverflow((cast(ws_net_paid#255 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jan_net#11659, sum(CASE WHEN (d_moy#524 = 2) THEN CheckOverflow((cast(ws_net_paid#255 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS feb_net#11660, sum(CASE WHEN (d_moy#524 = 3) THEN CheckOverflow((cast(ws_net_paid#255 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS mar_net#11661, sum(CASE WHEN (d_moy#524 = 4) THEN CheckOverflow((cast(ws_net_paid#255 as decimal(12,2)) * cast(cast(ws_quantity#244 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS apr_net#11662, ... 8 more fields]
+            :  +- Project [ws_quantity#244, ws_ext_sales_price#249, ws_net_paid#255, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+            :     +- Join Inner, (ws_ship_mode_sk#240 = sm_ship_mode_sk#688)
+            :        :- Project [ws_ship_mode_sk#240, ws_quantity#244, ws_ext_sales_price#249, ws_net_paid#255, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+            :        :  +- Join Inner, (ws_sold_time_sk#227 = t_time_sk#762)
+            :        :     :- Project [ws_sold_time_sk#227, ws_ship_mode_sk#240, ws_quantity#244, ws_ext_sales_price#249, ws_net_paid#255, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+            :        :     :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#516)
+            :        :     :     :- Project [ws_sold_date_sk#226, ws_sold_time_sk#227, ws_ship_mode_sk#240, ws_quantity#244, ws_ext_sales_price#249, ws_net_paid#255, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796]
+            :        :     :     :  +- Join Inner, (ws_warehouse_sk#241 = w_warehouse_sk#784)
+            :        :     :     :     :- Project [ws_sold_date_sk#226, ws_sold_time_sk#227, ws_ship_mode_sk#240, ws_warehouse_sk#241, ws_quantity#244, ws_ext_sales_price#249, ws_net_paid#255]
+            :        :     :     :     :  +- Filter (((isnotnull(ws_warehouse_sk#241) && isnotnull(ws_sold_date_sk#226)) && isnotnull(ws_sold_time_sk#227)) && isnotnull(ws_ship_mode_sk#240))
+            :        :     :     :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+            :        :     :     :     +- Project [w_warehouse_sk#784, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796]
+            :        :     :     :        +- Filter isnotnull(w_warehouse_sk#784)
+            :        :     :     :           +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+            :        :     :     +- Project [d_date_sk#516, d_year#522, d_moy#524]
+            :        :     :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2001)) && isnotnull(d_date_sk#516))
+            :        :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :        :     +- Project [t_time_sk#762]
+            :        :        +- Filter (((isnotnull(t_time#764) && (t_time#764 >= 30838)) && (t_time#764 <= 59638)) && isnotnull(t_time_sk#762))
+            :        :           +- Relation[t_time_sk#762,t_time_id#763,t_time#764,t_hour#765,t_minute#766,t_second#767,t_am_pm#768,t_shift#769,t_sub_shift#770,t_meal_time#771] csv
+            :        +- Project [sm_ship_mode_sk#688]
+            :           +- Filter (sm_carrier#692 IN (DHL,BARIAN) && isnotnull(sm_ship_mode_sk#688))
+            :              +- Relation[sm_ship_mode_sk#688,sm_ship_mode_id#689,sm_type#690,sm_code#691,sm_carrier#692,sm_contract#693] csv
+            +- Aggregate [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522], [w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, DHL,BARIAN AS ship_carriers#11671, d_year#522 AS year#11672, sum(CASE WHEN (d_moy#524 = 1) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jan_sales#11673, sum(CASE WHEN (d_moy#524 = 2) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS feb_sales#11674, sum(CASE WHEN (d_moy#524 = 3) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS mar_sales#11675, sum(CASE WHEN (d_moy#524 = 4) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS apr_sales#11676, sum(CASE WHEN (d_moy#524 = 5) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS may_sales#11677, sum(CASE WHEN (d_moy#524 = 6) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jun_sales#11678, sum(CASE WHEN (d_moy#524 = 7) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jul_sales#11679, sum(CASE WHEN (d_moy#524 = 8) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS aug_sales#11680, sum(CASE WHEN (d_moy#524 = 9) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS sep_sales#11681, sum(CASE WHEN (d_moy#524 = 10) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS oct_sales#11682, sum(CASE WHEN (d_moy#524 = 11) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS nov_sales#11683, sum(CASE WHEN (d_moy#524 = 12) THEN CheckOverflow((cast(cs_sales_price#21 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS dec_sales#11684, sum(CASE WHEN (d_moy#524 = 1) THEN CheckOverflow((cast(cs_net_paid_inc_tax#30 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS jan_net#11685, sum(CASE WHEN (d_moy#524 = 2) THEN CheckOverflow((cast(cs_net_paid_inc_tax#30 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS feb_net#11686, sum(CASE WHEN (d_moy#524 = 3) THEN CheckOverflow((cast(cs_net_paid_inc_tax#30 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS mar_net#11687, sum(CASE WHEN (d_moy#524 = 4) THEN CheckOverflow((cast(cs_net_paid_inc_tax#30 as decimal(12,2)) * cast(cast(cs_quantity#18 as decimal(10,0)) as decimal(12,2))), DecimalType(18,2)) ELSE 0.00 END) AS apr_net#11688, ... 8 more fields]
+               +- Project [cs_quantity#18, cs_sales_price#21, cs_net_paid_inc_tax#30, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+                  +- Join Inner, (cs_ship_mode_sk#13 = sm_ship_mode_sk#688)
+                     :- Project [cs_ship_mode_sk#13, cs_quantity#18, cs_sales_price#21, cs_net_paid_inc_tax#30, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+                     :  +- Join Inner, (cs_sold_time_sk#1 = t_time_sk#762)
+                     :     :- Project [cs_sold_time_sk#1, cs_ship_mode_sk#13, cs_quantity#18, cs_sales_price#21, cs_net_paid_inc_tax#30, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796, d_year#522, d_moy#524]
+                     :     :  +- Join Inner, (cs_sold_date_sk#0 = d_date_sk#516)
+                     :     :     :- Project [cs_sold_date_sk#0, cs_sold_time_sk#1, cs_ship_mode_sk#13, cs_quantity#18, cs_sales_price#21, cs_net_paid_inc_tax#30, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796]
+                     :     :     :  +- Join Inner, (cs_warehouse_sk#14 = w_warehouse_sk#784)
+                     :     :     :     :- Project [cs_sold_date_sk#0, cs_sold_time_sk#1, cs_ship_mode_sk#13, cs_warehouse_sk#14, cs_quantity#18, cs_sales_price#21, cs_net_paid_inc_tax#30]
+                     :     :     :     :  +- Filter (((isnotnull(cs_warehouse_sk#14) && isnotnull(cs_sold_date_sk#0)) && isnotnull(cs_sold_time_sk#1)) && isnotnull(cs_ship_mode_sk#13))
+                     :     :     :     :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+                     :     :     :     +- Project [w_warehouse_sk#784, w_warehouse_name#786, w_warehouse_sq_ft#787, w_city#792, w_county#793, w_state#794, w_country#796]
+                     :     :     :        +- Filter isnotnull(w_warehouse_sk#784)
+                     :     :     :           +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+                     :     :     +- Project [d_date_sk#516, d_year#522, d_moy#524]
+                     :     :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2001)) && isnotnull(d_date_sk#516))
+                     :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                     :     +- Project [t_time_sk#762]
+                     :        +- Filter (((isnotnull(t_time#764) && (t_time#764 >= 30838)) && (t_time#764 <= 59638)) && isnotnull(t_time_sk#762))
+                     :           +- Relation[t_time_sk#762,t_time_id#763,t_time#764,t_hour#765,t_minute#766,t_second#767,t_am_pm#768,t_shift#769,t_sub_shift#770,t_meal_time#771] csv
+                     +- Project [sm_ship_mode_sk#688]
+                        +- Filter (sm_carrier#692 IN (DHL,BARIAN) && isnotnull(sm_ship_mode_sk#688))
+                           +- Relation[sm_ship_mode_sk#688,sm_ship_mode_id#689,sm_type#690,sm_code#691,sm_carrier#692,sm_contract#693] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Union [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-6989c952-1b5d-4638-811a-9cea07861870.csv]]]] [Project [Filter part-r-00000-29e10caf-3490-404d-b02a-c59304c435d0.csv]]]]] [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-6989c952-1b5d-4638-811a-9cea07861870.csv]]]] [Project [Filter part-r-00000-29e10caf-3490-404d-b02a-c59304c435d0.csv]]]]]]]]]]

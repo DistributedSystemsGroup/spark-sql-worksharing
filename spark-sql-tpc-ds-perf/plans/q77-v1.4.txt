@@ -1,0 +1,157 @@
+
+ with ss as
+ (select s_store_sk, sum(ss_ext_sales_price) as sales, sum(ss_net_profit) as profit
+  from store_sales, date_dim, store
+  where ss_sold_date_sk = d_date_sk
+    and d_date between cast('2000-08-03' as date) and
+                       date_add(cast('2000-08-03' as date), 30)
+    and ss_store_sk = s_store_sk
+  group by s_store_sk),
+ sr as
+ (select s_store_sk, sum(sr_return_amt) as returns, sum(sr_net_loss) as profit_loss
+ from store_returns, date_dim, store
+ where sr_returned_date_sk = d_date_sk
+    and d_date between cast('2000-08-03' as date) and
+                       date_add(cast('2000-08-03' as date), 30)
+    and sr_store_sk = s_store_sk
+ group by s_store_sk),
+ cs as
+ (select cs_call_center_sk, sum(cs_ext_sales_price) as sales, sum(cs_net_profit) as profit
+ from catalog_sales, date_dim
+ where cs_sold_date_sk = d_date_sk
+    and d_date between cast('2000-08-03' as date) and
+                       date_add(cast('2000-08-03' as date), 30)
+ group by cs_call_center_sk),
+ cr as
+ (select sum(cr_return_amount) as returns, sum(cr_net_loss) as profit_loss
+ from catalog_returns, date_dim
+ where cr_returned_date_sk = d_date_sk
+    and d_date between cast('2000-08-03]' as date) and
+                       date_add(cast('2000-08-03' as date), 30)),
+ ws as
+ (select wp_web_page_sk, sum(ws_ext_sales_price) as sales, sum(ws_net_profit) as profit
+ from web_sales, date_dim, web_page
+ where ws_sold_date_sk = d_date_sk
+    and d_date between cast('2000-08-03' as date) and
+                       date_add(cast('2000-08-03' as date), 30)
+    and ws_web_page_sk = wp_web_page_sk
+ group by wp_web_page_sk),
+ wr as
+ (select wp_web_page_sk, sum(wr_return_amt) as returns, sum(wr_net_loss) as profit_loss
+ from web_returns, date_dim, web_page
+ where wr_returned_date_sk = d_date_sk
+       and d_date between cast('2000-08-03' as date) and
+                          date_add(cast('2000-08-03' as date), 30)
+       and wr_web_page_sk = wp_web_page_sk
+ group by wp_web_page_sk)
+ select channel, id, sum(sales) as sales, sum(returns) as returns, sum(profit) as profit
+ from
+ (select
+    'store channel' as channel, ss.s_store_sk as id, sales,
+    coalesce(returns, 0) as returns, (profit - coalesce(profit_loss,0)) as profit
+ from ss left join sr
+      on  ss.s_store_sk = sr.s_store_sk
+ union all
+ select
+    'catalog channel' as channel, cs_call_center_sk as id, sales,
+    returns, (profit - profit_loss) as profit
+ from cs, cr
+ union all
+ select
+    'web channel' as channel, ws.wp_web_page_sk as id, sales,
+    coalesce(returns, 0) returns, (profit - coalesce(profit_loss,0)) as profit
+ from   ws left join wr
+        on  ws.wp_web_page_sk = wr.wp_web_page_sk
+ ) x
+ group by rollup(channel, id)
+ order by channel, id
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [channel#13399 ASC, id#13400 ASC], true
+      +- Aggregate [channel#13399, id#13400, spark_grouping_id#13396], [channel#13399, id#13400, sum(sales#13252) AS sales#13249, sum(returns#13240) AS returns#13250, sum(profit#13391) AS profit#13251]
+         +- Expand [List(sales#13252, returns#13240, profit#13391, channel#13397, id#13398, 0), List(sales#13252, returns#13240, profit#13391, channel#13397, null, 1), List(sales#13252, returns#13240, profit#13391, null, null, 3)], [sales#13252, returns#13240, profit#13391, channel#13399, id#13400, spark_grouping_id#13396]
+            +- Union
+               :- Project [sales#13252, coalesce(returns#13254, 0.00) AS returns#13240, CheckOverflow((cast(profit#13253 as decimal(18,2)) - cast(coalesce(profit_loss#13255, 0.00) as decimal(18,2))), DecimalType(18,2)) AS profit#13391, store channel AS channel#13397, s_store_sk#702 AS id#13398]
+               :  +- Join LeftOuter, (s_store_sk#702 = s_store_sk#13348)
+               :     :- Aggregate [s_store_sk#702], [s_store_sk#702, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS sales#13252, MakeDecimal(sum(UnscaledValue(ss_net_profit#158)),17,2) AS profit#13253]
+               :     :  +- Project [ss_ext_sales_price#151, ss_net_profit#158, s_store_sk#702]
+               :     :     +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+               :     :        :- Project [ss_store_sk#143, ss_ext_sales_price#151, ss_net_profit#158]
+               :     :        :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+               :     :        :     :- Project [ss_sold_date_sk#136, ss_store_sk#143, ss_ext_sales_price#151, ss_net_profit#158]
+               :     :        :     :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_store_sk#143))
+               :     :        :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+               :     :        :     +- Project [d_date_sk#516]
+               :     :        :        +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-08-03)) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+               :     :        :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               :     :        +- Project [s_store_sk#702]
+               :     :           +- Filter isnotnull(s_store_sk#702)
+               :     :              +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+               :     +- Aggregate [s_store_sk#13348], [s_store_sk#13348, MakeDecimal(sum(UnscaledValue(sr_return_amt#195)),17,2) AS returns#13254, MakeDecimal(sum(UnscaledValue(sr_net_loss#203)),17,2) AS profit_loss#13255]
+               :        +- Project [sr_return_amt#195, sr_net_loss#203, s_store_sk#13348]
+               :           +- Join Inner, (sr_store_sk#191L = cast(s_store_sk#13348 as bigint))
+               :              :- Project [sr_store_sk#191L, sr_return_amt#195, sr_net_loss#203]
+               :              :  +- Join Inner, (sr_returned_date_sk#184L = cast(d_date_sk#516 as bigint))
+               :              :     :- Project [sr_returned_date_sk#184L, sr_store_sk#191L, sr_return_amt#195, sr_net_loss#203]
+               :              :     :  +- Filter (isnotnull(sr_returned_date_sk#184L) && isnotnull(sr_store_sk#191L))
+               :              :     :     +- Relation[sr_returned_date_sk#184L,sr_return_time_sk#185L,sr_item_sk#186L,sr_customer_sk#187L,sr_cdemo_sk#188L,sr_hdemo_sk#189L,sr_addr_sk#190L,sr_store_sk#191L,sr_reason_sk#192L,sr_ticket_number#193L,sr_return_quantity#194L,sr_return_amt#195,sr_return_tax#196,sr_return_amt_inc_tax#197,sr_fee#198,sr_return_ship_cost#199,sr_refunded_cash#200,sr_reversed_charge#201,sr_store_credit#202,sr_net_loss#203] csv
+               :              :     +- Project [d_date_sk#516]
+               :              :        +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-08-03)) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+               :              :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               :              +- Project [s_store_sk#13348]
+               :                 +- Filter isnotnull(s_store_sk#13348)
+               :                    +- Relation[s_store_sk#13348,s_store_id#13349,s_rec_start_date#13350,s_rec_end_date#13351,s_closed_date_sk#13352,s_store_name#13353,s_number_employees#13354,s_floor_space#13355,s_hours#13356,s_manager#13357,s_market_id#13358,s_geography_class#13359,s_market_desc#13360,s_market_manager#13361,s_division_id#13362,s_division_name#13363,s_company_id#13364,s_company_name#13365,s_street_number#13366,s_street_name#13367,s_street_type#13368,s_suite_number#13369,s_city#13370,s_county#13371,... 5 more fields] csv
+               :- Project [sales#13256, returns#13258, CheckOverflow((cast(profit#13257 as decimal(18,2)) - cast(profit_loss#13259 as decimal(18,2))), DecimalType(18,2)) AS profit#13244, catalog channel AS channel#13397, cs_call_center_sk#11 AS id#13398]
+               :  +- Join Inner
+               :     :- Aggregate [cs_call_center_sk#11], [cs_call_center_sk#11, MakeDecimal(sum(UnscaledValue(cs_ext_sales_price#23)),17,2) AS sales#13256, MakeDecimal(sum(UnscaledValue(cs_net_profit#33)),17,2) AS profit#13257]
+               :     :  +- Project [cs_call_center_sk#11, cs_ext_sales_price#23, cs_net_profit#33]
+               :     :     +- Join Inner, (cs_sold_date_sk#0 = d_date_sk#516)
+               :     :        :- Project [cs_sold_date_sk#0, cs_call_center_sk#11, cs_ext_sales_price#23, cs_net_profit#33]
+               :     :        :  +- Filter isnotnull(cs_sold_date_sk#0)
+               :     :        :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+               :     :        +- Project [d_date_sk#516]
+               :     :           +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-08-03)) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+               :     :              +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               :     +- Aggregate [MakeDecimal(sum(UnscaledValue(cr_return_amount#88)),17,2) AS returns#13258, MakeDecimal(sum(UnscaledValue(cr_net_loss#96)),17,2) AS profit_loss#13259]
+               :        +- Project [cr_return_amount#88, cr_net_loss#96]
+               :           +- Join Inner, (cr_returned_date_sk#70 = d_date_sk#516)
+               :              :- Project [cr_returned_date_sk#70, cr_return_amount#88, cr_net_loss#96]
+               :              :  +- Filter isnotnull(cr_returned_date_sk#70)
+               :              :     +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+               :              +- Project [d_date_sk#516]
+               :                 +- Filter (((isnotnull(d_date#518) && null) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+               :                    +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               +- Project [sales#13260, coalesce(returns#13262, 0.00) AS returns#13247, CheckOverflow((cast(profit#13261 as decimal(18,2)) - cast(coalesce(profit_loss#13263, 0.00) as decimal(18,2))), DecimalType(18,2)) AS profit#13392, web channel AS channel#13397, wp_web_page_sk#814 AS id#13398]
+                  +- Join LeftOuter, (wp_web_page_sk#814 = wp_web_page_sk#13377)
+                     :- Aggregate [wp_web_page_sk#814], [wp_web_page_sk#814, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#249)),17,2) AS sales#13260, MakeDecimal(sum(UnscaledValue(ws_net_profit#259)),17,2) AS profit#13261]
+                     :  +- Project [ws_ext_sales_price#249, ws_net_profit#259, wp_web_page_sk#814]
+                     :     +- Join Inner, (ws_web_page_sk#238 = wp_web_page_sk#814)
+                     :        :- Project [ws_web_page_sk#238, ws_ext_sales_price#249, ws_net_profit#259]
+                     :        :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#516)
+                     :        :     :- Project [ws_sold_date_sk#226, ws_web_page_sk#238, ws_ext_sales_price#249, ws_net_profit#259]
+                     :        :     :  +- Filter (isnotnull(ws_sold_date_sk#226) && isnotnull(ws_web_page_sk#238))
+                     :        :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+                     :        :     +- Project [d_date_sk#516]
+                     :        :        +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-08-03)) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+                     :        :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                     :        +- Project [wp_web_page_sk#814]
+                     :           +- Filter isnotnull(wp_web_page_sk#814)
+                     :              +- Relation[wp_web_page_sk#814,wp_web_page_id#815,wp_rec_start_date#816,wp_rec_end_date#817,wp_creation_date_sk#818,wp_access_date_sk#819,wp_autogen_flag#820,wp_customer_sk#821,wp_url#822,wp_type#823,wp_char_count#824,wp_link_count#825,wp_image_count#826,wp_max_ad_count#827] csv
+                     +- Aggregate [wp_web_page_sk#13377], [wp_web_page_sk#13377, MakeDecimal(sum(UnscaledValue(wr_return_amt#311)),17,2) AS returns#13262, MakeDecimal(sum(UnscaledValue(wr_net_loss#319)),17,2) AS profit_loss#13263]
+                        +- Project [wr_return_amt#311, wr_net_loss#319, wp_web_page_sk#13377]
+                           +- Join Inner, (wr_web_page_sk#307L = cast(wp_web_page_sk#13377 as bigint))
+                              :- Project [wr_web_page_sk#307L, wr_return_amt#311, wr_net_loss#319]
+                              :  +- Join Inner, (wr_returned_date_sk#296L = cast(d_date_sk#516 as bigint))
+                              :     :- Project [wr_returned_date_sk#296L, wr_web_page_sk#307L, wr_return_amt#311, wr_net_loss#319]
+                              :     :  +- Filter (isnotnull(wr_returned_date_sk#296L) && isnotnull(wr_web_page_sk#307L))
+                              :     :     +- Relation[wr_returned_date_sk#296L,wr_returned_time_sk#297L,wr_item_sk#298L,wr_refunded_customer_sk#299L,wr_refunded_cdemo_sk#300L,wr_refunded_hdemo_sk#301L,wr_refunded_addr_sk#302L,wr_returning_customer_sk#303L,wr_returning_cdemo_sk#304L,wr_returning_hdemo_sk#305L,wr_returning_addr_sk#306L,wr_web_page_sk#307L,wr_reason_sk#308L,wr_order_number#309L,wr_return_quantity#310L,wr_return_amt#311,wr_return_tax#312,wr_return_amt_inc_tax#313,wr_fee#314,wr_return_ship_cost#315,wr_refunded_cash#316,wr_reversed_charge#317,wr_account_credit#318,wr_net_loss#319] csv
+                              :     +- Project [d_date_sk#516]
+                              :        +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-08-03)) && (d_date#518 <= 2000-09-02)) && isnotnull(d_date_sk#516))
+                              :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                              +- Project [wp_web_page_sk#13377]
+                                 +- Filter isnotnull(wp_web_page_sk#13377)
+                                    +- Relation[wp_web_page_sk#13377,wp_web_page_id#13378,wp_rec_start_date#13379,wp_rec_end_date#13380,wp_creation_date_sk#13381,wp_access_date_sk#13382,wp_autogen_flag#13383,wp_customer_sk#13384,wp_url#13385,wp_type#13386,wp_char_count#13387,wp_link_count#13388,wp_image_count#13389,wp_max_ad_count#13390] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Expand [Union [Project [Join [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00069-f38c10ac-d356-4125-8995-32fd650e3fa9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]] [Project [Join [Aggregate [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]] [Aggregate [Project [Join [Project [Filter part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]] [Project [Join [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-ddabb4cb-28eb-4e14-8acc-ae5b6dc575dc.csv]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00003-1a971f76-a283-489c-83ce-5415c906bd2a.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-ddabb4cb-28eb-4e14-8acc-ae5b6dc575dc.csv]]]]]]]]]]]]]

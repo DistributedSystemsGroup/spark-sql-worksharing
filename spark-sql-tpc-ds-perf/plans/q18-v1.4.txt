@@ -1,0 +1,69 @@
+
+ select i_item_id,
+        ca_country,
+        ca_state,
+        ca_county,
+        avg( cast(cs_quantity as decimal(12,2))) agg1,
+        avg( cast(cs_list_price as decimal(12,2))) agg2,
+        avg( cast(cs_coupon_amt as decimal(12,2))) agg3,
+        avg( cast(cs_sales_price as decimal(12,2))) agg4,
+        avg( cast(cs_net_profit as decimal(12,2))) agg5,
+        avg( cast(c_birth_year as decimal(12,2))) agg6,
+        avg( cast(cd1.cd_dep_count as decimal(12,2))) agg7
+ from catalog_sales, customer_demographics cd1,
+      customer_demographics cd2, customer, customer_address, date_dim, item
+ where cs_sold_date_sk = d_date_sk and
+       cs_item_sk = i_item_sk and
+       cs_bill_cdemo_sk = cd1.cd_demo_sk and
+       cs_bill_customer_sk = c_customer_sk and
+       cd1.cd_gender = 'F' and
+       cd1.cd_education_status = 'Unknown' and
+       c_current_cdemo_sk = cd2.cd_demo_sk and
+       c_current_addr_sk = ca_address_sk and
+       c_birth_month in (1,6,8,9,12,2) and
+       d_year = 1998 and
+       ca_state  in ('MS','IN','ND','OK','NM','VA','MS')
+ group by rollup (i_item_id, ca_country, ca_state, ca_county)
+ order by ca_country, ca_state, ca_county, i_item_id
+ LIMIT 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [ca_country#2501 ASC, ca_state#2502 ASC, ca_county#2503 ASC, i_item_id#2500 ASC], true
+      +- Aggregate [i_item_id#2500, ca_country#2501, ca_state#2502, ca_county#2503, spark_grouping_id#2495], [i_item_id#2500, ca_country#2501, ca_state#2502, ca_county#2503, avg(cast(cs_quantity#18 as decimal(12,2))) AS agg1#2432, avg(cast(cs_list_price#20 as decimal(12,2))) AS agg2#2433, avg(cast(cs_coupon_amt#27 as decimal(12,2))) AS agg3#2434, avg(cast(cs_sales_price#21 as decimal(12,2))) AS agg4#2435, avg(cast(cs_net_profit#33 as decimal(12,2))) AS agg5#2436, avg(cast(c_birth_year#443 as decimal(12,2))) AS agg6#2437, avg(cast(cd_dep_count#502 as decimal(12,2))) AS agg7#2438]
+         +- Expand [List(cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#2496, ca_country#2497, ca_state#2498, ca_county#2499, 0), List(cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#2496, ca_country#2497, ca_state#2498, null, 1), List(cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#2496, ca_country#2497, null, null, 3), List(cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#2496, null, null, null, 7), List(cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, null, null, null, null, 15)], [cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#2500, ca_country#2501, ca_state#2502, ca_county#2503, spark_grouping_id#2495]
+            +- Project [cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, i_item_id#595 AS i_item_id#2496, ca_country#478 AS ca_country#2497, ca_state#476 AS ca_state#2498, ca_county#475 AS ca_county#2499]
+               +- Join Inner, (cs_item_sk#15 = i_item_sk#594)
+                  :- Project [cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, ca_county#475, ca_state#476, ca_country#478]
+                  :  +- Join Inner, (cs_sold_date_sk#0 = d_date_sk#516)
+                  :     :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_birth_year#443, ca_county#475, ca_state#476, ca_country#478]
+                  :     :  +- Join Inner, (c_current_addr_sk#434 = ca_address_sk#468)
+                  :     :     :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_current_addr_sk#434, c_birth_year#443]
+                  :     :     :  +- Join Inner, (c_current_cdemo_sk#432 = cd_demo_sk#2479)
+                  :     :     :     :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502, c_current_cdemo_sk#432, c_current_addr_sk#434, c_birth_year#443]
+                  :     :     :     :  +- Join Inner, (cs_bill_customer_sk#3 = c_customer_sk#430)
+                  :     :     :     :     :- Project [cs_sold_date_sk#0, cs_bill_customer_sk#3, cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33, cd_dep_count#502]
+                  :     :     :     :     :  +- Join Inner, (cs_bill_cdemo_sk#4 = cd_demo_sk#496)
+                  :     :     :     :     :     :- Project [cs_sold_date_sk#0, cs_bill_customer_sk#3, cs_bill_cdemo_sk#4, cs_item_sk#15, cs_quantity#18, cs_list_price#20, cs_sales_price#21, cs_coupon_amt#27, cs_net_profit#33]
+                  :     :     :     :     :     :  +- Filter (((isnotnull(cs_bill_cdemo_sk#4) && isnotnull(cs_bill_customer_sk#3)) && isnotnull(cs_sold_date_sk#0)) && isnotnull(cs_item_sk#15))
+                  :     :     :     :     :     :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+                  :     :     :     :     :     +- Project [cd_demo_sk#496, cd_dep_count#502]
+                  :     :     :     :     :        +- Filter ((((isnotnull(cd_gender#497) && isnotnull(cd_education_status#499)) && (cd_gender#497 = F)) && (cd_education_status#499 = Unknown)) && isnotnull(cd_demo_sk#496))
+                  :     :     :     :     :           +- Relation[cd_demo_sk#496,cd_gender#497,cd_marital_status#498,cd_education_status#499,cd_purchase_estimate#500,cd_credit_rating#501,cd_dep_count#502,cd_dep_employed_count#503,cd_dep_college_count#504] csv
+                  :     :     :     :     +- Project [c_customer_sk#430, c_current_cdemo_sk#432, c_current_addr_sk#434, c_birth_year#443]
+                  :     :     :     :        +- Filter (((c_birth_month#442 IN (1,6,8,9,12,2) && isnotnull(c_customer_sk#430)) && isnotnull(c_current_cdemo_sk#432)) && isnotnull(c_current_addr_sk#434))
+                  :     :     :     :           +- Relation[c_customer_sk#430,c_customer_id#431,c_current_cdemo_sk#432,c_current_hdemo_sk#433,c_current_addr_sk#434,c_first_shipto_date_sk#435,c_first_sales_date_sk#436,c_salutation#437,c_first_name#438,c_last_name#439,c_preferred_cust_flag#440,c_birth_day#441,c_birth_month#442,c_birth_year#443,c_birth_country#444,c_login#445,c_email_address#446,c_last_review_date#447] csv
+                  :     :     :     +- Project [cd_demo_sk#2479]
+                  :     :     :        +- Filter isnotnull(cd_demo_sk#2479)
+                  :     :     :           +- Relation[cd_demo_sk#2479,cd_gender#2480,cd_marital_status#2481,cd_education_status#2482,cd_purchase_estimate#2483,cd_credit_rating#2484,cd_dep_count#2485,cd_dep_employed_count#2486,cd_dep_college_count#2487] csv
+                  :     :     +- Project [ca_address_sk#468, ca_county#475, ca_state#476, ca_country#478]
+                  :     :        +- Filter (ca_state#476 IN (MS,IN,ND,OK,NM,VA,MS) && isnotnull(ca_address_sk#468))
+                  :     :           +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+                  :     +- Project [d_date_sk#516]
+                  :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 1998)) && isnotnull(d_date_sk#516))
+                  :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  +- Project [i_item_sk#594, i_item_id#595]
+                     +- Filter isnotnull(i_item_sk#594)
+                        +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Expand [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-5f97163a-c9c5-4fe8-8cf8-3abadc1300f3.csv]]]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]]]]]]]

@@ -1,0 +1,141 @@
+
+ with ss as
+ (select ca_county,d_qoy, d_year,sum(ss_ext_sales_price) as store_sales
+ from store_sales,date_dim,customer_address
+ where ss_sold_date_sk = d_date_sk
+  and ss_addr_sk=ca_address_sk
+ group by ca_county,d_qoy, d_year),
+ ws as
+ (select ca_county,d_qoy, d_year,sum(ws_ext_sales_price) as web_sales
+ from web_sales,date_dim,customer_address
+ where ws_sold_date_sk = d_date_sk
+  and ws_bill_addr_sk=ca_address_sk
+ group by ca_county,d_qoy, d_year)
+ select
+        ss1.ca_county
+       ,ss1.d_year
+       ,ws2.web_sales/ws1.web_sales web_q1_q2_increase
+       ,ss2.store_sales/ss1.store_sales store_q1_q2_increase
+       ,ws3.web_sales/ws2.web_sales web_q2_q3_increase
+       ,ss3.store_sales/ss2.store_sales store_q2_q3_increase
+ from
+        ss ss1, ss ss2, ss ss3, ws ws1, ws ws2, ws ws3
+ where
+    ss1.d_qoy = 1
+    and ss1.d_year = 2000
+    and ss1.ca_county = ss2.ca_county
+    and ss2.d_qoy = 2
+    and ss2.d_year = 2000
+ and ss2.ca_county = ss3.ca_county
+    and ss3.d_qoy = 3
+    and ss3.d_year = 2000
+    and ss1.ca_county = ws1.ca_county
+    and ws1.d_qoy = 1
+    and ws1.d_year = 2000
+    and ws1.ca_county = ws2.ca_county
+    and ws2.d_qoy = 2
+    and ws2.d_year = 2000
+    and ws1.ca_county = ws3.ca_county
+    and ws3.d_qoy = 3
+    and ws3.d_year = 2000
+    and case when ws1.web_sales > 0 then ws2.web_sales/ws1.web_sales else null end
+       > case when ss1.store_sales > 0 then ss2.store_sales/ss1.store_sales else null end
+    and case when ws2.web_sales > 0 then ws3.web_sales/ws2.web_sales else null end
+       > case when ss2.store_sales > 0 then ss3.store_sales/ss2.store_sales else null end
+ order by ss1.ca_county
+            
+Sort [ca_county#475 ASC], true
++- Project [ca_county#475, d_year#522, CheckOverflow((web_sales#3873 / web_sales#3170), DecimalType(37,20)) AS web_q1_q2_increase#3165, CheckOverflow((store_sales#3627 / store_sales#3169), DecimalType(37,20)) AS store_q1_q2_increase#3166, CheckOverflow((web_sales#3969 / web_sales#3873), DecimalType(37,20)) AS web_q2_q3_increase#3167, CheckOverflow((store_sales#3723 / store_sales#3627), DecimalType(37,20)) AS store_q2_q3_increase#3168]
+   +- Join Inner, ((ca_county#3867 = ca_county#4059) && (CASE WHEN (web_sales#3873 > 0.00) THEN CheckOverflow((web_sales#3969 / web_sales#3873), DecimalType(37,20)) ELSE null END > CASE WHEN (store_sales#3627 > 0.00) THEN CheckOverflow((store_sales#3723 / store_sales#3627), DecimalType(37,20)) ELSE null END))
+      :- Project [ca_county#475, d_year#522, store_sales#3169, store_sales#3627, store_sales#3723, ca_county#3867, web_sales#3170, web_sales#3873]
+      :  +- Join Inner, ((ca_county#3867 = ca_county#3963) && (CASE WHEN (web_sales#3170 > 0.00) THEN CheckOverflow((web_sales#3873 / web_sales#3170), DecimalType(37,20)) ELSE null END > CASE WHEN (store_sales#3169 > 0.00) THEN CheckOverflow((store_sales#3627 / store_sales#3169), DecimalType(37,20)) ELSE null END))
+      :     :- Join Inner, (ca_county#475 = ca_county#3867)
+      :     :  :- Project [ca_county#475, d_year#522, store_sales#3169, store_sales#3627, store_sales#3723]
+      :     :  :  +- Join Inner, (ca_county#3717 = ca_county#3813)
+      :     :  :     :- Join Inner, (ca_county#475 = ca_county#3717)
+      :     :  :     :  :- Aggregate [ca_county#475, d_qoy#526, d_year#522], [ca_county#475, d_year#522, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS store_sales#3169]
+      :     :  :     :  :  +- Project [ss_ext_sales_price#151, d_year#522, d_qoy#526, ca_county#475]
+      :     :  :     :  :     +- Join Inner, (ss_addr_sk#142 = ca_address_sk#468)
+      :     :  :     :  :        :- Project [ss_addr_sk#142, ss_ext_sales_price#151, d_year#522, d_qoy#526]
+      :     :  :     :  :        :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+      :     :  :     :  :        :     :- Project [ss_sold_date_sk#136, ss_addr_sk#142, ss_ext_sales_price#151]
+      :     :  :     :  :        :     :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_addr_sk#142))
+      :     :  :     :  :        :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+      :     :  :     :  :        :     +- Project [d_date_sk#516, d_year#522, d_qoy#526]
+      :     :  :     :  :        :        +- Filter ((((isnotnull(d_date_sk#516) && isnotnull(d_qoy#526)) && isnotnull(d_year#522)) && (d_qoy#526 = 1)) && (d_year#522 = 2000))
+      :     :  :     :  :        :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+      :     :  :     :  :        +- Project [ca_address_sk#468, ca_county#475]
+      :     :  :     :  :           +- Filter (isnotnull(ca_county#475) && isnotnull(ca_address_sk#468))
+      :     :  :     :  :              +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+      :     :  :     :  +- Aggregate [ca_county#3717, d_qoy#3679, d_year#3675], [ca_county#3717, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS store_sales#3627]
+      :     :  :     :     +- Project [ss_ext_sales_price#151, d_year#3675, d_qoy#3679, ca_county#3717]
+      :     :  :     :        +- Join Inner, (ss_addr_sk#142 = ca_address_sk#3710)
+      :     :  :     :           :- Project [ss_addr_sk#142, ss_ext_sales_price#151, d_year#3675, d_qoy#3679]
+      :     :  :     :           :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#3669)
+      :     :  :     :           :     :- Project [ss_sold_date_sk#136, ss_addr_sk#142, ss_ext_sales_price#151]
+      :     :  :     :           :     :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_addr_sk#142))
+      :     :  :     :           :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+      :     :  :     :           :     +- Project [d_date_sk#3669, d_year#3675, d_qoy#3679]
+      :     :  :     :           :        +- Filter ((((isnotnull(d_date_sk#3669) && isnotnull(d_year#3675)) && isnotnull(d_qoy#3679)) && (d_qoy#3679 = 2)) && (d_year#3675 = 2000))
+      :     :  :     :           :           +- Relation[d_date_sk#3669,d_date_id#3670,d_date#3671,d_month_seq#3672,d_week_seq#3673,d_quarter_seq#3674,d_year#3675,d_dow#3676,d_moy#3677,d_dom#3678,d_qoy#3679,d_fy_year#3680,d_fy_quarter_seq#3681,d_fy_week_seq#3682,d_day_name#3683,d_quarter_name#3684,d_holiday#3685,d_weekend#3686,d_following_holiday#3687,d_first_dom#3688,d_last_dom#3689,d_same_day_ly#3690,d_same_day_lq#3691,d_current_day#3692,... 4 more fields] csv
+      :     :  :     :           +- Project [ca_address_sk#3710, ca_county#3717]
+      :     :  :     :              +- Filter (isnotnull(ca_county#3717) && isnotnull(ca_address_sk#3710))
+      :     :  :     :                 +- Relation[ca_address_sk#3710,ca_address_id#3711,ca_street_number#3712,ca_street_name#3713,ca_street_type#3714,ca_suite_number#3715,ca_city#3716,ca_county#3717,ca_state#3718,ca_zip#3719,ca_country#3720,ca_gmt_offset#3721,ca_location_type#3722] csv
+      :     :  :     +- Aggregate [ca_county#3813, d_qoy#3775, d_year#3771], [ca_county#3813, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS store_sales#3723]
+      :     :  :        +- Project [ss_ext_sales_price#151, d_year#3771, d_qoy#3775, ca_county#3813]
+      :     :  :           +- Join Inner, (ss_addr_sk#142 = ca_address_sk#3806)
+      :     :  :              :- Project [ss_addr_sk#142, ss_ext_sales_price#151, d_year#3771, d_qoy#3775]
+      :     :  :              :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#3765)
+      :     :  :              :     :- Project [ss_sold_date_sk#136, ss_addr_sk#142, ss_ext_sales_price#151]
+      :     :  :              :     :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_addr_sk#142))
+      :     :  :              :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+      :     :  :              :     +- Project [d_date_sk#3765, d_year#3771, d_qoy#3775]
+      :     :  :              :        +- Filter ((((isnotnull(d_date_sk#3765) && isnotnull(d_year#3771)) && isnotnull(d_qoy#3775)) && (d_qoy#3775 = 3)) && (d_year#3771 = 2000))
+      :     :  :              :           +- Relation[d_date_sk#3765,d_date_id#3766,d_date#3767,d_month_seq#3768,d_week_seq#3769,d_quarter_seq#3770,d_year#3771,d_dow#3772,d_moy#3773,d_dom#3774,d_qoy#3775,d_fy_year#3776,d_fy_quarter_seq#3777,d_fy_week_seq#3778,d_day_name#3779,d_quarter_name#3780,d_holiday#3781,d_weekend#3782,d_following_holiday#3783,d_first_dom#3784,d_last_dom#3785,d_same_day_ly#3786,d_same_day_lq#3787,d_current_day#3788,... 4 more fields] csv
+      :     :  :              +- Project [ca_address_sk#3806, ca_county#3813]
+      :     :  :                 +- Filter (isnotnull(ca_county#3813) && isnotnull(ca_address_sk#3806))
+      :     :  :                    +- Relation[ca_address_sk#3806,ca_address_id#3807,ca_street_number#3808,ca_street_name#3809,ca_street_type#3810,ca_suite_number#3811,ca_city#3812,ca_county#3813,ca_state#3814,ca_zip#3815,ca_country#3816,ca_gmt_offset#3817,ca_location_type#3818] csv
+      :     :  +- Aggregate [ca_county#3867, d_qoy#3829, d_year#3825], [ca_county#3867, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#249)),17,2) AS web_sales#3170]
+      :     :     +- Project [ws_ext_sales_price#249, d_year#3825, d_qoy#3829, ca_county#3867]
+      :     :        +- Join Inner, (ws_bill_addr_sk#233 = ca_address_sk#3860)
+      :     :           :- Project [ws_bill_addr_sk#233, ws_ext_sales_price#249, d_year#3825, d_qoy#3829]
+      :     :           :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#3819)
+      :     :           :     :- Project [ws_sold_date_sk#226, ws_bill_addr_sk#233, ws_ext_sales_price#249]
+      :     :           :     :  +- Filter (isnotnull(ws_sold_date_sk#226) && isnotnull(ws_bill_addr_sk#233))
+      :     :           :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+      :     :           :     +- Project [d_date_sk#3819, d_year#3825, d_qoy#3829]
+      :     :           :        +- Filter ((((isnotnull(d_date_sk#3819) && isnotnull(d_year#3825)) && isnotnull(d_qoy#3829)) && (d_qoy#3829 = 1)) && (d_year#3825 = 2000))
+      :     :           :           +- Relation[d_date_sk#3819,d_date_id#3820,d_date#3821,d_month_seq#3822,d_week_seq#3823,d_quarter_seq#3824,d_year#3825,d_dow#3826,d_moy#3827,d_dom#3828,d_qoy#3829,d_fy_year#3830,d_fy_quarter_seq#3831,d_fy_week_seq#3832,d_day_name#3833,d_quarter_name#3834,d_holiday#3835,d_weekend#3836,d_following_holiday#3837,d_first_dom#3838,d_last_dom#3839,d_same_day_ly#3840,d_same_day_lq#3841,d_current_day#3842,... 4 more fields] csv
+      :     :           +- Project [ca_address_sk#3860, ca_county#3867]
+      :     :              +- Filter (isnotnull(ca_county#3867) && isnotnull(ca_address_sk#3860))
+      :     :                 +- Relation[ca_address_sk#3860,ca_address_id#3861,ca_street_number#3862,ca_street_name#3863,ca_street_type#3864,ca_suite_number#3865,ca_city#3866,ca_county#3867,ca_state#3868,ca_zip#3869,ca_country#3870,ca_gmt_offset#3871,ca_location_type#3872] csv
+      :     +- Aggregate [ca_county#3963, d_qoy#3925, d_year#3921], [ca_county#3963, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#249)),17,2) AS web_sales#3873]
+      :        +- Project [ws_ext_sales_price#249, d_year#3921, d_qoy#3925, ca_county#3963]
+      :           +- Join Inner, (ws_bill_addr_sk#233 = ca_address_sk#3956)
+      :              :- Project [ws_bill_addr_sk#233, ws_ext_sales_price#249, d_year#3921, d_qoy#3925]
+      :              :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#3915)
+      :              :     :- Project [ws_sold_date_sk#226, ws_bill_addr_sk#233, ws_ext_sales_price#249]
+      :              :     :  +- Filter (isnotnull(ws_sold_date_sk#226) && isnotnull(ws_bill_addr_sk#233))
+      :              :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+      :              :     +- Project [d_date_sk#3915, d_year#3921, d_qoy#3925]
+      :              :        +- Filter ((((isnotnull(d_date_sk#3915) && isnotnull(d_year#3921)) && isnotnull(d_qoy#3925)) && (d_qoy#3925 = 2)) && (d_year#3921 = 2000))
+      :              :           +- Relation[d_date_sk#3915,d_date_id#3916,d_date#3917,d_month_seq#3918,d_week_seq#3919,d_quarter_seq#3920,d_year#3921,d_dow#3922,d_moy#3923,d_dom#3924,d_qoy#3925,d_fy_year#3926,d_fy_quarter_seq#3927,d_fy_week_seq#3928,d_day_name#3929,d_quarter_name#3930,d_holiday#3931,d_weekend#3932,d_following_holiday#3933,d_first_dom#3934,d_last_dom#3935,d_same_day_ly#3936,d_same_day_lq#3937,d_current_day#3938,... 4 more fields] csv
+      :              +- Project [ca_address_sk#3956, ca_county#3963]
+      :                 +- Filter (isnotnull(ca_county#3963) && isnotnull(ca_address_sk#3956))
+      :                    +- Relation[ca_address_sk#3956,ca_address_id#3957,ca_street_number#3958,ca_street_name#3959,ca_street_type#3960,ca_suite_number#3961,ca_city#3962,ca_county#3963,ca_state#3964,ca_zip#3965,ca_country#3966,ca_gmt_offset#3967,ca_location_type#3968] csv
+      +- Aggregate [ca_county#4059, d_qoy#4021, d_year#4017], [ca_county#4059, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#249)),17,2) AS web_sales#3969]
+         +- Project [ws_ext_sales_price#249, d_year#4017, d_qoy#4021, ca_county#4059]
+            +- Join Inner, (ws_bill_addr_sk#233 = ca_address_sk#4052)
+               :- Project [ws_bill_addr_sk#233, ws_ext_sales_price#249, d_year#4017, d_qoy#4021]
+               :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#4011)
+               :     :- Project [ws_sold_date_sk#226, ws_bill_addr_sk#233, ws_ext_sales_price#249]
+               :     :  +- Filter (isnotnull(ws_sold_date_sk#226) && isnotnull(ws_bill_addr_sk#233))
+               :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+               :     +- Project [d_date_sk#4011, d_year#4017, d_qoy#4021]
+               :        +- Filter ((((isnotnull(d_date_sk#4011) && isnotnull(d_qoy#4021)) && isnotnull(d_year#4017)) && (d_qoy#4021 = 3)) && (d_year#4017 = 2000))
+               :           +- Relation[d_date_sk#4011,d_date_id#4012,d_date#4013,d_month_seq#4014,d_week_seq#4015,d_quarter_seq#4016,d_year#4017,d_dow#4018,d_moy#4019,d_dom#4020,d_qoy#4021,d_fy_year#4022,d_fy_quarter_seq#4023,d_fy_week_seq#4024,d_day_name#4025,d_quarter_name#4026,d_holiday#4027,d_weekend#4028,d_following_holiday#4029,d_first_dom#4030,d_last_dom#4031,d_same_day_ly#4032,d_same_day_lq#4033,d_current_day#4034,... 4 more fields] csv
+               +- Project [ca_address_sk#4052, ca_county#4059]
+                  +- Filter (isnotnull(ca_county#4059) && isnotnull(ca_address_sk#4052))
+                     +- Relation[ca_address_sk#4052,ca_address_id#4053,ca_street_number#4054,ca_street_name#4055,ca_street_type#4056,ca_suite_number#4057,ca_city#4058,ca_county#4059,ca_state#4060,ca_zip#4061,ca_country#4062,ca_gmt_offset#4063,ca_location_type#4064] csv
+
+[Sort [Project [Join [Project [Join [Join [Project [Join [Join [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]]]]

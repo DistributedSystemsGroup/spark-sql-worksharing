@@ -1,0 +1,37 @@
+
+ select count(*)
+ from store_sales, household_demographics, time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 20
+     and time_dim.t_minute >= 30
+     and household_demographics.hd_dep_count = 7
+     and store.s_store_name = 'ese'
+ order by count(*)
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [count(1)#14172L ASC], true
+      +- Aggregate [count(1) AS count(1)#14172L]
+         +- Project
+            +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+               :- Project [ss_store_sk#143]
+               :  +- Join Inner, (ss_sold_time_sk#137 = t_time_sk#762)
+               :     :- Project [ss_sold_time_sk#137, ss_store_sk#143]
+               :     :  +- Join Inner, (ss_hdemo_sk#141 = hd_demo_sk#574)
+               :     :     :- Project [ss_sold_time_sk#137, ss_hdemo_sk#141, ss_store_sk#143]
+               :     :     :  +- Filter ((isnotnull(ss_hdemo_sk#141) && isnotnull(ss_sold_time_sk#137)) && isnotnull(ss_store_sk#143))
+               :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+               :     :     +- Project [hd_demo_sk#574]
+               :     :        +- Filter ((isnotnull(hd_dep_count#577) && (hd_dep_count#577 = 7)) && isnotnull(hd_demo_sk#574))
+               :     :           +- Relation[hd_demo_sk#574,hd_income_band_sk#575,hd_buy_potential#576,hd_dep_count#577,hd_vehicle_count#578] csv
+               :     +- Project [t_time_sk#762]
+               :        +- Filter ((((isnotnull(t_hour#765) && isnotnull(t_minute#766)) && (t_hour#765 = 20)) && (t_minute#766 >= 30)) && isnotnull(t_time_sk#762))
+               :           +- Relation[t_time_sk#762,t_time_id#763,t_time#764,t_hour#765,t_minute#766,t_second#767,t_am_pm#768,t_shift#769,t_sub_shift#770,t_meal_time#771] csv
+               +- Project [s_store_sk#702]
+                  +- Filter ((isnotnull(s_store_name#707) && (s_store_name#707 = ese)) && isnotnull(s_store_sk#702))
+                     +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-01f2668b-3ce6-45a5-8a20-e30888161314.csv]]]] [Project [Filter part-r-00000-6989c952-1b5d-4638-811a-9cea07861870.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]

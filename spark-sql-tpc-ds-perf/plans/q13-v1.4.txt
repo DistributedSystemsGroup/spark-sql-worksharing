@@ -1,0 +1,81 @@
+
+ select avg(ss_quantity)
+       ,avg(ss_ext_sales_price)
+       ,avg(ss_ext_wholesale_cost)
+       ,sum(ss_ext_wholesale_cost)
+ from store_sales
+     ,store
+     ,customer_demographics
+     ,household_demographics
+     ,customer_address
+     ,date_dim
+ where s_store_sk = ss_store_sk
+ and  ss_sold_date_sk = d_date_sk and d_year = 2001
+ and((ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'M'
+  and cd_education_status = 'Advanced Degree'
+  and ss_sales_price between 100.00 and 150.00
+  and hd_dep_count = 3
+     )or
+     (ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'S'
+  and cd_education_status = 'College'
+  and ss_sales_price between 50.00 and 100.00
+  and hd_dep_count = 1
+     ) or
+     (ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'W'
+  and cd_education_status = '2 yr Degree'
+  and ss_sales_price between 150.00 and 200.00
+  and hd_dep_count = 1
+     ))
+ and((ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('TX', 'OH', 'TX')
+  and ss_net_profit between 100 and 200
+     ) or
+     (ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('OR', 'NM', 'KY')
+  and ss_net_profit between 150 and 300
+     ) or
+     (ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('VA', 'TX', 'MS')
+  and ss_net_profit between 50 and 250
+     ))
+            
+Aggregate [avg(cast(ss_quantity#146 as bigint)) AS avg(ss_quantity)#1754, cast((avg(UnscaledValue(ss_ext_sales_price#151)) / 100.0) as decimal(11,6)) AS avg(ss_ext_sales_price)#1755, cast((avg(UnscaledValue(ss_ext_wholesale_cost#152)) / 100.0) as decimal(11,6)) AS avg(ss_ext_wholesale_cost)#1756, MakeDecimal(sum(UnscaledValue(ss_ext_wholesale_cost#152)),17,2) AS sum(ss_ext_wholesale_cost)#1757]
++- Project [ss_quantity#146, ss_ext_sales_price#151, ss_ext_wholesale_cost#152]
+   +- Join Inner, ((ss_hdemo_sk#141 = hd_demo_sk#574) && (((((((cd_marital_status#498 = M) && (cd_education_status#499 = Advanced Degree)) && (ss_sales_price#149 >= 100.00)) && (ss_sales_price#149 <= 150.00)) && (hd_dep_count#577 = 3)) || (((((cd_marital_status#498 = S) && (cd_education_status#499 = College)) && (ss_sales_price#149 >= 50.00)) && (ss_sales_price#149 <= 100.00)) && (hd_dep_count#577 = 1))) || (((((cd_marital_status#498 = W) && (cd_education_status#499 = 2 yr Degree)) && (ss_sales_price#149 >= 150.00)) && (ss_sales_price#149 <= 200.00)) && (hd_dep_count#577 = 1))))
+      :- Project [ss_hdemo_sk#141, ss_quantity#146, ss_sales_price#149, ss_ext_sales_price#151, ss_ext_wholesale_cost#152, cd_marital_status#498, cd_education_status#499]
+      :  +- Join Inner, (cd_demo_sk#496 = ss_cdemo_sk#140)
+      :     :- Project [ss_cdemo_sk#140, ss_hdemo_sk#141, ss_quantity#146, ss_sales_price#149, ss_ext_sales_price#151, ss_ext_wholesale_cost#152]
+      :     :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+      :     :     :- Project [ss_sold_date_sk#136, ss_cdemo_sk#140, ss_hdemo_sk#141, ss_quantity#146, ss_sales_price#149, ss_ext_sales_price#151, ss_ext_wholesale_cost#152]
+      :     :     :  +- Join Inner, ((ss_addr_sk#142 = ca_address_sk#468) && ((((ca_state#476 IN (TX,OH,TX) && (cast(ss_net_profit#158 as decimal(12,2)) >= 100.00)) && (cast(ss_net_profit#158 as decimal(12,2)) <= 200.00)) || ((ca_state#476 IN (OR,NM,KY) && (cast(ss_net_profit#158 as decimal(12,2)) >= 150.00)) && (cast(ss_net_profit#158 as decimal(12,2)) <= 300.00))) || ((ca_state#476 IN (VA,TX,MS) && (cast(ss_net_profit#158 as decimal(12,2)) >= 50.00)) && (cast(ss_net_profit#158 as decimal(12,2)) <= 250.00))))
+      :     :     :     :- Project [ss_sold_date_sk#136, ss_cdemo_sk#140, ss_hdemo_sk#141, ss_addr_sk#142, ss_quantity#146, ss_sales_price#149, ss_ext_sales_price#151, ss_ext_wholesale_cost#152, ss_net_profit#158]
+      :     :     :     :  +- Join Inner, (s_store_sk#702 = ss_store_sk#143)
+      :     :     :     :     :- Project [ss_sold_date_sk#136, ss_cdemo_sk#140, ss_hdemo_sk#141, ss_addr_sk#142, ss_store_sk#143, ss_quantity#146, ss_sales_price#149, ss_ext_sales_price#151, ss_ext_wholesale_cost#152, ss_net_profit#158]
+      :     :     :     :     :  +- Filter ((((isnotnull(ss_store_sk#143) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_addr_sk#142)) && isnotnull(ss_cdemo_sk#140)) && isnotnull(ss_hdemo_sk#141))
+      :     :     :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+      :     :     :     :     +- Project [s_store_sk#702]
+      :     :     :     :        +- Filter isnotnull(s_store_sk#702)
+      :     :     :     :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+      :     :     :     +- Project [ca_address_sk#468, ca_state#476]
+      :     :     :        +- Filter ((isnotnull(ca_country#478) && (ca_country#478 = United States)) && isnotnull(ca_address_sk#468))
+      :     :     :           +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+      :     :     +- Project [d_date_sk#516]
+      :     :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2001)) && isnotnull(d_date_sk#516))
+      :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+      :     +- Project [cd_demo_sk#496, cd_marital_status#498, cd_education_status#499]
+      :        +- Filter isnotnull(cd_demo_sk#496)
+      :           +- Relation[cd_demo_sk#496,cd_gender#497,cd_marital_status#498,cd_education_status#499,cd_purchase_estimate#500,cd_credit_rating#501,cd_dep_count#502,cd_dep_employed_count#503,cd_dep_college_count#504] csv
+      +- Project [hd_demo_sk#574, hd_dep_count#577]
+         +- Filter isnotnull(hd_demo_sk#574)
+            +- Relation[hd_demo_sk#574,hd_income_band_sk#575,hd_buy_potential#576,hd_dep_count#577,hd_vehicle_count#578] csv
+
+[Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-01f2668b-3ce6-45a5-8a20-e30888161314.csv]]]]]

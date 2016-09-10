@@ -1,0 +1,52 @@
+
+ select
+    sum(ss_net_profit)/sum(ss_ext_sales_price) as gross_margin
+   ,i_category
+   ,i_class
+   ,grouping(i_category)+grouping(i_class) as lochierarchy
+   ,rank() over (
+ 	partition by grouping(i_category)+grouping(i_class),
+ 	case when grouping(i_class) = 0 then i_category end
+ 	order by sum(ss_net_profit)/sum(ss_ext_sales_price) asc) as rank_within_parent
+ from
+    store_sales, date_dim d1, item, store
+ where
+    d1.d_year = 2001
+    and d1.d_date_sk = ss_sold_date_sk
+    and i_item_sk  = ss_item_sk
+    and s_store_sk  = ss_store_sk
+    and s_state in ('TN','TN','TN','TN','TN','TN','TN','TN')
+ group by rollup(i_category,i_class)
+ order by
+   lochierarchy desc
+  ,case when lochierarchy = 0 then i_category end
+  ,rank_within_parent
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [lochierarchy#4183 DESC, CASE WHEN (cast(lochierarchy#4183 as int) = 0) THEN i_category#4232 END ASC, rank_within_parent#4184 ASC], true
+      +- Project [gross_margin#4182, i_category#4232, i_class#4233, lochierarchy#4183, rank_within_parent#4184]
+         +- Window [rank(_w3#4243) windowspecdefinition(_w1#4241, _w2#4242, _w3#4243 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_within_parent#4184], [_w1#4241, _w2#4242], [_w3#4243 ASC]
+            +- Aggregate [i_category#4232, i_class#4233, spark_grouping_id#4229], [CheckOverflow((MakeDecimal(sum(UnscaledValue(ss_net_profit#158)),17,2) / MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2)), DecimalType(37,20)) AS gross_margin#4182, i_category#4232, i_class#4233, (cast((shiftright(spark_grouping_id#4229, 1) & 1) as tinyint) + cast((shiftright(spark_grouping_id#4229, 0) & 1) as tinyint)) AS lochierarchy#4183, (cast((shiftright(spark_grouping_id#4229, 1) & 1) as tinyint) + cast((shiftright(spark_grouping_id#4229, 0) & 1) as tinyint)) AS _w1#4241, CASE WHEN (cast(cast((shiftright(spark_grouping_id#4229, 0) & 1) as tinyint) as int) = 0) THEN i_category#4232 END AS _w2#4242, CheckOverflow((MakeDecimal(sum(UnscaledValue(ss_net_profit#158)),17,2) / MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2)), DecimalType(37,20)) AS _w3#4243]
+               +- Expand [List(ss_ext_sales_price#151, ss_net_profit#158, i_category#4230, i_class#4231, 0), List(ss_ext_sales_price#151, ss_net_profit#158, i_category#4230, null, 1), List(ss_ext_sales_price#151, ss_net_profit#158, null, null, 3)], [ss_ext_sales_price#151, ss_net_profit#158, i_category#4232, i_class#4233, spark_grouping_id#4229]
+                  +- Project [ss_ext_sales_price#151, ss_net_profit#158, i_category#606 AS i_category#4230, i_class#604 AS i_class#4231]
+                     +- Join Inner, (s_store_sk#702 = ss_store_sk#143)
+                        :- Project [ss_store_sk#143, ss_ext_sales_price#151, ss_net_profit#158, i_class#604, i_category#606]
+                        :  +- Join Inner, (i_item_sk#594 = ss_item_sk#138)
+                        :     :- Project [ss_item_sk#138, ss_store_sk#143, ss_ext_sales_price#151, ss_net_profit#158]
+                        :     :  +- Join Inner, (d_date_sk#516 = ss_sold_date_sk#136)
+                        :     :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_store_sk#143, ss_ext_sales_price#151, ss_net_profit#158]
+                        :     :     :  +- Filter ((isnotnull(ss_sold_date_sk#136) && isnotnull(ss_item_sk#138)) && isnotnull(ss_store_sk#143))
+                        :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                        :     :     +- Project [d_date_sk#516]
+                        :     :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2001)) && isnotnull(d_date_sk#516))
+                        :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                        :     +- Project [i_item_sk#594, i_class#604, i_category#606]
+                        :        +- Filter isnotnull(i_item_sk#594)
+                        :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+                        +- Project [s_store_sk#702]
+                           +- Filter (s_state#726 IN (TN,TN,TN,TN,TN,TN,TN,TN) && isnotnull(s_store_sk#702))
+                              +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Window [Aggregate [Expand [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]]]]]]]]]

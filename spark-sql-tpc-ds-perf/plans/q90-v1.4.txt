@@ -1,0 +1,66 @@
+
+ select cast(amc as decimal(15,4))/cast(pmc as decimal(15,4)) am_pm_ratio
+ from ( select count(*) amc
+       from web_sales, household_demographics , time_dim, web_page
+       where ws_sold_time_sk = time_dim.t_time_sk
+         and ws_ship_hdemo_sk = household_demographics.hd_demo_sk
+         and ws_web_page_sk = web_page.wp_web_page_sk
+         and time_dim.t_hour between 8 and 8+1
+         and household_demographics.hd_dep_count = 6
+         and web_page.wp_char_count between 5000 and 5200) at,
+      ( select count(*) pmc
+       from web_sales, household_demographics , time_dim, web_page
+       where ws_sold_time_sk = time_dim.t_time_sk
+         and ws_ship_hdemo_sk = household_demographics.hd_demo_sk
+         and ws_web_page_sk = web_page.wp_web_page_sk
+         and time_dim.t_hour between 19 and 19+1
+         and household_demographics.hd_dep_count = 6
+         and web_page.wp_char_count between 5000 and 5200) pt
+ order by am_pm_ratio
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [am_pm_ratio#14045 ASC], true
+      +- Project [CheckOverflow((cast(amc#14043L as decimal(15,4)) / cast(pmc#14044L as decimal(15,4))), DecimalType(35,20)) AS am_pm_ratio#14045]
+         +- Join Inner
+            :- Aggregate [count(1) AS amc#14043L]
+            :  +- Project
+            :     +- Join Inner, (ws_web_page_sk#238 = wp_web_page_sk#814)
+            :        :- Project [ws_web_page_sk#238]
+            :        :  +- Join Inner, (ws_sold_time_sk#227 = t_time_sk#762)
+            :        :     :- Project [ws_sold_time_sk#227, ws_web_page_sk#238]
+            :        :     :  +- Join Inner, (ws_ship_hdemo_sk#236 = hd_demo_sk#574)
+            :        :     :     :- Project [ws_sold_time_sk#227, ws_ship_hdemo_sk#236, ws_web_page_sk#238]
+            :        :     :     :  +- Filter ((isnotnull(ws_ship_hdemo_sk#236) && isnotnull(ws_sold_time_sk#227)) && isnotnull(ws_web_page_sk#238))
+            :        :     :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+            :        :     :     +- Project [hd_demo_sk#574]
+            :        :     :        +- Filter ((isnotnull(hd_dep_count#577) && (hd_dep_count#577 = 6)) && isnotnull(hd_demo_sk#574))
+            :        :     :           +- Relation[hd_demo_sk#574,hd_income_band_sk#575,hd_buy_potential#576,hd_dep_count#577,hd_vehicle_count#578] csv
+            :        :     +- Project [t_time_sk#762]
+            :        :        +- Filter (((isnotnull(t_hour#765) && (t_hour#765 >= 8)) && (t_hour#765 <= 9)) && isnotnull(t_time_sk#762))
+            :        :           +- Relation[t_time_sk#762,t_time_id#763,t_time#764,t_hour#765,t_minute#766,t_second#767,t_am_pm#768,t_shift#769,t_sub_shift#770,t_meal_time#771] csv
+            :        +- Project [wp_web_page_sk#814]
+            :           +- Filter (((isnotnull(wp_char_count#824) && (wp_char_count#824 >= 5000)) && (wp_char_count#824 <= 5200)) && isnotnull(wp_web_page_sk#814))
+            :              +- Relation[wp_web_page_sk#814,wp_web_page_id#815,wp_rec_start_date#816,wp_rec_end_date#817,wp_creation_date_sk#818,wp_access_date_sk#819,wp_autogen_flag#820,wp_customer_sk#821,wp_url#822,wp_type#823,wp_char_count#824,wp_link_count#825,wp_image_count#826,wp_max_ad_count#827] csv
+            +- Aggregate [count(1) AS pmc#14044L]
+               +- Project
+                  +- Join Inner, (ws_web_page_sk#238 = wp_web_page_sk#814)
+                     :- Project [ws_web_page_sk#238]
+                     :  +- Join Inner, (ws_sold_time_sk#227 = t_time_sk#762)
+                     :     :- Project [ws_sold_time_sk#227, ws_web_page_sk#238]
+                     :     :  +- Join Inner, (ws_ship_hdemo_sk#236 = hd_demo_sk#574)
+                     :     :     :- Project [ws_sold_time_sk#227, ws_ship_hdemo_sk#236, ws_web_page_sk#238]
+                     :     :     :  +- Filter ((isnotnull(ws_ship_hdemo_sk#236) && isnotnull(ws_sold_time_sk#227)) && isnotnull(ws_web_page_sk#238))
+                     :     :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+                     :     :     +- Project [hd_demo_sk#574]
+                     :     :        +- Filter ((isnotnull(hd_dep_count#577) && (hd_dep_count#577 = 6)) && isnotnull(hd_demo_sk#574))
+                     :     :           +- Relation[hd_demo_sk#574,hd_income_band_sk#575,hd_buy_potential#576,hd_dep_count#577,hd_vehicle_count#578] csv
+                     :     +- Project [t_time_sk#762]
+                     :        +- Filter (((isnotnull(t_hour#765) && (t_hour#765 >= 19)) && (t_hour#765 <= 20)) && isnotnull(t_time_sk#762))
+                     :           +- Relation[t_time_sk#762,t_time_id#763,t_time#764,t_hour#765,t_minute#766,t_second#767,t_am_pm#768,t_shift#769,t_sub_shift#770,t_meal_time#771] csv
+                     +- Project [wp_web_page_sk#814]
+                        +- Filter (((isnotnull(wp_char_count#824) && (wp_char_count#824 >= 5000)) && (wp_char_count#824 <= 5200)) && isnotnull(wp_web_page_sk#814))
+                           +- Relation[wp_web_page_sk#814,wp_web_page_id#815,wp_rec_start_date#816,wp_rec_end_date#817,wp_creation_date_sk#818,wp_access_date_sk#819,wp_autogen_flag#820,wp_customer_sk#821,wp_url#822,wp_type#823,wp_char_count#824,wp_link_count#825,wp_image_count#826,wp_max_ad_count#827] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-01f2668b-3ce6-45a5-8a20-e30888161314.csv]]]] [Project [Filter part-r-00000-6989c952-1b5d-4638-811a-9cea07861870.csv]]]] [Project [Filter part-r-00000-ddabb4cb-28eb-4e14-8acc-ae5b6dc575dc.csv]]]]] [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-01f2668b-3ce6-45a5-8a20-e30888161314.csv]]]] [Project [Filter part-r-00000-6989c952-1b5d-4638-811a-9cea07861870.csv]]]] [Project [Filter part-r-00000-ddabb4cb-28eb-4e14-8acc-ae5b6dc575dc.csv]]]]]]]]]]

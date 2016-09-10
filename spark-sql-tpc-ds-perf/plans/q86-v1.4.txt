@@ -1,0 +1,42 @@
+
+ select sum(ws_net_paid) as total_sum, i_category, i_class,
+  grouping(i_category)+grouping(i_class) as lochierarchy,
+  rank() over (
+ 	    partition by grouping(i_category)+grouping(i_class),
+ 	    case when grouping(i_class) = 0 then i_category end
+ 	    order by sum(ws_net_paid) desc) as rank_within_parent
+ from
+    web_sales, date_dim d1, item
+ where
+    d1.d_month_seq between 1200 and 1200+11
+ and d1.d_date_sk = ws_sold_date_sk
+ and i_item_sk  = ws_item_sk
+ group by rollup(i_category,i_class)
+ order by
+   lochierarchy desc,
+   case when lochierarchy = 0 then i_category end,
+   rank_within_parent
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [lochierarchy#13665 DESC, CASE WHEN (cast(lochierarchy#13665 as int) = 0) THEN i_category#13710 END ASC, rank_within_parent#13666 ASC], true
+      +- Project [total_sum#13664, i_category#13710, i_class#13711, lochierarchy#13665, rank_within_parent#13666]
+         +- Window [rank(_w3#13721) windowspecdefinition(_w1#13719, _w2#13720, _w3#13721 DESC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_within_parent#13666], [_w1#13719, _w2#13720], [_w3#13721 DESC]
+            +- Aggregate [i_category#13710, i_class#13711, spark_grouping_id#13707], [MakeDecimal(sum(UnscaledValue(ws_net_paid#255)),17,2) AS total_sum#13664, i_category#13710, i_class#13711, (cast((shiftright(spark_grouping_id#13707, 1) & 1) as tinyint) + cast((shiftright(spark_grouping_id#13707, 0) & 1) as tinyint)) AS lochierarchy#13665, (cast((shiftright(spark_grouping_id#13707, 1) & 1) as tinyint) + cast((shiftright(spark_grouping_id#13707, 0) & 1) as tinyint)) AS _w1#13719, CASE WHEN (cast(cast((shiftright(spark_grouping_id#13707, 0) & 1) as tinyint) as int) = 0) THEN i_category#13710 END AS _w2#13720, MakeDecimal(sum(UnscaledValue(ws_net_paid#255)),17,2) AS _w3#13721]
+               +- Expand [List(ws_net_paid#255, i_category#13708, i_class#13709, 0), List(ws_net_paid#255, i_category#13708, null, 1), List(ws_net_paid#255, null, null, 3)], [ws_net_paid#255, i_category#13710, i_class#13711, spark_grouping_id#13707]
+                  +- Project [ws_net_paid#255, i_category#606 AS i_category#13708, i_class#604 AS i_class#13709]
+                     +- Join Inner, (i_item_sk#594 = ws_item_sk#229)
+                        :- Project [ws_item_sk#229, ws_net_paid#255]
+                        :  +- Join Inner, (d_date_sk#516 = ws_sold_date_sk#226)
+                        :     :- Project [ws_sold_date_sk#226, ws_item_sk#229, ws_net_paid#255]
+                        :     :  +- Filter (isnotnull(ws_sold_date_sk#226) && isnotnull(ws_item_sk#229))
+                        :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+                        :     +- Project [d_date_sk#516]
+                        :        +- Filter (((isnotnull(d_month_seq#519) && (d_month_seq#519 >= 1200)) && (d_month_seq#519 <= 1211)) && isnotnull(d_date_sk#516))
+                        :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                        +- Project [i_item_sk#594, i_class#604, i_category#606]
+                           +- Filter isnotnull(i_item_sk#594)
+                              +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Window [Aggregate [Expand [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]]]]]]]]]

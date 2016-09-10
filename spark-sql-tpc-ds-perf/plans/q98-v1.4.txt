@@ -1,0 +1,38 @@
+
+select i_item_desc, i_category, i_class, i_current_price
+      ,sum(ss_ext_sales_price) as itemrevenue
+      ,sum(ss_ext_sales_price)*100/sum(sum(ss_ext_sales_price)) over
+          (partition by i_class) as revenueratio
+from
+	 store_sales, item, date_dim
+where
+	ss_item_sk = i_item_sk
+  	and i_category in ('Sports', 'Books', 'Home')
+  	and ss_sold_date_sk = d_date_sk
+	and d_date between cast('1999-02-22' as date)
+				and date_add(cast('1999-02-22' as date), 30)
+group by
+	i_item_id, i_item_desc, i_category, i_class, i_current_price
+order by
+	i_category, i_class, i_item_id, i_item_desc, revenueratio
+            
+Project [i_item_desc#598, i_category#606, i_class#604, i_current_price#599, itemrevenue#14192, revenueratio#14193]
++- Sort [i_category#606 ASC, i_class#604 ASC, i_item_id#595 ASC, i_item_desc#598 ASC, revenueratio#14193 ASC], true
+   +- Project [i_item_desc#598, i_category#606, i_class#604, i_current_price#599, itemrevenue#14192, CheckOverflow((CheckOverflow((_w0#14211 * 100.00), DecimalType(28,2)) / cast(_we0#14213 as decimal(28,2))), DecimalType(38,19)) AS revenueratio#14193, i_item_id#595]
+      +- Window [sum(_w1#14212) windowspecdefinition(i_class#604, ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS _we0#14213], [i_class#604]
+         +- Aggregate [i_item_id#595, i_item_desc#598, i_category#606, i_class#604, i_current_price#599], [i_item_desc#598, i_category#606, i_class#604, i_current_price#599, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS itemrevenue#14192, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS _w0#14211, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#151)),17,2) AS _w1#14212, i_item_id#595]
+            +- Project [ss_ext_sales_price#151, i_item_id#595, i_item_desc#598, i_current_price#599, i_class#604, i_category#606]
+               +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+                  :- Project [ss_sold_date_sk#136, ss_ext_sales_price#151, i_item_id#595, i_item_desc#598, i_current_price#599, i_class#604, i_category#606]
+                  :  +- Join Inner, (ss_item_sk#138 = i_item_sk#594)
+                  :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_ext_sales_price#151]
+                  :     :  +- Filter (isnotnull(ss_item_sk#138) && isnotnull(ss_sold_date_sk#136))
+                  :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                  :     +- Project [i_item_sk#594, i_item_id#595, i_item_desc#598, i_current_price#599, i_class#604, i_category#606]
+                  :        +- Filter (i_category#606 IN (Sports,Books,Home) && isnotnull(i_item_sk#594))
+                  :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+                  +- Project [d_date_sk#516]
+                     +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 1999-02-22)) && (d_date#518 <= 1999-03-24)) && isnotnull(d_date_sk#516))
+                        +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[Project [Sort [Project [Window [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]

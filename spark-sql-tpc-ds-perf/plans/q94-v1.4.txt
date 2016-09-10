@@ -1,0 +1,54 @@
+
+ select
+    count(distinct ws_order_number) as `order count`
+   ,sum(ws_ext_ship_cost) as `total shipping cost`
+   ,sum(ws_net_profit) as `total net profit`
+ from
+    web_sales ws1, date_dim, customer_address, web_site
+ where
+     d_date between '1999-02-01' and
+            date_add(cast('1999-02-01' as date), 60)
+ and ws1.ws_ship_date_sk = d_date_sk
+ and ws1.ws_ship_addr_sk = ca_address_sk
+ and ca_state = 'IL'
+ and ws1.ws_web_site_sk = web_site_sk
+ and web_company_name = 'pri'
+ and exists (select *
+             from web_sales ws2
+             where ws1.ws_order_number = ws2.ws_order_number
+               and ws1.ws_warehouse_sk <> ws2.ws_warehouse_sk)
+ and not exists(select *
+                from web_returns wr1
+                where ws1.ws_order_number = wr1.wr_order_number)
+ order by count(distinct ws_order_number)
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [order count#14078L ASC], true
+      +- Aggregate [count(distinct ws_order_number#243) AS order count#14078L, MakeDecimal(sum(UnscaledValue(ws_ext_ship_cost#254)),17,2) AS total shipping cost#14079, MakeDecimal(sum(UnscaledValue(ws_net_profit#259)),17,2) AS total net profit#14080]
+         +- Project [ws_order_number#243, ws_ext_ship_cost#254, ws_net_profit#259]
+            +- Join Inner, (ws_web_site_sk#239 = web_site_sk#844)
+               :- Project [ws_web_site_sk#239, ws_order_number#243, ws_ext_ship_cost#254, ws_net_profit#259]
+               :  +- Join Inner, (ws_ship_addr_sk#237 = ca_address_sk#468)
+               :     :- Project [ws_ship_addr_sk#237, ws_web_site_sk#239, ws_order_number#243, ws_ext_ship_cost#254, ws_net_profit#259]
+               :     :  +- Join Inner, (ws_ship_date_sk#228 = d_date_sk#516)
+               :     :     :- Project [ws_ship_date_sk#228, ws_ship_addr_sk#237, ws_web_site_sk#239, ws_order_number#243, ws_ext_ship_cost#254, ws_net_profit#259]
+               :     :     :  +- Join LeftAnti, (cast(ws_order_number#243 as bigint) = wr_order_number#309L)
+               :     :     :     :- Join LeftSemi, ((ws_order_number#243 = ws_order_number#243#14144) && NOT (ws_warehouse_sk#241 = ws_warehouse_sk#241#14140))
+               :     :     :     :  :- Filter ((isnotnull(ws_ship_date_sk#228) && isnotnull(ws_ship_addr_sk#237)) && isnotnull(ws_web_site_sk#239))
+               :     :     :     :  :  +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+               :     :     :     :  +- Project [ws_sold_date_sk#226 AS ws_sold_date_sk#226#14153, ws_sold_time_sk#227 AS ws_sold_time_sk#227#14135, ws_ship_date_sk#228 AS ws_ship_date_sk#228#14145, ws_item_sk#229 AS ws_item_sk#229#14136, ws_bill_customer_sk#230 AS ws_bill_customer_sk#230#14126, ws_bill_cdemo_sk#231 AS ws_bill_cdemo_sk#231#14125, ws_bill_hdemo_sk#232 AS ws_bill_hdemo_sk#232#14143, ws_bill_addr_sk#233 AS ws_bill_addr_sk#233#14133, ws_ship_customer_sk#234 AS ws_ship_customer_sk#234#14154, ws_ship_cdemo_sk#235 AS ws_ship_cdemo_sk#235#14134, ws_ship_hdemo_sk#236 AS ws_ship_hdemo_sk#236#14141, ws_ship_addr_sk#237 AS ws_ship_addr_sk#237#14128, ws_web_page_sk#238 AS ws_web_page_sk#238#14156, ws_web_site_sk#239 AS ws_web_site_sk#239#14151, ws_ship_mode_sk#240 AS ws_ship_mode_sk#240#14148, ws_warehouse_sk#241 AS ws_warehouse_sk#241#14140, ws_promo_sk#242 AS ws_promo_sk#242#14130, ws_order_number#243 AS ws_order_number#243#14144, ws_quantity#244 AS ws_quantity#244#14137, ws_wholesale_cost#245 AS ws_wholesale_cost#245#14146, ws_list_price#246 AS ws_list_price#246#14147, ws_sales_price#247 AS ws_sales_price#247#14157, ws_ext_discount_amt#248 AS ws_ext_discount_amt#248#14129, ws_ext_sales_price#249 AS ws_ext_sales_price#249#14149, ... 10 more fields]
+               :     :     :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+               :     :     :     +- Relation[wr_returned_date_sk#296L,wr_returned_time_sk#297L,wr_item_sk#298L,wr_refunded_customer_sk#299L,wr_refunded_cdemo_sk#300L,wr_refunded_hdemo_sk#301L,wr_refunded_addr_sk#302L,wr_returning_customer_sk#303L,wr_returning_cdemo_sk#304L,wr_returning_hdemo_sk#305L,wr_returning_addr_sk#306L,wr_web_page_sk#307L,wr_reason_sk#308L,wr_order_number#309L,wr_return_quantity#310L,wr_return_amt#311,wr_return_tax#312,wr_return_amt_inc_tax#313,wr_fee#314,wr_return_ship_cost#315,wr_refunded_cash#316,wr_reversed_charge#317,wr_account_credit#318,wr_net_loss#319] csv
+               :     :     +- Project [d_date_sk#516]
+               :     :        +- Filter (((isnotnull(d_date_sk#516) && isnotnull(d_date#518)) && (d_date#518 >= 1999-02-01)) && (d_date#518 <= 1999-04-02))
+               :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               :     +- Project [ca_address_sk#468]
+               :        +- Filter ((isnotnull(ca_address_sk#468) && isnotnull(ca_state#476)) && (ca_state#476 = IL))
+               :           +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+               +- Project [web_site_sk#844]
+                  +- Filter ((isnotnull(web_site_sk#844) && isnotnull(web_company_name#858)) && (web_company_name#858 = pri))
+                     +- Relation[web_site_sk#844,web_site_id#845,web_rec_start_date#846,web_rec_end_date#847,web_name#848,web_open_date_sk#849,web_close_date_sk#850,web_class#851,web_manager#852,web_mkt_id#853,web_mkt_class#854,web_mkt_desc#855,web_market_manager#856,web_company_id#857,web_company_name#858,web_street_number#859,web_street_name#860,web_street_type#861,web_suite_number#862,web_city#863,web_county#864,web_state#865,web_zip#866,web_country#867,... 2 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Join [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv] [Project part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] part-r-00003-1a971f76-a283-489c-83ce-5415c906bd2a.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]] [Project [Filter part-r-00000-958aef3a-e8e3-412d-8ec4-cc3b54d17707.csv]]]]]]]]

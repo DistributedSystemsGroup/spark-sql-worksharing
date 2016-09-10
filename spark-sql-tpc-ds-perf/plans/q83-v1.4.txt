@@ -1,0 +1,111 @@
+
+ with sr_items as
+  (select i_item_id item_id, sum(sr_return_quantity) sr_item_qty
+   from store_returns, item, date_dim
+   where sr_item_sk = i_item_sk
+      and  d_date in (select d_date from date_dim where d_week_seq in
+		      (select d_week_seq from date_dim where d_date in ('2000-06-30','2000-09-27','2000-11-17')))
+      and sr_returned_date_sk   = d_date_sk
+   group by i_item_id),
+ cr_items as
+  (select i_item_id item_id, sum(cr_return_quantity) cr_item_qty
+  from catalog_returns, item, date_dim
+  where cr_item_sk = i_item_sk
+      and d_date in (select d_date from date_dim where d_week_seq in
+		      (select d_week_seq from date_dim where d_date in ('2000-06-30','2000-09-27','2000-11-17')))
+      and cr_returned_date_sk   = d_date_sk
+      group by i_item_id),
+ wr_items as
+  (select i_item_id item_id, sum(wr_return_quantity) wr_item_qty
+  from web_returns, item, date_dim
+  where wr_item_sk = i_item_sk and d_date in
+      (select d_date	from date_dim	where d_week_seq in
+		      (select d_week_seq from date_dim where d_date in ('2000-06-30','2000-09-27','2000-11-17')))
+    and wr_returned_date_sk = d_date_sk
+  group by i_item_id)
+ select sr_items.item_id
+       ,sr_item_qty
+       ,sr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 sr_dev
+       ,cr_item_qty
+       ,cr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 cr_dev
+       ,wr_item_qty
+       ,wr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 wr_dev
+       ,(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 average
+ from sr_items, cr_items, wr_items
+ where sr_items.item_id=cr_items.item_id
+   and sr_items.item_id=wr_items.item_id
+ order by sr_items.item_id, sr_item_qty
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [item_id#13569 ASC, sr_item_qty#13570L ASC], true
+      +- Project [item_id#13569, sr_item_qty#13570L, (((cast(sr_item_qty#13570L as double) / cast(((sr_item_qty#13570L + cr_item_qty#13574L) + wr_item_qty#13578L) as double)) / 3.0) * 100.0) AS sr_dev#13565, cr_item_qty#13574L, (((cast(cr_item_qty#13574L as double) / cast(((sr_item_qty#13570L + cr_item_qty#13574L) + wr_item_qty#13578L) as double)) / 3.0) * 100.0) AS cr_dev#13566, wr_item_qty#13578L, (((cast(wr_item_qty#13578L as double) / cast(((sr_item_qty#13570L + cr_item_qty#13574L) + wr_item_qty#13578L) as double)) / 3.0) * 100.0) AS wr_dev#13567, CheckOverflow((cast(cast(((sr_item_qty#13570L + cr_item_qty#13574L) + wr_item_qty#13578L) as decimal(20,0)) as decimal(21,1)) / 3.0), DecimalType(27,6)) AS average#13568]
+         +- Join Inner, (item_id#13569 = item_id#13577)
+            :- Project [item_id#13569, sr_item_qty#13570L, cr_item_qty#13574L]
+            :  +- Join Inner, (item_id#13569 = item_id#13573)
+            :     :- Aggregate [i_item_id#595], [i_item_id#595 AS item_id#13569, sum(sr_return_quantity#194L) AS sr_item_qty#13570L]
+            :     :  +- Project [sr_return_quantity#194L, i_item_id#595]
+            :     :     +- Join Inner, (sr_returned_date_sk#184L = cast(d_date_sk#516 as bigint))
+            :     :        :- Project [sr_returned_date_sk#184L, sr_return_quantity#194L, i_item_id#595]
+            :     :        :  +- Join Inner, (sr_item_sk#186L = cast(i_item_sk#594 as bigint))
+            :     :        :     :- Project [sr_returned_date_sk#184L, sr_item_sk#186L, sr_return_quantity#194L]
+            :     :        :     :  +- Filter (isnotnull(sr_item_sk#186L) && isnotnull(sr_returned_date_sk#184L))
+            :     :        :     :     +- Relation[sr_returned_date_sk#184L,sr_return_time_sk#185L,sr_item_sk#186L,sr_customer_sk#187L,sr_cdemo_sk#188L,sr_hdemo_sk#189L,sr_addr_sk#190L,sr_store_sk#191L,sr_reason_sk#192L,sr_ticket_number#193L,sr_return_quantity#194L,sr_return_amt#195,sr_return_tax#196,sr_return_amt_inc_tax#197,sr_fee#198,sr_return_ship_cost#199,sr_refunded_cash#200,sr_reversed_charge#201,sr_store_credit#202,sr_net_loss#203] csv
+            :     :        :     +- Project [i_item_sk#594, i_item_id#595]
+            :     :        :        +- Filter (isnotnull(i_item_sk#594) && isnotnull(i_item_id#595))
+            :     :        :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+            :     :        +- Project [d_date_sk#516]
+            :     :           +- Join LeftSemi, (d_date#518 = d_date#518#13599)
+            :     :              :- Filter isnotnull(d_date_sk#516)
+            :     :              :  +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :              +- Project [d_date#518 AS d_date#518#13599]
+            :     :                 +- Join LeftSemi, (d_week_seq#520 = d_week_seq#520#13598)
+            :     :                    :- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :                    +- Project [d_week_seq#520 AS d_week_seq#520#13598]
+            :     :                       +- Filter d_date#518 IN (2000-06-30,2000-09-27,2000-11-17)
+            :     :                          +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     +- Aggregate [i_item_id#595], [i_item_id#595 AS item_id#13573, sum(cast(cr_return_quantity#87 as bigint)) AS cr_item_qty#13574L]
+            :        +- Project [cr_return_quantity#87, i_item_id#595]
+            :           +- Join Inner, (cr_returned_date_sk#70 = d_date_sk#516)
+            :              :- Project [cr_returned_date_sk#70, cr_return_quantity#87, i_item_id#595]
+            :              :  +- Join Inner, (cr_item_sk#72 = i_item_sk#594)
+            :              :     :- Project [cr_returned_date_sk#70, cr_item_sk#72, cr_return_quantity#87]
+            :              :     :  +- Filter (isnotnull(cr_item_sk#72) && isnotnull(cr_returned_date_sk#70))
+            :              :     :     +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+            :              :     +- Project [i_item_sk#594, i_item_id#595]
+            :              :        +- Filter (isnotnull(i_item_sk#594) && isnotnull(i_item_id#595))
+            :              :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+            :              +- Project [d_date_sk#516]
+            :                 +- Join LeftSemi, (d_date#518 = d_date#518#13601)
+            :                    :- Filter isnotnull(d_date_sk#516)
+            :                    :  +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :                    +- Project [d_date#518 AS d_date#518#13601]
+            :                       +- Join LeftSemi, (d_week_seq#520 = d_week_seq#520#13600)
+            :                          :- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :                          +- Project [d_week_seq#520 AS d_week_seq#520#13600]
+            :                             +- Filter d_date#518 IN (2000-06-30,2000-09-27,2000-11-17)
+            :                                +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            +- Aggregate [i_item_id#595], [i_item_id#595 AS item_id#13577, sum(wr_return_quantity#310L) AS wr_item_qty#13578L]
+               +- Project [wr_return_quantity#310L, i_item_id#595]
+                  +- Join Inner, (wr_returned_date_sk#296L = cast(d_date_sk#516 as bigint))
+                     :- Project [wr_returned_date_sk#296L, wr_return_quantity#310L, i_item_id#595]
+                     :  +- Join Inner, (wr_item_sk#298L = cast(i_item_sk#594 as bigint))
+                     :     :- Project [wr_returned_date_sk#296L, wr_item_sk#298L, wr_return_quantity#310L]
+                     :     :  +- Filter (isnotnull(wr_item_sk#298L) && isnotnull(wr_returned_date_sk#296L))
+                     :     :     +- Relation[wr_returned_date_sk#296L,wr_returned_time_sk#297L,wr_item_sk#298L,wr_refunded_customer_sk#299L,wr_refunded_cdemo_sk#300L,wr_refunded_hdemo_sk#301L,wr_refunded_addr_sk#302L,wr_returning_customer_sk#303L,wr_returning_cdemo_sk#304L,wr_returning_hdemo_sk#305L,wr_returning_addr_sk#306L,wr_web_page_sk#307L,wr_reason_sk#308L,wr_order_number#309L,wr_return_quantity#310L,wr_return_amt#311,wr_return_tax#312,wr_return_amt_inc_tax#313,wr_fee#314,wr_return_ship_cost#315,wr_refunded_cash#316,wr_reversed_charge#317,wr_account_credit#318,wr_net_loss#319] csv
+                     :     +- Project [i_item_sk#594, i_item_id#595]
+                     :        +- Filter (isnotnull(i_item_sk#594) && isnotnull(i_item_id#595))
+                     :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+                     +- Project [d_date_sk#516]
+                        +- Join LeftSemi, (d_date#518 = d_date#518#13603)
+                           :- Filter isnotnull(d_date_sk#516)
+                           :  +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                           +- Project [d_date#518 AS d_date#518#13603]
+                              +- Join LeftSemi, (d_week_seq#520 = d_week_seq#520#13602)
+                                 :- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                                 +- Project [d_week_seq#520 AS d_week_seq#520#13602]
+                                    +- Filter d_date#518 IN (2000-06-30,2000-09-27,2000-11-17)
+                                       +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Project [Join [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00069-f38c10ac-d356-4125-8995-32fd650e3fa9.csv]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Join [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv] [Project [Join part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Join [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv] [Project [Join part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]]] [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00003-1a971f76-a283-489c-83ce-5415c906bd2a.csv]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Join [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv] [Project [Join part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]]]]]]

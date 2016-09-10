@@ -1,0 +1,78 @@
+
+ select asceding.rnk, i1.i_product_name best_performing, i2.i_product_name worst_performing
+ from(select *
+     from (select item_sk,rank() over (order by rank_col asc) rnk
+           from (select ss_item_sk item_sk,avg(ss_net_profit) rank_col
+                 from store_sales ss1
+                 where ss_store_sk = 4
+                 group by ss_item_sk
+                 having avg(ss_net_profit) > 0.9*(select avg(ss_net_profit) rank_col
+                                                  from store_sales
+                                                  where ss_store_sk = 4
+                                                    and ss_addr_sk is null
+                                                  group by ss_store_sk))V1)V11
+     where rnk  < 11) asceding,
+    (select *
+     from (select item_sk,rank() over (order by rank_col desc) rnk
+           from (select ss_item_sk item_sk,avg(ss_net_profit) rank_col
+                 from store_sales ss1
+                 where ss_store_sk = 4
+                 group by ss_item_sk
+                 having avg(ss_net_profit) > 0.9*(select avg(ss_net_profit) rank_col
+                                                  from store_sales
+                                                  where ss_store_sk = 4
+                                                    and ss_addr_sk is null
+                                                  group by ss_store_sk))V2)V21
+     where rnk  < 11) descending,
+ item i1, item i2
+ where asceding.rnk = descending.rnk
+   and i1.i_item_sk=asceding.item_sk
+   and i2.i_item_sk=descending.item_sk
+ order by asceding.rnk
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [rnk#5884 ASC], true
+      +- Project [rnk#5884, i_product_name#615 AS best_performing#5890, i_product_name#5998 AS worst_performing#5891]
+         +- Join Inner, (i_item_sk#5977 = item_sk#5885)
+            :- Project [rnk#5884, item_sk#5885, i_product_name#615]
+            :  +- Join Inner, (i_item_sk#594 = item_sk#5880)
+            :     :- Project [item_sk#5880, rnk#5884, item_sk#5885]
+            :     :  +- Join Inner, (rnk#5884 = rnk#5889)
+            :     :     :- Project [item_sk#5880, rnk#5884]
+            :     :     :  +- Filter ((isnotnull(rnk#5884) && (rnk#5884 < 11)) && isnotnull(item_sk#5880))
+            :     :     :     +- Window [rank(rank_col#5881) windowspecdefinition(rank_col#5881 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rnk#5884], [rank_col#5881 ASC]
+            :     :     :        +- Project [item_sk#5880, rank_col#5881]
+            :     :     :           +- Filter (isnotnull(avg(ss_net_profit#158)#5965) && (cast(avg(ss_net_profit#158)#5965 as decimal(13,7)) > CheckOverflow((0.900000 * scalar-subquery#5883 []), DecimalType(13,7))))
+            :     :     :              :  +- SubqueryAlias scalar-subquery#5883 []
+            :     :     :              :     +- Aggregate [ss_store_sk#143], [cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS rank_col#5882]
+            :     :     :              :        +- Project [ss_store_sk#143, ss_net_profit#158]
+            :     :     :              :           +- Filter ((isnotnull(ss_store_sk#143) && (ss_store_sk#143 = 4)) && isnull(ss_addr_sk#142))
+            :     :     :              :              +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :     :              +- Aggregate [ss_item_sk#138], [ss_item_sk#138 AS item_sk#5880, cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS rank_col#5881, cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS avg(ss_net_profit#158)#5965]
+            :     :     :                 +- Project [ss_item_sk#138, ss_net_profit#158]
+            :     :     :                    +- Filter (isnotnull(ss_store_sk#143) && (ss_store_sk#143 = 4))
+            :     :     :                       +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :     +- Project [item_sk#5885, rnk#5889]
+            :     :        +- Filter ((isnotnull(rnk#5889) && (rnk#5889 < 11)) && isnotnull(item_sk#5885))
+            :     :           +- Window [rank(rank_col#5886) windowspecdefinition(rank_col#5886 DESC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rnk#5889], [rank_col#5886 DESC]
+            :     :              +- Project [item_sk#5885, rank_col#5886]
+            :     :                 +- Filter (isnotnull(avg(ss_net_profit#158)#5968) && (cast(avg(ss_net_profit#158)#5968 as decimal(13,7)) > CheckOverflow((0.900000 * scalar-subquery#5888 []), DecimalType(13,7))))
+            :     :                    :  +- SubqueryAlias scalar-subquery#5888 []
+            :     :                    :     +- Aggregate [ss_store_sk#143], [cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS rank_col#5887]
+            :     :                    :        +- Project [ss_store_sk#143, ss_net_profit#158]
+            :     :                    :           +- Filter ((isnotnull(ss_store_sk#143) && (ss_store_sk#143 = 4)) && isnull(ss_addr_sk#142))
+            :     :                    :              +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :                    +- Aggregate [ss_item_sk#138], [ss_item_sk#138 AS item_sk#5885, cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS rank_col#5886, cast((avg(UnscaledValue(ss_net_profit#158)) / 100.0) as decimal(11,6)) AS avg(ss_net_profit#158)#5968]
+            :     :                       +- Project [ss_item_sk#138, ss_net_profit#158]
+            :     :                          +- Filter (isnotnull(ss_store_sk#143) && (ss_store_sk#143 = 4))
+            :     :                             +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     +- Project [i_item_sk#594, i_product_name#615]
+            :        +- Filter isnotnull(i_item_sk#594)
+            :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+            +- Project [i_item_sk#5977, i_product_name#5998]
+               +- Filter isnotnull(i_item_sk#5977)
+                  +- Relation[i_item_sk#5977,i_item_id#5978,i_rec_start_date#5979,i_rec_end_date#5980,i_item_desc#5981,i_current_price#5982,i_wholesale_cost#5983,i_brand_id#5984,i_brand#5985,i_class_id#5986,i_class#5987,i_category_id#5988,i_category#5989,i_manufact_id#5990,i_manufact#5991,i_size#5992,i_formulation#5993,i_color#5994,i_units#5995,i_container#5996,i_manager_id#5997,i_product_name#5998] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Project [Join [Project [Join [Project [Filter [Window [Project [Filter [Aggregate [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]]]]]] [Project [Filter [Window [Project [Filter [Aggregate [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]]]]]]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]]]]]

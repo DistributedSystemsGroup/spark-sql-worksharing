@@ -1,0 +1,126 @@
+
+ select
+    substr(r_reason_desc,1,20), avg(ws_quantity), avg(wr_refunded_cash), avg(wr_fee)
+ from web_sales, web_returns, web_page, customer_demographics cd1,
+      customer_demographics cd2, customer_address, date_dim, reason
+ where ws_web_page_sk = wp_web_page_sk
+   and ws_item_sk = wr_item_sk
+   and ws_order_number = wr_order_number
+   and ws_sold_date_sk = d_date_sk and d_year = 2000
+   and cd1.cd_demo_sk = wr_refunded_cdemo_sk
+   and cd2.cd_demo_sk = wr_returning_cdemo_sk
+   and ca_address_sk = wr_refunded_addr_sk
+   and r_reason_sk = wr_reason_sk
+   and
+   (
+    (
+     cd1.cd_marital_status = 'M'
+     and
+     cd1.cd_marital_status = cd2.cd_marital_status
+     and
+     cd1.cd_education_status = 'Advanced Degree'
+     and
+     cd1.cd_education_status = cd2.cd_education_status
+     and
+     ws_sales_price between 100.00 and 150.00
+    )
+   or
+    (
+     cd1.cd_marital_status = 'S'
+     and
+     cd1.cd_marital_status = cd2.cd_marital_status
+     and
+     cd1.cd_education_status = 'College'
+     and
+     cd1.cd_education_status = cd2.cd_education_status
+     and
+     ws_sales_price between 50.00 and 100.00
+    )
+   or
+    (
+     cd1.cd_marital_status = 'W'
+     and
+     cd1.cd_marital_status = cd2.cd_marital_status
+     and
+     cd1.cd_education_status = '2 yr Degree'
+     and
+     cd1.cd_education_status = cd2.cd_education_status
+     and
+     ws_sales_price between 150.00 and 200.00
+    )
+   )
+   and
+   (
+    (
+     ca_country = 'United States'
+     and
+     ca_state in ('IN', 'OH', 'NJ')
+     and ws_net_profit between 100 and 200
+    )
+    or
+    (
+     ca_country = 'United States'
+     and
+     ca_state in ('WI', 'CT', 'KY')
+     and ws_net_profit between 150 and 300
+    )
+    or
+    (
+     ca_country = 'United States'
+     and
+     ca_state in ('LA', 'IA', 'AR')
+     and ws_net_profit between 50 and 250
+    )
+   )
+ group by r_reason_desc
+ order by substr(r_reason_desc,1,20)
+        ,avg(ws_quantity)
+        ,avg(wr_refunded_cash)
+        ,avg(wr_fee)
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Project [substring(r_reason_desc, 1, 20)#13652, avg(ws_quantity)#13653, avg(wr_refunded_cash)#13654, avg(wr_fee)#13655]
+      +- Sort [substring(r_reason_desc, 1, 20)#13652 ASC, aggOrder#13657 ASC, avg(wr_refunded_cash)#13654 ASC, avg(wr_fee)#13655 ASC], true
+         +- Aggregate [r_reason_desc#682], [substring(r_reason_desc#682, 1, 20) AS substring(r_reason_desc, 1, 20)#13652, avg(cast(ws_quantity#244 as bigint)) AS avg(ws_quantity)#13653, cast((avg(UnscaledValue(wr_refunded_cash#316)) / 100.0) as decimal(11,6)) AS avg(wr_refunded_cash)#13654, cast((avg(UnscaledValue(wr_fee#314)) / 100.0) as decimal(11,6)) AS avg(wr_fee)#13655, avg(cast(ws_quantity#244 as bigint)) AS aggOrder#13657]
+            +- Project [ws_quantity#244, wr_fee#314, wr_refunded_cash#316, r_reason_desc#682]
+               +- Join Inner, (cast(r_reason_sk#680 as bigint) = wr_reason_sk#308L)
+                  :- Project [ws_quantity#244, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316]
+                  :  +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#516)
+                  :     :- Project [ws_sold_date_sk#226, ws_quantity#244, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316]
+                  :     :  +- Join Inner, ((cast(ca_address_sk#468 as bigint) = wr_refunded_addr_sk#302L) && ((((ca_state#476 IN (IN,OH,NJ) && (cast(ws_net_profit#259 as decimal(12,2)) >= 100.00)) && (cast(ws_net_profit#259 as decimal(12,2)) <= 200.00)) || ((ca_state#476 IN (WI,CT,KY) && (cast(ws_net_profit#259 as decimal(12,2)) >= 150.00)) && (cast(ws_net_profit#259 as decimal(12,2)) <= 300.00))) || ((ca_state#476 IN (LA,IA,AR) && (cast(ws_net_profit#259 as decimal(12,2)) >= 50.00)) && (cast(ws_net_profit#259 as decimal(12,2)) <= 250.00))))
+                  :     :     :- Project [ws_sold_date_sk#226, ws_quantity#244, ws_net_profit#259, wr_refunded_addr_sk#302L, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316]
+                  :     :     :  +- Join Inner, (((cast(cd_demo_sk#13640 as bigint) = wr_returning_cdemo_sk#304L) && (cd_marital_status#498 = cd_marital_status#13642)) && (cd_education_status#499 = cd_education_status#13643))
+                  :     :     :     :- Project [ws_sold_date_sk#226, ws_quantity#244, ws_net_profit#259, wr_refunded_addr_sk#302L, wr_returning_cdemo_sk#304L, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316, cd_marital_status#498, cd_education_status#499]
+                  :     :     :     :  +- Join Inner, (((((((cd_marital_status#498 = M) && (cd_education_status#499 = Advanced Degree)) && (ws_sales_price#247 >= 100.00)) && (ws_sales_price#247 <= 150.00)) || ((((cd_marital_status#498 = S) && (cd_education_status#499 = College)) && (ws_sales_price#247 >= 50.00)) && (ws_sales_price#247 <= 100.00))) || ((((cd_marital_status#498 = W) && (cd_education_status#499 = 2 yr Degree)) && (ws_sales_price#247 >= 150.00)) && (ws_sales_price#247 <= 200.00))) && (cast(cd_demo_sk#496 as bigint) = wr_refunded_cdemo_sk#300L))
+                  :     :     :     :     :- Project [ws_sold_date_sk#226, ws_quantity#244, ws_sales_price#247, ws_net_profit#259, wr_refunded_cdemo_sk#300L, wr_refunded_addr_sk#302L, wr_returning_cdemo_sk#304L, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316]
+                  :     :     :     :     :  +- Join Inner, (ws_web_page_sk#238 = wp_web_page_sk#814)
+                  :     :     :     :     :     :- Project [ws_sold_date_sk#226, ws_web_page_sk#238, ws_quantity#244, ws_sales_price#247, ws_net_profit#259, wr_refunded_cdemo_sk#300L, wr_refunded_addr_sk#302L, wr_returning_cdemo_sk#304L, wr_reason_sk#308L, wr_fee#314, wr_refunded_cash#316]
+                  :     :     :     :     :     :  +- Join Inner, ((cast(ws_item_sk#229 as bigint) = wr_item_sk#298L) && (cast(ws_order_number#243 as bigint) = wr_order_number#309L))
+                  :     :     :     :     :     :     :- Project [ws_sold_date_sk#226, ws_item_sk#229, ws_web_page_sk#238, ws_order_number#243, ws_quantity#244, ws_sales_price#247, ws_net_profit#259]
+                  :     :     :     :     :     :     :  +- Filter (((isnotnull(ws_order_number#243) && isnotnull(ws_item_sk#229)) && isnotnull(ws_web_page_sk#238)) && isnotnull(ws_sold_date_sk#226))
+                  :     :     :     :     :     :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+                  :     :     :     :     :     :     +- Project [wr_item_sk#298L, wr_refunded_cdemo_sk#300L, wr_refunded_addr_sk#302L, wr_returning_cdemo_sk#304L, wr_reason_sk#308L, wr_order_number#309L, wr_fee#314, wr_refunded_cash#316]
+                  :     :     :     :     :     :        +- Filter (((((isnotnull(wr_item_sk#298L) && isnotnull(wr_order_number#309L)) && isnotnull(wr_refunded_cdemo_sk#300L)) && isnotnull(wr_returning_cdemo_sk#304L)) && isnotnull(wr_refunded_addr_sk#302L)) && isnotnull(wr_reason_sk#308L))
+                  :     :     :     :     :     :           +- Relation[wr_returned_date_sk#296L,wr_returned_time_sk#297L,wr_item_sk#298L,wr_refunded_customer_sk#299L,wr_refunded_cdemo_sk#300L,wr_refunded_hdemo_sk#301L,wr_refunded_addr_sk#302L,wr_returning_customer_sk#303L,wr_returning_cdemo_sk#304L,wr_returning_hdemo_sk#305L,wr_returning_addr_sk#306L,wr_web_page_sk#307L,wr_reason_sk#308L,wr_order_number#309L,wr_return_quantity#310L,wr_return_amt#311,wr_return_tax#312,wr_return_amt_inc_tax#313,wr_fee#314,wr_return_ship_cost#315,wr_refunded_cash#316,wr_reversed_charge#317,wr_account_credit#318,wr_net_loss#319] csv
+                  :     :     :     :     :     +- Project [wp_web_page_sk#814]
+                  :     :     :     :     :        +- Filter isnotnull(wp_web_page_sk#814)
+                  :     :     :     :     :           +- Relation[wp_web_page_sk#814,wp_web_page_id#815,wp_rec_start_date#816,wp_rec_end_date#817,wp_creation_date_sk#818,wp_access_date_sk#819,wp_autogen_flag#820,wp_customer_sk#821,wp_url#822,wp_type#823,wp_char_count#824,wp_link_count#825,wp_image_count#826,wp_max_ad_count#827] csv
+                  :     :     :     :     +- Project [cd_demo_sk#496, cd_marital_status#498, cd_education_status#499]
+                  :     :     :     :        +- Filter ((isnotnull(cd_demo_sk#496) && isnotnull(cd_marital_status#498)) && isnotnull(cd_education_status#499))
+                  :     :     :     :           +- Relation[cd_demo_sk#496,cd_gender#497,cd_marital_status#498,cd_education_status#499,cd_purchase_estimate#500,cd_credit_rating#501,cd_dep_count#502,cd_dep_employed_count#503,cd_dep_college_count#504] csv
+                  :     :     :     +- Project [cd_demo_sk#13640, cd_marital_status#13642, cd_education_status#13643]
+                  :     :     :        +- Filter ((isnotnull(cd_demo_sk#13640) && isnotnull(cd_education_status#13643)) && isnotnull(cd_marital_status#13642))
+                  :     :     :           +- Relation[cd_demo_sk#13640,cd_gender#13641,cd_marital_status#13642,cd_education_status#13643,cd_purchase_estimate#13644,cd_credit_rating#13645,cd_dep_count#13646,cd_dep_employed_count#13647,cd_dep_college_count#13648] csv
+                  :     :     +- Project [ca_address_sk#468, ca_state#476]
+                  :     :        +- Filter ((isnotnull(ca_country#478) && isnotnull(ca_address_sk#468)) && (ca_country#478 = United States))
+                  :     :           +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+                  :     +- Project [d_date_sk#516]
+                  :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2000)) && isnotnull(d_date_sk#516))
+                  :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  +- Project [r_reason_sk#680, r_reason_desc#682]
+                     +- Filter isnotnull(r_reason_sk#680)
+                        +- Relation[r_reason_sk#680,r_reason_id#681,r_reason_desc#682] csv
+
+[GlobalLimit [LocalLimit [Project [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00003-1a971f76-a283-489c-83ce-5415c906bd2a.csv]]]] [Project [Filter part-r-00000-ddabb4cb-28eb-4e14-8acc-ae5b6dc575dc.csv]]]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-1d7644c7-162c-4ebc-b1f2-ea0679a18630.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-790804e1-1e9f-44ac-b258-891d070bf054.csv]]]]]]]]]

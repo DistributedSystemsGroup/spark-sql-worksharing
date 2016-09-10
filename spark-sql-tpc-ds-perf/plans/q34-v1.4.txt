@@ -1,0 +1,53 @@
+
+ select c_last_name, c_first_name, c_salutation, c_preferred_cust_flag, ss_ticket_number,
+        cnt
+ FROM
+   (select ss_ticket_number, ss_customer_sk, count(*) cnt
+    from store_sales,date_dim,store,household_demographics
+    where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+    and store_sales.ss_store_sk = store.s_store_sk
+    and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+    and (date_dim.d_dom between 1 and 3 or date_dim.d_dom between 25 and 28)
+    and (household_demographics.hd_buy_potential = '>10000' or
+         household_demographics.hd_buy_potential = 'unknown')
+    and household_demographics.hd_vehicle_count > 0
+    and (case when household_demographics.hd_vehicle_count > 0
+	then household_demographics.hd_dep_count/ household_demographics.hd_vehicle_count
+	else null
+	end)  > 1.2
+    and date_dim.d_year in (1999, 1999+1, 1999+2)
+    and store.s_county in ('Williamson County','Williamson County','Williamson County','Williamson County',
+                           'Williamson County','Williamson County','Williamson County','Williamson County')
+    group by ss_ticket_number,ss_customer_sk) dn,customer
+    where ss_customer_sk = c_customer_sk
+      and cnt between 15 and 20
+    order by c_last_name,c_first_name,c_salutation,c_preferred_cust_flag desc
+            
+Sort [c_last_name#439 ASC, c_first_name#438 ASC, c_salutation#437 ASC, c_preferred_cust_flag#440 DESC], true
++- Project [c_last_name#439, c_first_name#438, c_salutation#437, c_preferred_cust_flag#440, ss_ticket_number#145, cnt#4092L]
+   +- Join Inner, (ss_customer_sk#139 = c_customer_sk#430)
+      :- Filter ((cnt#4092L >= 15) && (cnt#4092L <= 20))
+      :  +- Aggregate [ss_ticket_number#145, ss_customer_sk#139], [ss_ticket_number#145, ss_customer_sk#139, count(1) AS cnt#4092L]
+      :     +- Project [ss_customer_sk#139, ss_ticket_number#145]
+      :        +- Join Inner, (ss_hdemo_sk#141 = hd_demo_sk#574)
+      :           :- Project [ss_customer_sk#139, ss_hdemo_sk#141, ss_ticket_number#145]
+      :           :  +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+      :           :     :- Project [ss_customer_sk#139, ss_hdemo_sk#141, ss_store_sk#143, ss_ticket_number#145]
+      :           :     :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+      :           :     :     :- Project [ss_sold_date_sk#136, ss_customer_sk#139, ss_hdemo_sk#141, ss_store_sk#143, ss_ticket_number#145]
+      :           :     :     :  +- Filter (((isnotnull(ss_sold_date_sk#136) && isnotnull(ss_store_sk#143)) && isnotnull(ss_hdemo_sk#141)) && isnotnull(ss_customer_sk#139))
+      :           :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+      :           :     :     +- Project [d_date_sk#516]
+      :           :     :        +- Filter (((((d_dom#525 >= 1) && (d_dom#525 <= 3)) || ((d_dom#525 >= 25) && (d_dom#525 <= 28))) && d_year#522 IN (1999,2000,2001)) && isnotnull(d_date_sk#516))
+      :           :     :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+      :           :     +- Project [s_store_sk#702]
+      :           :        +- Filter (s_county#725 IN (Williamson County,Williamson County,Williamson County,Williamson County,Williamson County,Williamson County,Williamson County,Williamson County) && isnotnull(s_store_sk#702))
+      :           :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+      :           +- Project [hd_demo_sk#574]
+      :              +- Filter ((((isnotnull(hd_vehicle_count#578) && ((hd_buy_potential#576 = >10000) || (hd_buy_potential#576 = unknown))) && (hd_vehicle_count#578 > 0)) && (CASE WHEN (hd_vehicle_count#578 > 0) THEN (cast(hd_dep_count#577 as double) / cast(hd_vehicle_count#578 as double)) ELSE null END > 1.2)) && isnotnull(hd_demo_sk#574))
+      :                 +- Relation[hd_demo_sk#574,hd_income_band_sk#575,hd_buy_potential#576,hd_dep_count#577,hd_vehicle_count#578] csv
+      +- Project [c_customer_sk#430, c_salutation#437, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440]
+         +- Filter isnotnull(c_customer_sk#430)
+            +- Relation[c_customer_sk#430,c_customer_id#431,c_current_cdemo_sk#432,c_current_hdemo_sk#433,c_current_addr_sk#434,c_first_shipto_date_sk#435,c_first_sales_date_sk#436,c_salutation#437,c_first_name#438,c_last_name#439,c_preferred_cust_flag#440,c_birth_day#441,c_birth_month#442,c_birth_year#443,c_birth_country#444,c_login#445,c_email_address#446,c_last_review_date#447] csv
+
+[Sort [Project [Join [Filter [Aggregate [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-01f2668b-3ce6-45a5-8a20-e30888161314.csv]]]]]] [Project [Filter part-r-00000-5f97163a-c9c5-4fe8-8cf8-3abadc1300f3.csv]]]]]

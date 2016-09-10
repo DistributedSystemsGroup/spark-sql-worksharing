@@ -1,0 +1,48 @@
+
+ select * from(
+   select w_warehouse_name, i_item_id,
+          sum(case when (cast(d_date as date) < cast ('2000-03-11' as date))
+	                  then inv_quantity_on_hand
+                   else 0 end) as inv_before,
+          sum(case when (cast(d_date as date) >= cast ('2000-03-11' as date))
+                   then inv_quantity_on_hand
+                   else 0 end) as inv_after
+   from inventory, warehouse, item, date_dim
+   where i_current_price between 0.99 and 1.49
+     and i_item_sk          = inv_item_sk
+     and inv_warehouse_sk   = w_warehouse_sk
+     and inv_date_sk        = d_date_sk
+     and d_date between date_sub(cast('2000-03-11' as date), 30)
+                    and date_add(cast('2000-03-11' as date), 30)
+   group by w_warehouse_name, i_item_id) x
+ where (case when inv_before > 0
+             then inv_after / inv_before
+             else null
+             end) between 2.0/3.0 and 3.0/2.0
+ order by w_warehouse_name, i_item_id
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [w_warehouse_name#786 ASC, i_item_id#595 ASC], true
+      +- Filter ((CASE WHEN (inv_before#2553L > 0) THEN (cast(inv_after#2554L as double) / cast(inv_before#2553L as double)) ELSE null END >= 0.666667) && (CASE WHEN (inv_before#2553L > 0) THEN (cast(inv_after#2554L as double) / cast(inv_before#2553L as double)) ELSE null END <= 1.5))
+         +- Aggregate [w_warehouse_name#786, i_item_id#595], [w_warehouse_name#786, i_item_id#595, sum(cast(CASE WHEN (cast(d_date#518 as date) < 11027) THEN inv_quantity_on_hand#129 ELSE 0 END as bigint)) AS inv_before#2553L, sum(cast(CASE WHEN (cast(d_date#518 as date) >= 11027) THEN inv_quantity_on_hand#129 ELSE 0 END as bigint)) AS inv_after#2554L]
+            +- Project [inv_quantity_on_hand#129, w_warehouse_name#786, i_item_id#595, d_date#518]
+               +- Join Inner, (inv_date_sk#126 = d_date_sk#516)
+                  :- Project [inv_date_sk#126, inv_quantity_on_hand#129, w_warehouse_name#786, i_item_id#595]
+                  :  +- Join Inner, (i_item_sk#594 = inv_item_sk#127)
+                  :     :- Project [inv_date_sk#126, inv_item_sk#127, inv_quantity_on_hand#129, w_warehouse_name#786]
+                  :     :  +- Join Inner, (inv_warehouse_sk#128 = w_warehouse_sk#784)
+                  :     :     :- Filter ((isnotnull(inv_warehouse_sk#128) && isnotnull(inv_item_sk#127)) && isnotnull(inv_date_sk#126))
+                  :     :     :  +- Relation[inv_date_sk#126,inv_item_sk#127,inv_warehouse_sk#128,inv_quantity_on_hand#129] csv
+                  :     :     +- Project [w_warehouse_sk#784, w_warehouse_name#786]
+                  :     :        +- Filter isnotnull(w_warehouse_sk#784)
+                  :     :           +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+                  :     +- Project [i_item_sk#594, i_item_id#595]
+                  :        +- Filter (((isnotnull(i_current_price#599) && (i_current_price#599 >= 0.99)) && (i_current_price#599 <= 1.49)) && isnotnull(i_item_sk#594))
+                  :           +- Relation[i_item_sk#594,i_item_id#595,i_rec_start_date#596,i_rec_end_date#597,i_item_desc#598,i_current_price#599,i_wholesale_cost#600,i_brand_id#601,i_brand#602,i_class_id#603,i_class#604,i_category_id#605,i_category#606,i_manufact_id#607,i_manufact#608,i_size#609,i_formulation#610,i_color#611,i_units#612,i_container#613,i_manager_id#614,i_product_name#615] csv
+                  +- Project [d_date_sk#516, d_date#518]
+                     +- Filter (((isnotnull(d_date#518) && (d_date#518 >= 2000-02-10)) && (d_date#518 <= 2000-04-10)) && isnotnull(d_date_sk#516))
+                        +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Filter [Aggregate [Project [Join [Project [Join [Project [Join [Filter part-r-00089-78d4ec2e-8ed9-4d5d-acee-0e9d9b9f9711.csv] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]] [Project [Filter part-r-00000-32673f1d-7d22-419e-8b8e-76b373012818.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]

@@ -1,0 +1,60 @@
+
+ select
+    s_store_name, s_company_id, s_street_number, s_street_name, s_street_type,
+    s_suite_number, s_city, s_county, s_state, s_zip
+   ,sum(case when (sr_returned_date_sk - ss_sold_date_sk <= 30 ) then 1 else 0 end)  as `30 days`
+   ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 30) and
+                  (sr_returned_date_sk - ss_sold_date_sk <= 60) then 1 else 0 end )  as `31-60 days`
+   ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 60) and
+                  (sr_returned_date_sk - ss_sold_date_sk <= 90) then 1 else 0 end)  as `61-90 days`
+   ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 90) and
+                  (sr_returned_date_sk - ss_sold_date_sk <= 120) then 1 else 0 end)  as `91-120 days`
+   ,sum(case when (sr_returned_date_sk - ss_sold_date_sk  > 120) then 1 else 0 end)  as `>120 days`
+ from
+    store_sales, store_returns, store, date_dim d1, date_dim d2
+ where
+     d2.d_year = 2001
+ and d2.d_moy  = 8
+ and ss_ticket_number = sr_ticket_number
+ and ss_item_sk = sr_item_sk
+ and ss_sold_date_sk   = d1.d_date_sk
+ and sr_returned_date_sk   = d2.d_date_sk
+ and ss_customer_sk = sr_customer_sk
+ and ss_store_sk = s_store_sk
+ group by
+     s_store_name, s_company_id, s_street_number, s_street_name, s_street_type,
+     s_suite_number, s_city, s_county, s_state, s_zip
+  order by
+     s_store_name, s_company_id, s_street_number, s_street_name, s_street_type,
+     s_suite_number, s_city, s_county, s_state, s_zip
+  limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [s_store_name#707 ASC, s_company_id#718 ASC, s_street_number#720 ASC, s_street_name#721 ASC, s_street_type#722 ASC, s_suite_number#723 ASC, s_city#724 ASC, s_county#725 ASC, s_state#726 ASC, s_zip#727 ASC], true
+      +- Aggregate [s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727], [s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727, sum(cast(CASE WHEN ((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) <= 30) THEN 1 ELSE 0 END as bigint)) AS 30 days#8341L, sum(cast(CASE WHEN (((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) > 30) && ((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) <= 60)) THEN 1 ELSE 0 END as bigint)) AS 31-60 days#8342L, sum(cast(CASE WHEN (((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) > 60) && ((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) <= 90)) THEN 1 ELSE 0 END as bigint)) AS 61-90 days#8343L, sum(cast(CASE WHEN (((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) > 90) && ((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) <= 120)) THEN 1 ELSE 0 END as bigint)) AS 91-120 days#8344L, sum(cast(CASE WHEN ((sr_returned_date_sk#184L - cast(ss_sold_date_sk#136 as bigint)) > 120) THEN 1 ELSE 0 END as bigint)) AS >120 days#8345L]
+         +- Project [ss_sold_date_sk#136, sr_returned_date_sk#184L, s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727]
+            +- Join Inner, (sr_returned_date_sk#184L = cast(d_date_sk#8404 as bigint))
+               :- Project [ss_sold_date_sk#136, sr_returned_date_sk#184L, s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727]
+               :  +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+               :     :- Project [ss_sold_date_sk#136, sr_returned_date_sk#184L, s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727]
+               :     :  +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+               :     :     :- Project [ss_sold_date_sk#136, ss_store_sk#143, sr_returned_date_sk#184L]
+               :     :     :  +- Join Inner, (((cast(ss_ticket_number#145 as bigint) = sr_ticket_number#193L) && (cast(ss_item_sk#138 as bigint) = sr_item_sk#186L)) && (cast(ss_customer_sk#139 as bigint) = sr_customer_sk#187L))
+               :     :     :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_customer_sk#139, ss_store_sk#143, ss_ticket_number#145]
+               :     :     :     :  +- Filter ((((isnotnull(ss_item_sk#138) && isnotnull(ss_ticket_number#145)) && isnotnull(ss_customer_sk#139)) && isnotnull(ss_store_sk#143)) && isnotnull(ss_sold_date_sk#136))
+               :     :     :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+               :     :     :     +- Project [sr_returned_date_sk#184L, sr_item_sk#186L, sr_customer_sk#187L, sr_ticket_number#193L]
+               :     :     :        +- Filter (((isnotnull(sr_ticket_number#193L) && isnotnull(sr_item_sk#186L)) && isnotnull(sr_customer_sk#187L)) && isnotnull(sr_returned_date_sk#184L))
+               :     :     :           +- Relation[sr_returned_date_sk#184L,sr_return_time_sk#185L,sr_item_sk#186L,sr_customer_sk#187L,sr_cdemo_sk#188L,sr_hdemo_sk#189L,sr_addr_sk#190L,sr_store_sk#191L,sr_reason_sk#192L,sr_ticket_number#193L,sr_return_quantity#194L,sr_return_amt#195,sr_return_tax#196,sr_return_amt_inc_tax#197,sr_fee#198,sr_return_ship_cost#199,sr_refunded_cash#200,sr_reversed_charge#201,sr_store_credit#202,sr_net_loss#203] csv
+               :     :     +- Project [s_store_sk#702, s_store_name#707, s_company_id#718, s_street_number#720, s_street_name#721, s_street_type#722, s_suite_number#723, s_city#724, s_county#725, s_state#726, s_zip#727]
+               :     :        +- Filter isnotnull(s_store_sk#702)
+               :     :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+               :     +- Project [d_date_sk#516]
+               :        +- Filter isnotnull(d_date_sk#516)
+               :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+               +- Project [d_date_sk#8404]
+                  +- Filter ((((isnotnull(d_year#8410) && isnotnull(d_moy#8412)) && (d_year#8410 = 2001)) && (d_moy#8412 = 8)) && isnotnull(d_date_sk#8404))
+                     +- Relation[d_date_sk#8404,d_date_id#8405,d_date#8406,d_month_seq#8407,d_week_seq#8408,d_quarter_seq#8409,d_year#8410,d_dow#8411,d_moy#8412,d_dom#8413,d_qoy#8414,d_fy_year#8415,d_fy_quarter_seq#8416,d_fy_week_seq#8417,d_day_name#8418,d_quarter_name#8419,d_holiday#8420,d_weekend#8421,d_following_holiday#8422,d_first_dom#8423,d_last_dom#8424,d_same_day_ly#8425,d_same_day_lq#8426,d_current_day#8427,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00069-f38c10ac-d356-4125-8995-32fd650e3fa9.csv]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]

@@ -1,0 +1,88 @@
+
+ with wss as
+ (select d_week_seq,
+        ss_store_sk,
+        sum(case when (d_day_name='Sunday') then ss_sales_price else null end) sun_sales,
+        sum(case when (d_day_name='Monday') then ss_sales_price else null end) mon_sales,
+        sum(case when (d_day_name='Tuesday') then ss_sales_price else  null end) tue_sales,
+        sum(case when (d_day_name='Wednesday') then ss_sales_price else null end) wed_sales,
+        sum(case when (d_day_name='Thursday') then ss_sales_price else null end) thu_sales,
+        sum(case when (d_day_name='Friday') then ss_sales_price else null end) fri_sales,
+        sum(case when (d_day_name='Saturday') then ss_sales_price else null end) sat_sales
+ from store_sales,date_dim
+ where d_date_sk = ss_sold_date_sk
+ group by d_week_seq,ss_store_sk
+ )
+ select  s_store_name1,s_store_id1,d_week_seq1
+       ,sun_sales1/sun_sales2,mon_sales1/mon_sales2
+       ,tue_sales1/tue_sales2,wed_sales1/wed_sales2,thu_sales1/thu_sales2
+       ,fri_sales1/fri_sales2,sat_sales1/sat_sales2
+ from
+ (select s_store_name s_store_name1,wss.d_week_seq d_week_seq1
+        ,s_store_id s_store_id1,sun_sales sun_sales1
+        ,mon_sales mon_sales1,tue_sales tue_sales1
+        ,wed_sales wed_sales1,thu_sales thu_sales1
+        ,fri_sales fri_sales1,sat_sales sat_sales1
+  from wss,store,date_dim d
+  where d.d_week_seq = wss.d_week_seq and
+        ss_store_sk = s_store_sk and
+        d_month_seq between 1212 and 1212 + 11) y,
+ (select s_store_name s_store_name2,wss.d_week_seq d_week_seq2
+        ,s_store_id s_store_id2,sun_sales sun_sales2
+        ,mon_sales mon_sales2,tue_sales tue_sales2
+        ,wed_sales wed_sales2,thu_sales thu_sales2
+        ,fri_sales fri_sales2,sat_sales sat_sales2
+  from wss,store,date_dim d
+  where d.d_week_seq = wss.d_week_seq and
+        ss_store_sk = s_store_sk and
+        d_month_seq between 1212+ 12 and 1212 + 23) x
+ where s_store_id1=s_store_id2
+   and d_week_seq1=d_week_seq2-52
+ order by s_store_name1,s_store_id1,d_week_seq1
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [s_store_name1#10816 ASC, s_store_id1#10818 ASC, d_week_seq1#10817 ASC], true
+      +- Project [s_store_name1#10816, s_store_id1#10818, d_week_seq1#10817, CheckOverflow((sun_sales1#10819 / sun_sales2#10829), DecimalType(37,20)) AS (sun_sales1 / sun_sales2)#11000, CheckOverflow((mon_sales1#10820 / mon_sales2#10830), DecimalType(37,20)) AS (mon_sales1 / mon_sales2)#11001, CheckOverflow((tue_sales1#10821 / tue_sales2#10831), DecimalType(37,20)) AS (tue_sales1 / tue_sales2)#11002, CheckOverflow((wed_sales1#10822 / wed_sales2#10832), DecimalType(37,20)) AS (wed_sales1 / wed_sales2)#11003, CheckOverflow((thu_sales1#10823 / thu_sales2#10833), DecimalType(37,20)) AS (thu_sales1 / thu_sales2)#11004, CheckOverflow((fri_sales1#10824 / fri_sales2#10834), DecimalType(37,20)) AS (fri_sales1 / fri_sales2)#11005, CheckOverflow((sat_sales1#10825 / sat_sales2#10835), DecimalType(37,20)) AS (sat_sales1 / sat_sales2)#11006]
+         +- Join Inner, ((s_store_id1#10818 = s_store_id2#10828) && (d_week_seq1#10817 = (d_week_seq2#10827 - 52)))
+            :- Project [s_store_name#707 AS s_store_name1#10816, d_week_seq#520 AS d_week_seq1#10817, s_store_id#703 AS s_store_id1#10818, sun_sales#10836 AS sun_sales1#10819, mon_sales#10837 AS mon_sales1#10820, tue_sales#10838 AS tue_sales1#10821, wed_sales#10839 AS wed_sales1#10822, thu_sales#10840 AS thu_sales1#10823, fri_sales#10841 AS fri_sales1#10824, sat_sales#10842 AS sat_sales1#10825]
+            :  +- Join Inner, (d_week_seq#10948 = d_week_seq#520)
+            :     :- Project [d_week_seq#520, sun_sales#10836, mon_sales#10837, tue_sales#10838, wed_sales#10839, thu_sales#10840, fri_sales#10841, sat_sales#10842, s_store_id#703, s_store_name#707]
+            :     :  +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+            :     :     :- Aggregate [d_week_seq#520, ss_store_sk#143], [d_week_seq#520, ss_store_sk#143, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Sunday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sun_sales#10836, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Monday) THEN ss_sales_price#149 ELSE null END)),17,2) AS mon_sales#10837, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Tuesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS tue_sales#10838, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Wednesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS wed_sales#10839, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Thursday) THEN ss_sales_price#149 ELSE null END)),17,2) AS thu_sales#10840, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Friday) THEN ss_sales_price#149 ELSE null END)),17,2) AS fri_sales#10841, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Saturday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sat_sales#10842]
+            :     :     :  +- Project [ss_store_sk#143, ss_sales_price#149, d_week_seq#520, d_day_name#530]
+            :     :     :     +- Join Inner, (d_date_sk#516 = ss_sold_date_sk#136)
+            :     :     :        :- Project [ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+            :     :     :        :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_store_sk#143))
+            :     :     :        :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :     :        +- Project [d_date_sk#516, d_week_seq#520, d_day_name#530]
+            :     :     :           +- Filter (isnotnull(d_date_sk#516) && isnotnull(d_week_seq#520))
+            :     :     :              +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :     +- Project [s_store_sk#702, s_store_id#703, s_store_name#707]
+            :     :        +- Filter (isnotnull(s_store_sk#702) && isnotnull(s_store_id#703))
+            :     :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+            :     +- Project [d_week_seq#10948]
+            :        +- Filter (((isnotnull(d_month_seq#10947) && (d_month_seq#10947 >= 1212)) && (d_month_seq#10947 <= 1223)) && isnotnull(d_week_seq#10948))
+            :           +- Relation[d_date_sk#10944,d_date_id#10945,d_date#10946,d_month_seq#10947,d_week_seq#10948,d_quarter_seq#10949,d_year#10950,d_dow#10951,d_moy#10952,d_dom#10953,d_qoy#10954,d_fy_year#10955,d_fy_quarter_seq#10956,d_fy_week_seq#10957,d_day_name#10958,d_quarter_name#10959,d_holiday#10960,d_weekend#10961,d_following_holiday#10962,d_first_dom#10963,d_last_dom#10964,d_same_day_ly#10965,d_same_day_lq#10966,d_current_day#10967,... 4 more fields] csv
+            +- Project [d_week_seq#520 AS d_week_seq2#10827, s_store_id#703 AS s_store_id2#10828, sun_sales#10836 AS sun_sales2#10829, mon_sales#10837 AS mon_sales2#10830, tue_sales#10838 AS tue_sales2#10831, wed_sales#10839 AS wed_sales2#10832, thu_sales#10840 AS thu_sales2#10833, fri_sales#10841 AS fri_sales2#10834, sat_sales#10842 AS sat_sales2#10835]
+               +- Join Inner, (d_week_seq#10976 = d_week_seq#520)
+                  :- Project [d_week_seq#520, sun_sales#10836, mon_sales#10837, tue_sales#10838, wed_sales#10839, thu_sales#10840, fri_sales#10841, sat_sales#10842, s_store_id#703]
+                  :  +- Join Inner, (ss_store_sk#143 = s_store_sk#702)
+                  :     :- Aggregate [d_week_seq#520, ss_store_sk#143], [d_week_seq#520, ss_store_sk#143, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Sunday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sun_sales#10836, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Monday) THEN ss_sales_price#149 ELSE null END)),17,2) AS mon_sales#10837, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Tuesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS tue_sales#10838, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Wednesday) THEN ss_sales_price#149 ELSE null END)),17,2) AS wed_sales#10839, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Thursday) THEN ss_sales_price#149 ELSE null END)),17,2) AS thu_sales#10840, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Friday) THEN ss_sales_price#149 ELSE null END)),17,2) AS fri_sales#10841, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#530 = Saturday) THEN ss_sales_price#149 ELSE null END)),17,2) AS sat_sales#10842]
+                  :     :  +- Project [ss_store_sk#143, ss_sales_price#149, d_week_seq#520, d_day_name#530]
+                  :     :     +- Join Inner, (d_date_sk#516 = ss_sold_date_sk#136)
+                  :     :        :- Project [ss_sold_date_sk#136, ss_store_sk#143, ss_sales_price#149]
+                  :     :        :  +- Filter (isnotnull(ss_sold_date_sk#136) && isnotnull(ss_store_sk#143))
+                  :     :        :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                  :     :        +- Project [d_date_sk#516, d_week_seq#520, d_day_name#530]
+                  :     :           +- Filter (isnotnull(d_date_sk#516) && isnotnull(d_week_seq#520))
+                  :     :              +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+                  :     +- Project [s_store_sk#702, s_store_id#703]
+                  :        +- Filter (isnotnull(s_store_sk#702) && isnotnull(s_store_id#703))
+                  :           +- Relation[s_store_sk#702,s_store_id#703,s_rec_start_date#704,s_rec_end_date#705,s_closed_date_sk#706,s_store_name#707,s_number_employees#708,s_floor_space#709,s_hours#710,s_manager#711,s_market_id#712,s_geography_class#713,s_market_desc#714,s_market_manager#715,s_division_id#716,s_division_name#717,s_company_id#718,s_company_name#719,s_street_number#720,s_street_name#721,s_street_type#722,s_suite_number#723,s_city#724,s_county#725,... 5 more fields] csv
+                  +- Project [d_week_seq#10976]
+                     +- Filter (((isnotnull(d_month_seq#10975) && (d_month_seq#10975 >= 1224)) && (d_month_seq#10975 <= 1235)) && isnotnull(d_week_seq#10976))
+                        +- Relation[d_date_sk#10972,d_date_id#10973,d_date#10974,d_month_seq#10975,d_week_seq#10976,d_quarter_seq#10977,d_year#10978,d_dow#10979,d_moy#10980,d_dom#10981,d_qoy#10982,d_fy_year#10983,d_fy_quarter_seq#10984,d_fy_week_seq#10985,d_day_name#10986,d_quarter_name#10987,d_holiday#10988,d_weekend#10989,d_following_holiday#10990,d_first_dom#10991,d_last_dom#10992,d_same_day_ly#10993,d_same_day_lq#10994,d_current_day#10995,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Project [Join [Project [Join [Aggregate [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Join [Project [Join [Aggregate [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]] [Project [Filter part-r-00000-f4e9f40c-8b5c-488a-a4f6-0099750a797d.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]

@@ -1,0 +1,21 @@
+
+select
+  count(*) as total,
+  count(ss_sold_date_sk) as not_null_total,
+  count(distinct ss_sold_date_sk) as unique_days,
+  max(ss_sold_date_sk) as max_ss_sold_date_sk,
+  max(ss_sold_time_sk) as max_ss_sold_time_sk,
+  max(ss_item_sk) as max_ss_item_sk,
+  max(ss_customer_sk) as max_ss_customer_sk,
+  max(ss_cdemo_sk) as max_ss_cdemo_sk,
+  max(ss_hdemo_sk) as max_ss_hdemo_sk,
+  max(ss_addr_sk) as max_ss_addr_sk,
+  max(ss_store_sk) as max_ss_store_sk,
+  max(ss_promo_sk) as max_ss_promo_sk
+from store_sales
+        
+Aggregate [count(1) AS total#14247L, count(ss_sold_date_sk#136) AS not_null_total#14248L, count(distinct ss_sold_date_sk#136) AS unique_days#14249L, max(ss_sold_date_sk#136) AS max_ss_sold_date_sk#14250, max(ss_sold_time_sk#137) AS max_ss_sold_time_sk#14251, max(ss_item_sk#138) AS max_ss_item_sk#14252, max(ss_customer_sk#139) AS max_ss_customer_sk#14253, max(ss_cdemo_sk#140) AS max_ss_cdemo_sk#14254, max(ss_hdemo_sk#141) AS max_ss_hdemo_sk#14255, max(ss_addr_sk#142) AS max_ss_addr_sk#14256, max(ss_store_sk#143) AS max_ss_store_sk#14257, max(ss_promo_sk#144) AS max_ss_promo_sk#14258]
++- Project [ss_sold_date_sk#136, ss_sold_time_sk#137, ss_item_sk#138, ss_customer_sk#139, ss_cdemo_sk#140, ss_hdemo_sk#141, ss_addr_sk#142, ss_store_sk#143, ss_promo_sk#144]
+   +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+
+[Aggregate [Project part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]]

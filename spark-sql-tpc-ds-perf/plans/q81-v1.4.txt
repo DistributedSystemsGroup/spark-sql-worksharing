@@ -1,0 +1,74 @@
+
+ with customer_total_return as
+ (select
+    cr_returning_customer_sk as ctr_customer_sk, ca_state as ctr_state,
+        sum(cr_return_amt_inc_tax) as ctr_total_return
+ from catalog_returns, date_dim, customer_address
+ where cr_returned_date_sk = d_date_sk
+   and d_year = 2000
+   and cr_returning_addr_sk = ca_address_sk
+ group by cr_returning_customer_sk, ca_state )
+ select
+    c_customer_id,c_salutation,c_first_name,c_last_name,ca_street_number,ca_street_name,
+    ca_street_type,ca_suite_number,ca_city,ca_county,ca_state,ca_zip,ca_country,
+    ca_gmt_offset,ca_location_type,ctr_total_return
+ from customer_total_return ctr1, customer_address, customer
+ where ctr1.ctr_total_return > (select avg(ctr_total_return)*1.2
+ 			  from customer_total_return ctr2
+                  	  where ctr1.ctr_state = ctr2.ctr_state)
+       and ca_address_sk = c_current_addr_sk
+       and ca_state = 'GA'
+       and ctr1.ctr_customer_sk = c_customer_sk
+ order by c_customer_id,c_salutation,c_first_name,c_last_name,ca_street_number,ca_street_name
+                   ,ca_street_type,ca_suite_number,ca_city,ca_county,ca_state,ca_zip,ca_country,ca_gmt_offset
+                  ,ca_location_type,ctr_total_return
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [c_customer_id#431 ASC, c_salutation#437 ASC, c_first_name#438 ASC, c_last_name#439 ASC, ca_street_number#470 ASC, ca_street_name#471 ASC, ca_street_type#472 ASC, ca_suite_number#473 ASC, ca_city#474 ASC, ca_county#475 ASC, ca_state#476 ASC, ca_zip#477 ASC, ca_country#478 ASC, ca_gmt_offset#479 ASC, ca_location_type#480 ASC, ctr_total_return#13533 ASC], true
+      +- Project [c_customer_id#431, c_salutation#437, c_first_name#438, c_last_name#439, ca_street_number#470, ca_street_name#471, ca_street_type#472, ca_suite_number#473, ca_city#474, ca_county#475, ca_state#476, ca_zip#477, ca_country#478, ca_gmt_offset#479, ca_location_type#480, ctr_total_return#13533]
+         +- Join Inner, (ca_address_sk#468 = c_current_addr_sk#434)
+            :- Project [ctr_total_return#13533, c_customer_id#431, c_current_addr_sk#434, c_salutation#437, c_first_name#438, c_last_name#439]
+            :  +- Join Inner, (ctr_customer_sk#13531 = c_customer_sk#430)
+            :     :- Project [ctr_customer_sk#13531, ctr_total_return#13533]
+            :     :  +- Join Inner, ((cast(ctr_total_return#13533 as decimal(24,7)) > (CAST(avg(ctr_total_return) AS DECIMAL(21,6)) * CAST(1.2 AS DECIMAL(21,6)))#13558) && (ctr_state#13532 = ctr_state#13532#13559))
+            :     :     :- Filter isnotnull(ctr_total_return#13533)
+            :     :     :  +- Aggregate [cr_returning_customer_sk#77, ca_state#476], [cr_returning_customer_sk#77 AS ctr_customer_sk#13531, ca_state#476 AS ctr_state#13532, MakeDecimal(sum(UnscaledValue(cr_return_amt_inc_tax#90)),17,2) AS ctr_total_return#13533]
+            :     :     :     +- Project [cr_returning_customer_sk#77, cr_return_amt_inc_tax#90, ca_state#476]
+            :     :     :        +- Join Inner, (cr_returning_addr_sk#80 = ca_address_sk#468)
+            :     :     :           :- Project [cr_returning_customer_sk#77, cr_returning_addr_sk#80, cr_return_amt_inc_tax#90]
+            :     :     :           :  +- Join Inner, (cr_returned_date_sk#70 = d_date_sk#516)
+            :     :     :           :     :- Project [cr_returned_date_sk#70, cr_returning_customer_sk#77, cr_returning_addr_sk#80, cr_return_amt_inc_tax#90]
+            :     :     :           :     :  +- Filter ((isnotnull(cr_returned_date_sk#70) && isnotnull(cr_returning_addr_sk#80)) && isnotnull(cr_returning_customer_sk#77))
+            :     :     :           :     :     +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+            :     :     :           :     +- Project [d_date_sk#516]
+            :     :     :           :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2000)) && isnotnull(d_date_sk#516))
+            :     :     :           :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :     :           +- Project [ca_address_sk#468, ca_state#476]
+            :     :     :              +- Filter (isnotnull(ca_address_sk#468) && isnotnull(ca_state#476))
+            :     :     :                 +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+            :     :     +- Filter isnotnull((CAST(avg(ctr_total_return) AS DECIMAL(21,6)) * CAST(1.2 AS DECIMAL(21,6)))#13558)
+            :     :        +- Aggregate [ctr_state#13532], [CheckOverflow((avg(ctr_total_return#13533) * 1.200000), DecimalType(24,7)) AS (CAST(avg(ctr_total_return) AS DECIMAL(21,6)) * CAST(1.2 AS DECIMAL(21,6)))#13558, ctr_state#13532 AS ctr_state#13532#13559]
+            :     :           +- Aggregate [cr_returning_customer_sk#77, ca_state#476], [ca_state#476 AS ctr_state#13532, MakeDecimal(sum(UnscaledValue(cr_return_amt_inc_tax#90)),17,2) AS ctr_total_return#13533]
+            :     :              +- Project [cr_returning_customer_sk#77, cr_return_amt_inc_tax#90, ca_state#476]
+            :     :                 +- Join Inner, (cr_returning_addr_sk#80 = ca_address_sk#468)
+            :     :                    :- Project [cr_returning_customer_sk#77, cr_returning_addr_sk#80, cr_return_amt_inc_tax#90]
+            :     :                    :  +- Join Inner, (cr_returned_date_sk#70 = d_date_sk#516)
+            :     :                    :     :- Project [cr_returned_date_sk#70, cr_returning_customer_sk#77, cr_returning_addr_sk#80, cr_return_amt_inc_tax#90]
+            :     :                    :     :  +- Filter (isnotnull(cr_returned_date_sk#70) && isnotnull(cr_returning_addr_sk#80))
+            :     :                    :     :     +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+            :     :                    :     +- Project [d_date_sk#516]
+            :     :                    :        +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2000)) && isnotnull(d_date_sk#516))
+            :     :                    :           +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :                    +- Project [ca_address_sk#468, ca_state#476]
+            :     :                       +- Filter (isnotnull(ca_address_sk#468) && isnotnull(ca_state#476))
+            :     :                          +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+            :     +- Project [c_customer_sk#430, c_customer_id#431, c_current_addr_sk#434, c_salutation#437, c_first_name#438, c_last_name#439]
+            :        +- Filter (isnotnull(c_customer_sk#430) && isnotnull(c_current_addr_sk#434))
+            :           +- Relation[c_customer_sk#430,c_customer_id#431,c_current_cdemo_sk#432,c_current_hdemo_sk#433,c_current_addr_sk#434,c_first_shipto_date_sk#435,c_first_sales_date_sk#436,c_salutation#437,c_first_name#438,c_last_name#439,c_preferred_cust_flag#440,c_birth_day#441,c_birth_month#442,c_birth_year#443,c_birth_country#444,c_login#445,c_email_address#446,c_last_review_date#447] csv
+            +- Project [ca_address_sk#468, ca_street_number#470, ca_street_name#471, ca_street_type#472, ca_suite_number#473, ca_city#474, ca_county#475, ca_state#476, ca_zip#477, ca_country#478, ca_gmt_offset#479, ca_location_type#480]
+               +- Filter ((isnotnull(ca_address_sk#468) && isnotnull(ca_state#476)) && (ca_state#476 = GA))
+                  +- Relation[ca_address_sk#468,ca_address_id#469,ca_street_number#470,ca_street_name#471,ca_street_type#472,ca_suite_number#473,ca_city#474,ca_county#475,ca_state#476,ca_zip#477,ca_country#478,ca_gmt_offset#479,ca_location_type#480] csv
+
+[GlobalLimit [LocalLimit [Sort [Project [Join [Project [Join [Project [Join [Filter [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]] [Filter [Aggregate [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]]]]] [Project [Filter part-r-00000-5f97163a-c9c5-4fe8-8cf8-3abadc1300f3.csv]]]] [Project [Filter part-r-00000-37ccd923-c509-4eb5-b29a-193e1a4ab858.csv]]]]]]]

@@ -1,0 +1,161 @@
+
+ select 'web' as channel, web.item, web.return_ratio, web.return_rank, web.currency_rank
+ from (
+ 	select
+    item, return_ratio, currency_ratio,
+ 	  rank() over (order by return_ratio) as return_rank,
+ 	  rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select ws.ws_item_sk as item
+ 		,(cast(sum(coalesce(wr.wr_return_quantity,0)) as decimal(15,4))/
+ 		cast(sum(coalesce(ws.ws_quantity,0)) as decimal(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(wr.wr_return_amt,0)) as decimal(15,4))/
+ 		cast(sum(coalesce(ws.ws_net_paid,0)) as decimal(15,4) )) as currency_ratio
+ 		from
+ 		 web_sales ws left outer join web_returns wr
+ 			on (ws.ws_order_number = wr.wr_order_number and
+ 			ws.ws_item_sk = wr.wr_item_sk)
+        ,date_dim
+ 		where
+ 			wr.wr_return_amt > 10000
+ 			and ws.ws_net_profit > 1
+                         and ws.ws_net_paid > 0
+                         and ws.ws_quantity > 0
+                         and ws_sold_date_sk = d_date_sk
+                         and d_year = 2001
+                         and d_moy = 12
+ 		group by ws.ws_item_sk
+ 	) in_web
+ ) web
+ where (web.return_rank <= 10 or web.currency_rank <= 10)
+ union
+ select
+    'catalog' as channel, catalog.item, catalog.return_ratio,
+    catalog.return_rank, catalog.currency_rank
+ from (
+ 	select
+    item, return_ratio, currency_ratio,
+ 	  rank() over (order by return_ratio) as return_rank,
+ 	  rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select
+ 		cs.cs_item_sk as item
+ 		,(cast(sum(coalesce(cr.cr_return_quantity,0)) as decimal(15,4))/
+ 		cast(sum(coalesce(cs.cs_quantity,0)) as decimal(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(cr.cr_return_amount,0)) as decimal(15,4))/
+ 		cast(sum(coalesce(cs.cs_net_paid,0)) as decimal(15,4) )) as currency_ratio
+ 		from
+ 		catalog_sales cs left outer join catalog_returns cr
+ 			on (cs.cs_order_number = cr.cr_order_number and
+ 			cs.cs_item_sk = cr.cr_item_sk)
+                ,date_dim
+ 		where
+ 			cr.cr_return_amount > 10000
+ 			and cs.cs_net_profit > 1
+                         and cs.cs_net_paid > 0
+                         and cs.cs_quantity > 0
+                         and cs_sold_date_sk = d_date_sk
+                         and d_year = 2001
+                         and d_moy = 12
+                 group by cs.cs_item_sk
+ 	) in_cat
+ ) catalog
+ where (catalog.return_rank <= 10 or catalog.currency_rank <=10)
+ union
+ select
+    'store' as channel, store.item, store.return_ratio,
+    store.return_rank, store.currency_rank
+ from (
+ 	select
+      item, return_ratio, currency_ratio,
+ 	    rank() over (order by return_ratio) as return_rank,
+ 	    rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select sts.ss_item_sk as item
+ 		,(cast(sum(coalesce(sr.sr_return_quantity,0)) as decimal(15,4))/
+               cast(sum(coalesce(sts.ss_quantity,0)) as decimal(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(sr.sr_return_amt,0)) as decimal(15,4))/
+               cast(sum(coalesce(sts.ss_net_paid,0)) as decimal(15,4) )) as currency_ratio
+ 		from
+ 		store_sales sts left outer join store_returns sr
+ 			on (sts.ss_ticket_number = sr.sr_ticket_number and sts.ss_item_sk = sr.sr_item_sk)
+                ,date_dim
+ 		where
+ 			sr.sr_return_amt > 10000
+ 			and sts.ss_net_profit > 1
+                         and sts.ss_net_paid > 0
+                         and sts.ss_quantity > 0
+                         and ss_sold_date_sk = d_date_sk
+                         and d_year = 2001
+                         and d_moy = 12
+ 		group by sts.ss_item_sk
+ 	) in_store
+ ) store
+ where (store.return_rank <= 10 or store.currency_rank <= 10)
+ order by 1,4,5
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [channel#8154 ASC, return_rank#8152 ASC, currency_rank#8153 ASC], true
+      +- Aggregate [channel#8154, item#8149, return_ratio#8150, return_rank#8152, currency_rank#8153], [channel#8154, item#8149, return_ratio#8150, return_rank#8152, currency_rank#8153]
+         +- Union
+            :- Aggregate [channel#8154, item#8149, return_ratio#8150, return_rank#8152, currency_rank#8153], [channel#8154, item#8149, return_ratio#8150, return_rank#8152, currency_rank#8153]
+            :  +- Union
+            :     :- Project [web AS channel#8154, item#8149, return_ratio#8150, return_rank#8152, currency_rank#8153]
+            :     :  +- Filter ((return_rank#8152 <= 10) || (currency_rank#8153 <= 10))
+            :     :     +- Window [rank(currency_ratio#8151) windowspecdefinition(currency_ratio#8151 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS currency_rank#8153], [currency_ratio#8151 ASC]
+            :     :        +- Window [rank(return_ratio#8150) windowspecdefinition(return_ratio#8150 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS return_rank#8152], [return_ratio#8150 ASC]
+            :     :           +- Aggregate [ws_item_sk#229], [ws_item_sk#229 AS item#8149, CheckOverflow((cast(sum(coalesce(wr_return_quantity#310L, 0)) as decimal(15,4)) / cast(sum(cast(coalesce(ws_quantity#244, 0) as bigint)) as decimal(15,4))), DecimalType(35,20)) AS return_ratio#8150, CheckOverflow((cast(sum(coalesce(cast(wr_return_amt#311 as decimal(12,2)), 0.00)) as decimal(15,4)) / cast(sum(coalesce(cast(ws_net_paid#255 as decimal(12,2)), 0.00)) as decimal(15,4))), DecimalType(35,20)) AS currency_ratio#8151]
+            :     :              +- Project [ws_item_sk#229, ws_quantity#244, ws_net_paid#255, wr_return_quantity#310L, wr_return_amt#311]
+            :     :                 +- Join Inner, (ws_sold_date_sk#226 = d_date_sk#516)
+            :     :                    :- Project [ws_sold_date_sk#226, ws_item_sk#229, ws_quantity#244, ws_net_paid#255, wr_return_quantity#310L, wr_return_amt#311]
+            :     :                    :  +- Join Inner, ((cast(ws_order_number#243 as bigint) = wr_order_number#309L) && (cast(ws_item_sk#229 as bigint) = wr_item_sk#298L))
+            :     :                    :     :- Project [ws_sold_date_sk#226, ws_item_sk#229, ws_order_number#243, ws_quantity#244, ws_net_paid#255]
+            :     :                    :     :  +- Filter ((((((((isnotnull(ws_quantity#244) && isnotnull(ws_net_profit#259)) && isnotnull(ws_net_paid#255)) && (cast(ws_net_profit#259 as decimal(12,2)) > 1.00)) && (cast(ws_net_paid#255 as decimal(12,2)) > 0.00)) && (ws_quantity#244 > 0)) && isnotnull(ws_sold_date_sk#226)) && isnotnull(ws_item_sk#229)) && isnotnull(ws_order_number#243))
+            :     :                    :     :     +- Relation[ws_sold_date_sk#226,ws_sold_time_sk#227,ws_ship_date_sk#228,ws_item_sk#229,ws_bill_customer_sk#230,ws_bill_cdemo_sk#231,ws_bill_hdemo_sk#232,ws_bill_addr_sk#233,ws_ship_customer_sk#234,ws_ship_cdemo_sk#235,ws_ship_hdemo_sk#236,ws_ship_addr_sk#237,ws_web_page_sk#238,ws_web_site_sk#239,ws_ship_mode_sk#240,ws_warehouse_sk#241,ws_promo_sk#242,ws_order_number#243,ws_quantity#244,ws_wholesale_cost#245,ws_list_price#246,ws_sales_price#247,ws_ext_discount_amt#248,ws_ext_sales_price#249,... 10 more fields] csv
+            :     :                    :     +- Project [wr_item_sk#298L, wr_order_number#309L, wr_return_quantity#310L, wr_return_amt#311]
+            :     :                    :        +- Filter (((isnotnull(wr_return_amt#311) && (cast(wr_return_amt#311 as decimal(12,2)) > 10000.00)) && isnotnull(wr_order_number#309L)) && isnotnull(wr_item_sk#298L))
+            :     :                    :           +- Relation[wr_returned_date_sk#296L,wr_returned_time_sk#297L,wr_item_sk#298L,wr_refunded_customer_sk#299L,wr_refunded_cdemo_sk#300L,wr_refunded_hdemo_sk#301L,wr_refunded_addr_sk#302L,wr_returning_customer_sk#303L,wr_returning_cdemo_sk#304L,wr_returning_hdemo_sk#305L,wr_returning_addr_sk#306L,wr_web_page_sk#307L,wr_reason_sk#308L,wr_order_number#309L,wr_return_quantity#310L,wr_return_amt#311,wr_return_tax#312,wr_return_amt_inc_tax#313,wr_fee#314,wr_return_ship_cost#315,wr_refunded_cash#316,wr_reversed_charge#317,wr_account_credit#318,wr_net_loss#319] csv
+            :     :                    +- Project [d_date_sk#516]
+            :     :                       +- Filter ((((isnotnull(d_year#522) && isnotnull(d_moy#524)) && (d_year#522 = 2001)) && (d_moy#524 = 12)) && isnotnull(d_date_sk#516))
+            :     :                          +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     +- Project [catalog AS channel#8160, item#8155, return_ratio#8156, return_rank#8158, currency_rank#8159]
+            :        +- Filter ((return_rank#8158 <= 10) || (currency_rank#8159 <= 10))
+            :           +- Window [rank(currency_ratio#8157) windowspecdefinition(currency_ratio#8157 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS currency_rank#8159], [currency_ratio#8157 ASC]
+            :              +- Window [rank(return_ratio#8156) windowspecdefinition(return_ratio#8156 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS return_rank#8158], [return_ratio#8156 ASC]
+            :                 +- Aggregate [cs_item_sk#15], [cs_item_sk#15 AS item#8155, CheckOverflow((cast(sum(cast(coalesce(cr_return_quantity#87, 0) as bigint)) as decimal(15,4)) / cast(sum(cast(coalesce(cs_quantity#18, 0) as bigint)) as decimal(15,4))), DecimalType(35,20)) AS return_ratio#8156, CheckOverflow((cast(sum(coalesce(cast(cr_return_amount#88 as decimal(12,2)), 0.00)) as decimal(15,4)) / cast(sum(coalesce(cast(cs_net_paid#29 as decimal(12,2)), 0.00)) as decimal(15,4))), DecimalType(35,20)) AS currency_ratio#8157]
+            :                    +- Project [cs_item_sk#15, cs_quantity#18, cs_net_paid#29, cr_return_quantity#87, cr_return_amount#88]
+            :                       +- Join Inner, (cs_sold_date_sk#0 = d_date_sk#516)
+            :                          :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_quantity#18, cs_net_paid#29, cr_return_quantity#87, cr_return_amount#88]
+            :                          :  +- Join Inner, ((cs_order_number#17 = cr_order_number#86) && (cs_item_sk#15 = cr_item_sk#72))
+            :                          :     :- Project [cs_sold_date_sk#0, cs_item_sk#15, cs_order_number#17, cs_quantity#18, cs_net_paid#29]
+            :                          :     :  +- Filter ((((((((isnotnull(cs_net_paid#29) && isnotnull(cs_quantity#18)) && isnotnull(cs_net_profit#33)) && (cast(cs_net_profit#33 as decimal(12,2)) > 1.00)) && (cast(cs_net_paid#29 as decimal(12,2)) > 0.00)) && (cs_quantity#18 > 0)) && isnotnull(cs_sold_date_sk#0)) && isnotnull(cs_item_sk#15)) && isnotnull(cs_order_number#17))
+            :                          :     :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+            :                          :     +- Project [cr_item_sk#72, cr_order_number#86, cr_return_quantity#87, cr_return_amount#88]
+            :                          :        +- Filter (((isnotnull(cr_return_amount#88) && (cast(cr_return_amount#88 as decimal(12,2)) > 10000.00)) && isnotnull(cr_item_sk#72)) && isnotnull(cr_order_number#86))
+            :                          :           +- Relation[cr_returned_date_sk#70,cr_returned_time_sk#71,cr_item_sk#72,cr_refunded_customer_sk#73,cr_refunded_cdemo_sk#74,cr_refunded_hdemo_sk#75,cr_refunded_addr_sk#76,cr_returning_customer_sk#77,cr_returning_cdemo_sk#78,cr_returning_hdemo_sk#79,cr_returning_addr_sk#80,cr_call_center_sk#81,cr_catalog_page_sk#82,cr_ship_mode_sk#83,cr_warehouse_sk#84,cr_reason_sk#85,cr_order_number#86,cr_return_quantity#87,cr_return_amount#88,cr_return_tax#89,cr_return_amt_inc_tax#90,cr_fee#91,cr_return_ship_cost#92,cr_refunded_cash#93,... 3 more fields] csv
+            :                          +- Project [d_date_sk#516]
+            :                             +- Filter ((((isnotnull(d_year#522) && isnotnull(d_moy#524)) && (d_year#522 = 2001)) && (d_moy#524 = 12)) && isnotnull(d_date_sk#516))
+            :                                +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            +- Project [store AS channel#8166, item#8161, return_ratio#8162, return_rank#8164, currency_rank#8165]
+               +- Filter ((return_rank#8164 <= 10) || (currency_rank#8165 <= 10))
+                  +- Window [rank(return_ratio#8162) windowspecdefinition(return_ratio#8162 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS return_rank#8164], [return_ratio#8162 ASC]
+                     +- Project [item#8161, return_ratio#8162, currency_rank#8165]
+                        +- Window [rank(currency_ratio#8163) windowspecdefinition(currency_ratio#8163 ASC, ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS currency_rank#8165], [currency_ratio#8163 ASC]
+                           +- Aggregate [ss_item_sk#138], [ss_item_sk#138 AS item#8161, CheckOverflow((cast(sum(coalesce(sr_return_quantity#194L, 0)) as decimal(15,4)) / cast(sum(cast(coalesce(ss_quantity#146, 0) as bigint)) as decimal(15,4))), DecimalType(35,20)) AS return_ratio#8162, CheckOverflow((cast(sum(coalesce(cast(sr_return_amt#195 as decimal(12,2)), 0.00)) as decimal(15,4)) / cast(sum(coalesce(cast(ss_net_paid#156 as decimal(12,2)), 0.00)) as decimal(15,4))), DecimalType(35,20)) AS currency_ratio#8163]
+                              +- Project [ss_item_sk#138, ss_quantity#146, ss_net_paid#156, sr_return_quantity#194L, sr_return_amt#195]
+                                 +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+                                    :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_quantity#146, ss_net_paid#156, sr_return_quantity#194L, sr_return_amt#195]
+                                    :  +- Join Inner, ((cast(ss_ticket_number#145 as bigint) = sr_ticket_number#193L) && (cast(ss_item_sk#138 as bigint) = sr_item_sk#186L))
+                                    :     :- Project [ss_sold_date_sk#136, ss_item_sk#138, ss_ticket_number#145, ss_quantity#146, ss_net_paid#156]
+                                    :     :  +- Filter ((((((((isnotnull(ss_quantity#146) && isnotnull(ss_net_paid#156)) && isnotnull(ss_net_profit#158)) && (cast(ss_net_profit#158 as decimal(12,2)) > 1.00)) && (cast(ss_net_paid#156 as decimal(12,2)) > 0.00)) && (ss_quantity#146 > 0)) && isnotnull(ss_sold_date_sk#136)) && isnotnull(ss_item_sk#138)) && isnotnull(ss_ticket_number#145))
+                                    :     :     +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+                                    :     +- Project [sr_item_sk#186L, sr_ticket_number#193L, sr_return_quantity#194L, sr_return_amt#195]
+                                    :        +- Filter (((isnotnull(sr_return_amt#195) && (cast(sr_return_amt#195 as decimal(12,2)) > 10000.00)) && isnotnull(sr_ticket_number#193L)) && isnotnull(sr_item_sk#186L))
+                                    :           +- Relation[sr_returned_date_sk#184L,sr_return_time_sk#185L,sr_item_sk#186L,sr_customer_sk#187L,sr_cdemo_sk#188L,sr_hdemo_sk#189L,sr_addr_sk#190L,sr_store_sk#191L,sr_reason_sk#192L,sr_ticket_number#193L,sr_return_quantity#194L,sr_return_amt#195,sr_return_tax#196,sr_return_amt_inc_tax#197,sr_fee#198,sr_return_ship_cost#199,sr_refunded_cash#200,sr_reversed_charge#201,sr_store_credit#202,sr_net_loss#203] csv
+                                    +- Project [d_date_sk#516]
+                                       +- Filter ((((isnotnull(d_year#522) && isnotnull(d_moy#524)) && (d_year#522 = 2001)) && (d_moy#524 = 12)) && isnotnull(d_date_sk#516))
+                                          +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Union [Aggregate [Union [Project [Filter [Window [Window [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00066-2ef41a9e-f303-4505-a87f-8941d1ef2612.csv]] [Project [Filter part-r-00003-1a971f76-a283-489c-83ce-5415c906bd2a.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]] [Project [Filter [Window [Window [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project [Filter part-r-00088-05538727-ed17-47b8-ba6f-65390c47f6bc.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]]] [Project [Filter [Window [Project [Window [Aggregate [Project [Join [Project [Join [Project [Filter part-r-00042-d21ed14f-6673-4d17-87a7-c9fa6c6812f9.csv]] [Project [Filter part-r-00069-f38c10ac-d356-4125-8995-32fd650e3fa9.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]]]]]]]]

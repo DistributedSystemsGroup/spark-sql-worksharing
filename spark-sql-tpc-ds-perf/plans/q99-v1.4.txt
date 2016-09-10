@@ -1,0 +1,53 @@
+
+ select
+    substr(w_warehouse_name,1,20), sm_type, cc_name
+   ,sum(case when (cs_ship_date_sk - cs_sold_date_sk <= 30 ) then 1 else 0 end)  as `30 days`
+   ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 30) and
+                  (cs_ship_date_sk - cs_sold_date_sk <= 60) then 1 else 0 end )  as `31-60 days`
+   ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 60) and
+                  (cs_ship_date_sk - cs_sold_date_sk <= 90) then 1 else 0 end)  as `61-90 days`
+   ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 90) and
+                  (cs_ship_date_sk - cs_sold_date_sk <= 120) then 1 else 0 end)  as `91-120 days`
+   ,sum(case when (cs_ship_date_sk - cs_sold_date_sk  > 120) then 1 else 0 end)  as `>120 days`
+ from
+    catalog_sales, warehouse, ship_mode, call_center, date_dim
+ where
+     d_month_seq between 1200 and 1200 + 11
+ and cs_ship_date_sk   = d_date_sk
+ and cs_warehouse_sk   = w_warehouse_sk
+ and cs_ship_mode_sk   = sm_ship_mode_sk
+ and cs_call_center_sk = cc_call_center_sk
+ group by
+    substr(w_warehouse_name,1,20), sm_type, cc_name
+ order by substr(w_warehouse_name,1,20), sm_type, cc_name
+ limit 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [substring(w_warehouse_name, 1, 20)#14242 ASC, sm_type#690 ASC, cc_name#352 ASC], true
+      +- Aggregate [substring(w_warehouse_name#786, 1, 20), sm_type#690, cc_name#352], [substring(w_warehouse_name#786, 1, 20) AS substring(w_warehouse_name, 1, 20)#14242, sm_type#690, cc_name#352, sum(cast(CASE WHEN ((cs_ship_date_sk#2 - cs_sold_date_sk#0) <= 30) THEN 1 ELSE 0 END as bigint)) AS 30 days#14215L, sum(cast(CASE WHEN (((cs_ship_date_sk#2 - cs_sold_date_sk#0) > 30) && ((cs_ship_date_sk#2 - cs_sold_date_sk#0) <= 60)) THEN 1 ELSE 0 END as bigint)) AS 31-60 days#14216L, sum(cast(CASE WHEN (((cs_ship_date_sk#2 - cs_sold_date_sk#0) > 60) && ((cs_ship_date_sk#2 - cs_sold_date_sk#0) <= 90)) THEN 1 ELSE 0 END as bigint)) AS 61-90 days#14217L, sum(cast(CASE WHEN (((cs_ship_date_sk#2 - cs_sold_date_sk#0) > 90) && ((cs_ship_date_sk#2 - cs_sold_date_sk#0) <= 120)) THEN 1 ELSE 0 END as bigint)) AS 91-120 days#14218L, sum(cast(CASE WHEN ((cs_ship_date_sk#2 - cs_sold_date_sk#0) > 120) THEN 1 ELSE 0 END as bigint)) AS >120 days#14219L]
+         +- Project [cs_sold_date_sk#0, cs_ship_date_sk#2, w_warehouse_name#786, sm_type#690, cc_name#352]
+            +- Join Inner, (cs_ship_date_sk#2 = d_date_sk#516)
+               :- Project [cs_sold_date_sk#0, cs_ship_date_sk#2, w_warehouse_name#786, sm_type#690, cc_name#352]
+               :  +- Join Inner, (cs_call_center_sk#11 = cc_call_center_sk#346)
+               :     :- Project [cs_sold_date_sk#0, cs_ship_date_sk#2, cs_call_center_sk#11, w_warehouse_name#786, sm_type#690]
+               :     :  +- Join Inner, (cs_ship_mode_sk#13 = sm_ship_mode_sk#688)
+               :     :     :- Project [cs_sold_date_sk#0, cs_ship_date_sk#2, cs_call_center_sk#11, cs_ship_mode_sk#13, w_warehouse_name#786]
+               :     :     :  +- Join Inner, (cs_warehouse_sk#14 = w_warehouse_sk#784)
+               :     :     :     :- Project [cs_sold_date_sk#0, cs_ship_date_sk#2, cs_call_center_sk#11, cs_ship_mode_sk#13, cs_warehouse_sk#14]
+               :     :     :     :  +- Filter (((isnotnull(cs_warehouse_sk#14) && isnotnull(cs_ship_mode_sk#13)) && isnotnull(cs_call_center_sk#11)) && isnotnull(cs_ship_date_sk#2))
+               :     :     :     :     +- Relation[cs_sold_date_sk#0,cs_sold_time_sk#1,cs_ship_date_sk#2,cs_bill_customer_sk#3,cs_bill_cdemo_sk#4,cs_bill_hdemo_sk#5,cs_bill_addr_sk#6,cs_ship_customer_sk#7,cs_ship_cdemo_sk#8,cs_ship_hdemo_sk#9,cs_ship_addr_sk#10,cs_call_center_sk#11,cs_catalog_page_sk#12,cs_ship_mode_sk#13,cs_warehouse_sk#14,cs_item_sk#15,cs_promo_sk#16,cs_order_number#17,cs_quantity#18,cs_wholesale_cost#19,cs_list_price#20,cs_sales_price#21,cs_ext_discount_amt#22,cs_ext_sales_price#23,... 10 more fields] csv
+               :     :     :     +- Project [w_warehouse_sk#784, w_warehouse_name#786]
+               :     :     :        +- Filter isnotnull(w_warehouse_sk#784)
+               :     :     :           +- Relation[w_warehouse_sk#784,w_warehouse_id#785,w_warehouse_name#786,w_warehouse_sq_ft#787,w_street_number#788,w_street_name#789,w_street_type#790,w_suite_number#791,w_city#792,w_county#793,w_state#794,w_zip#795,w_country#796,w_gmt_offset#797] csv
+               :     :     +- Project [sm_ship_mode_sk#688, sm_type#690]
+               :     :        +- Filter isnotnull(sm_ship_mode_sk#688)
+               :     :           +- Relation[sm_ship_mode_sk#688,sm_ship_mode_id#689,sm_type#690,sm_code#691,sm_carrier#692,sm_contract#693] csv
+               :     +- Project [cc_call_center_sk#346, cc_name#352]
+               :        +- Filter isnotnull(cc_call_center_sk#346)
+               :           +- Relation[cc_call_center_sk#346,cc_call_center_id#347,cc_rec_start_date#348,cc_rec_end_date#349,cc_closed_date_sk#350,cc_open_date_sk#351,cc_name#352,cc_class#353,cc_employees#354,cc_sq_ft#355,cc_hours#356,cc_manager#357,cc_mkt_id#358,cc_mkt_class#359,cc_mkt_desc#360,cc_market_manager#361,cc_division#362,cc_division_name#363,cc_company#364,cc_company_name#365,cc_street_number#366,cc_street_name#367,cc_street_type#368,cc_suite_number#369,... 7 more fields] csv
+               +- Project [d_date_sk#516]
+                  +- Filter (((isnotnull(d_month_seq#519) && (d_month_seq#519 >= 1200)) && (d_month_seq#519 <= 1211)) && isnotnull(d_date_sk#516))
+                     +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+
+[GlobalLimit [LocalLimit [Sort [Aggregate [Project [Join [Project [Join [Project [Join [Project [Join [Project [Filter part-r-00032-490f8c91-8584-41bf-b70a-e39a875bcca3.csv]] [Project [Filter part-r-00000-3454e38a-cc72-429a-b5d5-ca630f0d92a2.csv]]]] [Project [Filter part-r-00000-29e10caf-3490-404d-b02a-c59304c435d0.csv]]]] [Project [Filter part-r-00000-02ccee43-8f02-4dd3-98b2-415d37ccaab3.csv]]]] [Project [Filter part-r-00000-2cc22de8-c7f1-4d59-bf15-83ab7550d974.csv]]]]]]]]

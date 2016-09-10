@@ -1,0 +1,97 @@
+
+ with year_total as (
+ select c_customer_id customer_id
+       ,c_first_name customer_first_name
+       ,c_last_name customer_last_name
+       ,c_preferred_cust_flag customer_preferred_cust_flag
+       ,c_birth_country customer_birth_country
+       ,c_login customer_login
+       ,c_email_address customer_email_address
+       ,d_year dyear
+       ,sum(ss_ext_list_price-ss_ext_discount_amt) year_total
+       ,'s' sale_type
+ from customer, store_sales, date_dim
+ where c_customer_sk = ss_customer_sk
+   and ss_sold_date_sk = d_date_sk
+ group by c_customer_id
+         ,c_first_name
+         ,c_last_name
+         ,d_year
+         ,c_preferred_cust_flag
+         ,c_birth_country
+         ,c_login
+         ,c_email_address
+         ,d_year
+ union all
+ select c_customer_id customer_id
+       ,c_first_name customer_first_name
+       ,c_last_name customer_last_name
+       ,c_preferred_cust_flag customer_preferred_cust_flag
+       ,c_birth_country customer_birth_country
+       ,c_login customer_login
+       ,c_email_address customer_email_address
+       ,d_year dyear
+       ,sum(ws_ext_list_price-ws_ext_discount_amt) year_total
+       ,'w' sale_type
+ from customer, web_sales, date_dim
+ where c_customer_sk = ws_bill_customer_sk
+   and ws_sold_date_sk = d_date_sk
+ group by
+    c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country,
+    c_login, c_email_address, d_year)
+ select
+    t_s_secyear.customer_preferred_cust_flag
+ from year_total t_s_firstyear
+     ,year_total t_s_secyear
+     ,year_total t_w_firstyear
+     ,year_total t_w_secyear
+ where t_s_secyear.customer_id = t_s_firstyear.customer_id
+         and t_s_firstyear.customer_id = t_w_secyear.customer_id
+         and t_s_firstyear.customer_id = t_w_firstyear.customer_id
+         and t_s_firstyear.sale_type = 's'
+         and t_w_firstyear.sale_type = 'w'
+         and t_s_secyear.sale_type = 's'
+         and t_w_secyear.sale_type = 'w'
+         and t_s_firstyear.dyear = 2001
+         and t_s_secyear.dyear = 2001+1
+         and t_w_firstyear.dyear = 2001
+         and t_w_secyear.dyear = 2001+1
+         and t_s_firstyear.year_total > 0
+         and t_w_firstyear.year_total > 0
+         and case when t_w_firstyear.year_total > 0 then t_w_secyear.year_total / t_w_firstyear.year_total else null end
+             > case when t_s_firstyear.year_total > 0 then t_s_secyear.year_total / t_s_firstyear.year_total else null end
+ order by t_s_secyear.customer_preferred_cust_flag
+ LIMIT 100
+            
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [customer_preferred_cust_flag#1687 ASC], true
+      +- Project [customer_preferred_cust_flag#1687]
+         +- Join Inner, ((customer_id#1617 = customer_id#1704) && (CASE WHEN (year_total#1702 > 0.00) THEN CheckOverflow((year_total#1712 / year_total#1702), DecimalType(38,20)) ELSE null END > CASE WHEN (year_total#1625 > 0.00) THEN CheckOverflow((year_total#1692 / year_total#1625), DecimalType(38,20)) ELSE null END))
+            :- Project [customer_id#1617, year_total#1625, customer_preferred_cust_flag#1687, year_total#1692, year_total#1702]
+            :  +- Join Inner, (customer_id#1617 = customer_id#1694)
+            :     :- Project [customer_id#1617, year_total#1625, customer_preferred_cust_flag#1687, year_total#1692]
+            :     :  +- Join Inner, (customer_id#1684 = customer_id#1617)
+            :     :     :- Union
+            :     :     :  :- Filter (isnotnull(year_total#1625) && (year_total#1625 > 0.00))
+            :     :     :  :  +- Aggregate [c_customer_id#431, c_first_name#438, c_last_name#439, d_year#522, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446], [c_customer_id#431 AS customer_id#1617, MakeDecimal(sum(UnscaledValue(CheckOverflow((cast(ss_ext_list_price#153 as decimal(8,2)) - cast(ss_ext_discount_amt#150 as decimal(8,2))), DecimalType(8,2)))),18,2) AS year_total#1625]
+            :     :     :  :     +- Project [c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446, ss_ext_discount_amt#150, ss_ext_list_price#153, d_year#522]
+            :     :     :  :        +- Join Inner, (ss_sold_date_sk#136 = d_date_sk#516)
+            :     :     :  :           :- Project [c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446, ss_sold_date_sk#136, ss_ext_discount_amt#150, ss_ext_list_price#153]
+            :     :     :  :           :  +- Join Inner, (c_customer_sk#430 = ss_customer_sk#139)
+            :     :     :  :           :     :- Project [c_customer_sk#430, c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446]
+            :     :     :  :           :     :  +- Filter (isnotnull(c_customer_sk#430) && isnotnull(c_customer_id#431))
+            :     :     :  :           :     :     +- Relation[c_customer_sk#430,c_customer_id#431,c_current_cdemo_sk#432,c_current_hdemo_sk#433,c_current_addr_sk#434,c_first_shipto_date_sk#435,c_first_sales_date_sk#436,c_salutation#437,c_first_name#438,c_last_name#439,c_preferred_cust_flag#440,c_birth_day#441,c_birth_month#442,c_birth_year#443,c_birth_country#444,c_login#445,c_email_address#446,c_last_review_date#447] csv
+            :     :     :  :           :     +- Project [ss_sold_date_sk#136, ss_customer_sk#139, ss_ext_discount_amt#150, ss_ext_list_price#153]
+            :     :     :  :           :        +- Filter (isnotnull(ss_customer_sk#139) && isnotnull(ss_sold_date_sk#136))
+            :     :     :  :           :           +- Relation[ss_sold_date_sk#136,ss_sold_time_sk#137,ss_item_sk#138,ss_customer_sk#139,ss_cdemo_sk#140,ss_hdemo_sk#141,ss_addr_sk#142,ss_store_sk#143,ss_promo_sk#144,ss_ticket_number#145,ss_quantity#146,ss_wholesale_cost#147,ss_list_price#148,ss_sales_price#149,ss_ext_discount_amt#150,ss_ext_sales_price#151,ss_ext_wholesale_cost#152,ss_ext_list_price#153,ss_ext_tax#154,ss_coupon_amt#155,ss_net_paid#156,ss_net_paid_inc_tax#157,ss_net_profit#158] csv
+            :     :     :  :           +- Project [d_date_sk#516, d_year#522]
+            :     :     :  :              +- Filter ((isnotnull(d_year#522) && (d_year#522 = 2001)) && isnotnull(d_date_sk#516))
+            :     :     :  :                 +- Relation[d_date_sk#516,d_date_id#517,d_date#518,d_month_seq#519,d_week_seq#520,d_quarter_seq#521,d_year#522,d_dow#523,d_moy#524,d_dom#525,d_qoy#526,d_fy_year#527,d_fy_quarter_seq#528,d_fy_week_seq#529,d_day_name#530,d_quarter_name#531,d_holiday#532,d_weekend#533,d_following_holiday#534,d_first_dom#535,d_last_dom#536,d_same_day_ly#537,d_same_day_lq#538,d_current_day#539,... 4 more fields] csv
+            :     :     :  +- Filter (isnotnull(year_total#1635) && (year_total#1635 > 0.00))
+            :     :     :     +- Aggregate [c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446, d_year#522], [c_customer_id#431 AS customer_id#1627, MakeDecimal(sum(UnscaledValue(CheckOverflow((cast(ws_ext_list_price#251 as decimal(8,2)) - cast(ws_ext_discount_amt#248 as decimal(8,2))), DecimalType(8,2)))),18,2) AS year_total#1635]
+            :     :     :        +- Project [c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446, ws_ext_discount_amt#248, ws_ext_list_price#251, d_year#522]
+            :     :     :           +- Filter isnotnull(c_customer_id#431)
+            :     :     :              +- LocalRelation <empty>, [c_customer_id#431, c_first_name#438, c_last_name#439, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446, ws_sold_date_sk#226, ws_ext_discount_amt#248, ws_ext_list_price#251, d_date_sk#516, d_year#522]
+            :     :     +- Union
+            :     :        :- Aggregate [c_customer_id#431, c_first_name#438, c_last_name#439, d_year#522, c_preferred_cust_flag#440, c_birth_country#444, c_login#445, c_email_address#446], [c_customer_id#431 AS customer_id#1684, c_preferred_cust_flag#440 AS customer_pr
