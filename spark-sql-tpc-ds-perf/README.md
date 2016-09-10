@@ -10,7 +10,7 @@
 
 ### GenApp: 
 Application to generate the dataset for the benchmark
-- arguments: <inputPath> <outputPath> <scaleFactor> <format> <dsdgenDir>
+- arguments: <master> <outputPath> <scaleFactor> <format> <dsdgenDir>
     + master: {local, cluster}
     + outputPath: where to save the generated data
     + scaleFactor: number of GB of data to be generated, eg: 10, 100, ...
