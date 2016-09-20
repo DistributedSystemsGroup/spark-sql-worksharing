@@ -13,7 +13,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object AppTmp2 {
   def main(args: Array[String]): Unit = {
-    if(args.length != 5){
+    if(args.length != 6){
       System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode>")
       System.exit(0)
     }
