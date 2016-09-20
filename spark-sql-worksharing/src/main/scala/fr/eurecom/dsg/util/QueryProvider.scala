@@ -432,7 +432,7 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
     "web_page" -> StructType(Seq(
       'wp_web_page_sk           .int,
       'wp_web_page_id           .string,
-      'wp_rec_start_date        .date,
+      'wp_rec_start_date        .string, // to string
       'wp_rec_end_date          .string, // to string
       'wp_creation_date_sk      .int,
       'wp_access_date_sk        .int,

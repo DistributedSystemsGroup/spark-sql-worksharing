@@ -447,7 +447,7 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
     "web_site" -> StructType(Seq(
       'web_site_sk              .int,
       'web_site_id              .string,
-      'web_rec_start_date       .date,
+      'web_rec_start_date       .string, // to string
       'web_rec_end_date         .string, // to string
       'web_name                 .string,
       'web_open_date_sk         .int,
