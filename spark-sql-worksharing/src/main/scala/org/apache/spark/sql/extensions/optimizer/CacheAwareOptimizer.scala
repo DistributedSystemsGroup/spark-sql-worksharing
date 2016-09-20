@@ -4,9 +4,9 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.cost.CostConstants
-import fr.eurecom.dsg.optimizer.{SimpleMCKPSolver, KnapsackItem, CEContainer, KnapsackClass}
+import fr.eurecom.dsg.optimizer.{CEContainer, ItemClass, ItemImpl, MCKnapsackSolverTmp}
 import fr.eurecom.dsg.util.SparkSQLServerLogging
-import nw.fr.eurecom.dsg.optimizer.{DFSVisitor}
+import nw.fr.eurecom.dsg.optimizer.DFSVisitor
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -39,6 +39,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * @return the best (globally optimized) StrategyGenerator to be executed
     */
   def optimizePlans(inPlans:Array[LogicalPlan]):StrategyGenerator={
+    val beginning = System.nanoTime()
 
     val outputPlans = new Array[LogicalPlan](inPlans.length)
     inPlans.copyToArray(outputPlans)
@@ -69,14 +70,17 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       }
     }
 
+    logInfo("Until step 0 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+
     // ==============================================================
     // Step 1: Identifying all common subexpressions
     // ==============================================================
     logInfo("========================================================")
     logInfo("Step 1: Identifying all SEs")
     val SEsMap = identifySEs(outputPlans)
-    // SEs are grouped by their table signature
+    // SEs are grouped by their signature
     // HashMap<SESignature, ArrayBuffer<(SE, ConsumerQueryIndex)>>
+    logInfo("Until step 1 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
 
     // ==============================================================
     // Step 2: Build CEs from the SEs
@@ -88,23 +92,28 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // producer - consumer relationship
 
     // log how many CEs were built
-    println("%d CEs were built".format(CEContainers.length))
+    logInfo("%d CEs were built".format(CEContainers.length))
 
     // now put in into classes and knapsack solver
-    val knapsackClasses:Array[KnapsackClass] = classifyCEs(CEContainers)
+    val itemClassesForMCKP:Array[ItemClass] = classifyCEs(CEContainers)
 
     // log how many classes?
-    println("Classes for the MCKP")
-    knapsackClasses.foreach(c =>{
-      println("class i has %d items".format(c.items.length))
+    logInfo("Classes for the MCKP")
+    itemClassesForMCKP.foreach(c =>{
+      logInfo("class i has %d items".format(c.items.length))
     })
 
-    val selectedItems = SimpleMCKPSolver.optimize(knapsackClasses, CostConstants.MAX_CACHE_SIZE)
-    val selectedCEs = selectedItems.flatMap(kitem => kitem.content.asInstanceOf[ArrayBuffer[CEContainer]])
+    logInfo("Until step 2.0 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+
+    val selectedItems = MCKnapsackSolverTmp.solve(CostConstants.MAX_CACHE_SIZE_GB, itemClassesForMCKP)
+    val selectedCEs = selectedItems.flatMap(kitem => kitem.asInstanceOf[ItemImpl].tag.asInstanceOf[ArrayBuffer[CEContainer]])
 
     // log selected items
-    println("%d CEs were finally selected as cache plans".format(selectedCEs.length))
-    selectedCEs.foreach(ce => println(ce.CE))
+    logInfo("%d CEs were finally selected as cache plans".format(selectedCEs.length))
+    selectedCEs.foreach(ce => logInfo(ce.CE.toString()))
+
+    logInfo("Until step 2.5 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+
 
     // ==============================================================
     // Step 3: Strategy Generation
@@ -177,6 +186,8 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     val nPlans = trees.length
 
     logInfo("Input of %d plans".format(nPlans))
+    trees.foreach(p => logInfo(p.toString()))
+
 
     // - `Key`: fingerprint/ signature
     // - `Value`: a set of (logical operator, consumer index)
@@ -246,10 +257,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
     // Keep only those keys that have the length(value) >= 2 (common subtrees)
     val groupedSEs = fingerPrintMap.filter(KVPair => KVPair._2.size >= 2)
-    println("Found %d group(s) of SEs".format(groupedSEs.size))
+    logInfo("Found %d group(s) of SEs".format(groupedSEs.size))
     groupedSEs.foreach(element => {
-      println("fingerprint: %d, %d consumers".format(element._1, element._2.length))
-      element._2.foreach(e => println(e._1.toString()))
+      logInfo("fingerprint: %d, %d consumers".format(element._1, element._2.length))
+      element._2.foreach(e => logInfo(e._1.toString()))
     })
 
     groupedSEs
@@ -364,20 +375,20 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * @param CEContainers
     * @return
     */
-  private def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[KnapsackClass] = {
-    val res = new ArrayBuffer[KnapsackClass]()
+  private def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
+    val res = new ArrayBuffer[ItemClass]()
 
     val ces = CEContainers.map(x => (x, x.SEs.map(se => se._2).toList))
 
     while(!ces.isEmpty){
-      val c = new KnapsackClass()
+      val itemClass = new ItemClass()
       val isolatedList = new ArrayBuffer[CEContainer]()
-      val highest = ces(0)
-      isolatedList.append(highest._1)
+      val firstCE = ces(0)
+      isolatedList.append(firstCE._1)
       ces.remove(0)
       var i = 0
       while(i < ces.length){
-        if(highest._2.intersect(ces(i)._2).nonEmpty){
+        if(firstCE._2.intersect(ces(i)._2).nonEmpty){
           isolatedList.append(ces(i)._1)
           ces.remove(i)
         }
@@ -389,11 +400,8 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
         val S = s.toList
         if(S.length > 0){
           if(S.length == 1){
-            val item = new KnapsackItem()
-            item.profit = s.head.profit
-            item.weight = s.head.weight
-            item.content.append(s.head)
-            c.addItem(item)
+            val item = new ItemImpl(s.head.profit, s.head.weight, ArrayBuffer(s.head))
+            itemClass.addItem(item)
           }else{
             var keep = true
             for(i <- 0 until S.size)
@@ -406,19 +414,22 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
                 }
               }
             if(keep){
-              val item = new KnapsackItem()
+              var profit:Double = 0
+              var weight:Double = 0
+              val tag = new ArrayBuffer[CEContainer]()
+
               for(i<- 0 until S.size){
-                item.profit = item.profit + S(i).profit
-                item.weight = item.weight+ S(i).weight
-                item.content.append(S(i))
+                profit += S(i).profit
+                weight += S(i).weight
+                tag.append(S(i))
               }
-              c.addItem(item)
+              itemClass.addItem(new ItemImpl(profit, weight, tag))
             }
           }
         }
       })
 
-      res.append(c)
+      res.append(itemClass)
     }
 
     res.toArray

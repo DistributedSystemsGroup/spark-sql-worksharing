@@ -72,12 +72,12 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
 
         val filteredSEs = SEs.zipWithIndex.filter {
           case ((p: LogicalPlan, id: Int), i: Int) => {
-            if (estimates(i).getOutputSize <= CostConstants.MAX_CACHE_SIZE){
+            if (estimates(i).getOutputSizeGB <= CostConstants.MAX_CACHE_SIZE_GB){
               executionCostWithoutOpt += estimates(i).getExecutionCost
               true
             }
             else {
-              println("Removed SE due to big output: " + estimates(i).getOutputSize)
+              println("Removed SE due to big output: " + estimates(i).getOutputSizeGB)
               println(p)
               false
             }
@@ -95,7 +95,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           val executionCostWithOpt = executingCECost + materializingCost + retrievingCost + COMPCosts
           val profit = executionCostWithoutOpt - executionCostWithOpt
           if(profit > 0){
-            val weight = ceEstimate.getOutputSize
+            val weight = ceEstimate.getOutputSizeGB
             res.append(new CEContainer(ce, filteredSEs, profit, weight))
             println("built a CE " + ce)
             println("profit = " + profit)

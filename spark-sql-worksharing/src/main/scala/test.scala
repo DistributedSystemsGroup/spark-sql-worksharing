@@ -10,7 +10,6 @@ import scala.concurrent.Await
 
 object test {
   def main(args: Array[String]) {
-
     val mailer = Mailer("smtp.gmail.com", 25)
       .auth(true)
       .as("khoa.mailer@gmail.com", "abcxyz1234")

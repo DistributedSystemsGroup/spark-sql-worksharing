@@ -14,7 +14,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 object AppTmp2 {
   def main(args: Array[String]): Unit = {
     if(args.length != 5){
-      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile>")
+      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode>")
       System.exit(0)
     }
 
@@ -23,6 +23,7 @@ object AppTmp2 {
     val outputDir = args(2)
     val format = args(3)
     val statFile = args(4)
+    val mode = args(5)
 
     val conf = new SparkConf().setAppName(this.getClass.toString)
     if(master.toLowerCase == "local")
@@ -73,6 +74,8 @@ object AppTmp2 {
     // can be fixed
     val startWith = Array("q91")
 
+    val failedOurOptimization = Array("q10") // q10 changed physical execution strategy
+
     println(tpcds.tpcds1_4Queries.length)
 
     val runableQueries = tpcds.tpcds1_4Queries.filter(q => !isNotParsedAble.contains(q._1)
@@ -88,16 +91,23 @@ object AppTmp2 {
       && !weird.contains(q._1)
       && !stupid.contains(q._1)
       && !startWith.contains(q._1)
+      && !failedOurOptimization.contains(q._1)
     )
     println("#runable queries: " + runableQueries.length)
-    println("queries: " + runableQueries.take(5).map(_._1).mkString(" "))
 
-    //QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(5).map(x => queryProvider.getDF(x._2)), outputDir)
+    val nQueries = 1
 
-    //QueryExecutor.executeSequential(sqlc, runableQueries.take(5).map(x => queryProvider.getDF(x._2)), outputDir)
+    println("queries to run: " + runableQueries.take(nQueries).map(_._1).mkString(" "))
+
+    mode match{
+      case "opt" => QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+      case "wopt" => QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+    }
 
 
-
+//    while(true){
+//
+//    }
 
     sc.stop()
 

@@ -11,7 +11,7 @@ object QueryExecutor{
   }
 
   def executeSequential(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
-    dfs.zipWithIndex.foreach{case(df,i) => df.write.format("csv").option("header", "true").save(outputPath + "_sequential_" + i.toString)}
+    dfs.zipWithIndex.foreach{case(df,i) => df.write.format("csv").option("header", "true").save(outputPath + "/_sequential_" + i.toString)}
   }
 
   def executeWorkSharing(sqlContext:SQLContext, dfs:Seq[DataFrame], outputPath:String)={
@@ -25,6 +25,6 @@ object QueryExecutor{
 
     df.indices.foreach(i => df(i).write.format("csv")
       .option("header", "true")
-      .save(outputPath + "_worksharing_" + i.toString))
+      .save(outputPath + "/_worksharing_" + i.toString))
   }
 }

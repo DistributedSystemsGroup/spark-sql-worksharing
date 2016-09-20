@@ -25,6 +25,7 @@ class Estimate(
 
   def addOutputSize(nBytes:Long) { outputSize += nBytes }
   def getOutputSize = outputSize
+  def getOutputSizeGB = outputSize / 1e9
   def setOutputSize(nBytes:Long) { outputSize = nBytes }
 
   def addNetworkCost(amount:Double) { networkCost += amount }
