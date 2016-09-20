@@ -32,7 +32,7 @@ object ComputeStatsApp {
     //val tables = Tables.getSomeTables()
 
     // QueryProvider will register your tables to the catalog system, so that your queries can be parsed and understood
-    //val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
+    val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
     //val stats = new StatisticsProvider()
     // We have 2 options:
     // - collect (compute) stats. You can save the result to a json file
