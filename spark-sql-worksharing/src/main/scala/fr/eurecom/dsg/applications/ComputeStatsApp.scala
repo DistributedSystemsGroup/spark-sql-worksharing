@@ -32,17 +32,17 @@ object ComputeStatsApp {
     //val tables = Tables.getSomeTables()
 
     // QueryProvider will register your tables to the catalog system, so that your queries can be parsed and understood
-    val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
-    val stats = new StatisticsProvider()
+    //val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
+    //val stats = new StatisticsProvider()
     // We have 2 options:
     // - collect (compute) stats. You can save the result to a json file
     // - read from a json file where stats are pre-computed and written back to
 
-    stats.collect(tables, queryProvider = queryProvider)
+    //stats.collect(tables, queryProvider = queryProvider)
 
-    stats.saveToFile(savePath)
+    //stats.saveToFile(savePath)
 
-    val newStats = stats.readFromFile(savePath)
+    //val newStats = stats.readFromFile(savePath)
     sc.stop()
 
 //    while(true){
