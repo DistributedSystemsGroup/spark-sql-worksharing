@@ -1,7 +1,7 @@
 package fr.eurecom.dsg.applications
 
 import fr.eurecom.dsg.statistics.StatisticsProvider
-import fr.eurecom.dsg.util.{tpcds, Tables, QueryExecutor, QueryProvider}
+import fr.eurecom.dsg.util._
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.extensions.cost.CostEstimator
 import org.apache.spark.{SparkConf, SparkContext}
@@ -26,7 +26,7 @@ object AppTmp2 {
     val mode = args(5)
     val nQueries = args(6).toInt
 
-    val conf = new SparkConf().setAppName("%s %s %s %s %s".format(this.getClass.getName, inputDir , format, mode, nQueries))
+    val conf = new SparkConf().setAppName("%s %s %s %s %s".format(this.getClass.getSimpleName, inputDir , format, mode, nQueries))
     if(master.toLowerCase == "local")
       conf.setMaster("local[2]")
 
@@ -100,7 +100,12 @@ object AppTmp2 {
 
     mode match{
       case "opt" => QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
-      case "wopt" => QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+      case "wopt" => {
+        QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+        Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
+        Thread.sleep(120000) // sleep for 2 mins, so that I can check how much memory has been cached
+      }
+
     }
 
 
