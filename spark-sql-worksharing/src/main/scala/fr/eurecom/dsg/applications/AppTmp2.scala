@@ -99,12 +99,12 @@ object AppTmp2 {
     println("queries to run: " + runableQueries.take(nQueries).map(_._1).mkString(" "))
 
     mode match{
-      case "opt" => QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
-      case "wopt" => {
-        QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+      case "opt" => {
+        QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
         Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
         Thread.sleep(120000) // sleep for 2 mins, so that I can check how much memory has been cached
       }
+      case "wopt" => QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
 
     }
 
