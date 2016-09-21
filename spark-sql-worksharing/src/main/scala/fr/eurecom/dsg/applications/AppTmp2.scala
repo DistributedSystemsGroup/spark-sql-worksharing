@@ -26,7 +26,7 @@ object AppTmp2 {
     val mode = args(5)
     val nQueries = args(6).toInt
 
-    val conf = new SparkConf().setAppName("%s %s %s %s".format(this.getClass.getName, inputDir , format, mode))
+    val conf = new SparkConf().setAppName("%s %s %s %s %s".format(this.getClass.getName, inputDir , format, mode, nQueries))
     if(master.toLowerCase == "local")
       conf.setMaster("local[2]")
 
