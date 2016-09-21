@@ -362,6 +362,9 @@ object CostEstimator extends SparkSQLServerLogging {
         estimatedResult.add(costLeftChild)
         estimatedResult.add(costRightChild)
 
+        logInfo("Left #recs: " + costLeftChild.getNumRecOutput)
+        logInfo("Right #recs: " + costRightChild.getNumRecOutput)
+
         // add network cost
         if (costLeftChild.getNumRecOutput < costRightChild.getNumRecOutput){
           estimatedResult.addNetworkCost(costLeftChild.getNumRecOutput * CostConstants.COST_NETWORK)
