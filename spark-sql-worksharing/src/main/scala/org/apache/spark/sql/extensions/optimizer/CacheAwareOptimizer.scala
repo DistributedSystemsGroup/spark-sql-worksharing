@@ -4,7 +4,7 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.cost.CostConstants
-import fr.eurecom.dsg.optimizer.{CEContainer, ItemClass, ItemImpl, MCKnapsackSolverTmp}
+import fr.eurecom.dsg.optimizer.{CEContainer, ItemClass, ItemImpl, MCKnapsackSolverDynamicProgramming}
 import fr.eurecom.dsg.util.SparkSQLServerLogging
 import nw.fr.eurecom.dsg.optimizer.DFSVisitor
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
@@ -105,7 +105,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
     logInfo("Until step 2.0 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
 
-    val selectedItems = MCKnapsackSolverTmp.solve(CostConstants.MAX_CACHE_SIZE_GB, itemClassesForMCKP)
+    val selectedItems = MCKnapsackSolverDynamicProgramming.solve(CostConstants.MAX_CACHE_SIZE_GB, itemClassesForMCKP)
     val selectedCEs = selectedItems.flatMap(kitem => kitem.asInstanceOf[ItemImpl].tag.asInstanceOf[ArrayBuffer[CEContainer]])
 
     // log selected items
