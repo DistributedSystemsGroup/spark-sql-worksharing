@@ -13,8 +13,8 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object AppTmp2 {
   def main(args: Array[String]): Unit = {
-    if(args.length != 6){
-      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode>")
+    if(args.length != 7){
+      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries>")
       System.exit(0)
     }
 
@@ -24,8 +24,9 @@ object AppTmp2 {
     val format = args(3)
     val statFile = args(4)
     val mode = args(5)
+    val nQueries = args(6).toInt
 
-    val conf = new SparkConf().setAppName(this.getClass.toString)
+    val conf = new SparkConf().setAppName("%s %s %s %s".format(this.getClass.getName, inputDir , format, mode))
     if(master.toLowerCase == "local")
       conf.setMaster("local[2]")
 
@@ -94,8 +95,6 @@ object AppTmp2 {
       && !failedOurOptimization.contains(q._1)
     )
     println("#runable queries: " + runableQueries.length)
-
-    val nQueries = 1
 
     println("queries to run: " + runableQueries.take(nQueries).map(_._1).mkString(" "))
 

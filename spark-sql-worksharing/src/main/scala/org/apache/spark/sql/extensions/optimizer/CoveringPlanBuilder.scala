@@ -47,8 +47,8 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
       val estimates = SEs.map(p => CostEstimator.estimateCost(p._1))
 
       for (i <- 0 until (nConsumers)) {
-        println(SEs(i))
-        println(estimates(i))
+        logInfo("\n" + SEs(i).toString())
+        logInfo(estimates(i).toString())
       }
 
       // compute total execution cost for this group of SEs
@@ -61,10 +61,10 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           + CostEstimator.estimateMaterializingCost(minEstimate.getOutputSize)
           + CostEstimator.estimateRetrievingCost(minEstimate.getOutputSize) * nConsumers)
 
-      println("Maximum savving = %s".format(maximumSaving))
+      logInfo("Maximum saving = %s".format(maximumSaving))
 
       if (maximumSaving < CostConstants.MIN_SAVING) {
-        println("pruned this whole group of SEs: " + groupI)
+        logInfo("pruned this whole group of SEs: " + groupI)
         // dont share this group of SE (dont build a CE for this group)
       } else {
         // Prune SEs having big output
@@ -77,8 +77,8 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
               true
             }
             else {
-              println("Removed SE due to big output: " + estimates(i).getOutputSizeGB)
-              println(p)
+              logInfo("Removed SE due to big output: " + estimates(i).getOutputSizeGB)
+              logInfo("\n" + p.toString())
               false
             }
           }
@@ -97,16 +97,16 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           if(profit > 0){
             val weight = ceEstimate.getOutputSizeGB
             res.append(new CEContainer(ce, filteredSEs, profit, weight))
-            println("built a CE " + ce)
-            println("profit = " + profit)
-            println("weight = " + weight)
+            logInfo("built a CE:\n" + ce)
+            logInfo("profit = " + profit)
+            logInfo("weight = " + weight)
           }
           else{
-            println("warning, profit < 0")
+            logInfo("warning, profit < 0")
           }
         }
         else{
-          println("removed group due to there is less than 2 consumers")
+          logInfo("removed group due to there is less than 2 consumers")
         }
       }
     })

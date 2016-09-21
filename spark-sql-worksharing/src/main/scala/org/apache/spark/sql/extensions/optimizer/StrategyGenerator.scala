@@ -12,7 +12,6 @@ class StrategyGenerator(inPlans: Array[LogicalPlan], val CEs: Array[CEContainer]
 
   def getProfit(): Double = CEs.map(ce => ce.profit).sum
 
-
   def get():Strategy = {
     val rewrittenPlans = new Array[LogicalPlan](inPlans.length)
     inPlans.copyToArray(rewrittenPlans)

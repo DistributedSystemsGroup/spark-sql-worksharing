@@ -110,7 +110,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
     // log selected items
     logInfo("%d CEs were finally selected as cache plans".format(selectedCEs.length))
-    selectedCEs.foreach(ce => logInfo(ce.CE.toString()))
+    selectedCEs.foreach(ce => logInfo("\n" + ce.CE.toString()))
 
     logInfo("Until step 2.5 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
 
@@ -186,7 +186,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     val nPlans = trees.length
 
     logInfo("Input of %d plans".format(nPlans))
-    trees.foreach(p => logInfo(p.toString()))
+    trees.foreach(p => logInfo("\n" + p.toString()))
 
 
     // - `Key`: fingerprint/ signature
@@ -260,7 +260,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     logInfo("Found %d group(s) of SEs".format(groupedSEs.size))
     groupedSEs.foreach(element => {
       logInfo("fingerprint: %d, %d consumers".format(element._1, element._2.length))
-      element._2.foreach(e => logInfo(e._1.toString()))
+      element._2.foreach(e => logInfo("\n" + e._1.toString()))
     })
 
     groupedSEs

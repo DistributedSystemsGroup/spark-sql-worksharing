@@ -8,12 +8,13 @@ class Strategy(inPlans:Array[LogicalPlan], cachePlans:Array[LogicalPlan]) extend
   def execute(sQLContext: SQLContext):Array[DataFrame]={
     cachePlans.foreach(p =>{
       Dataset.ofRows(sQLContext.sparkSession, p).cache()
-      logInfo("Registered a cache plan: %s".format(p))
+      logInfo("Registered a cache plan:\n %s".format(p))
     })
-    inPlans.map(p => {
-      println(p)
-      Dataset.ofRows(sQLContext.sparkSession, p)
 
+    logInfo("Re-written plans:")
+    inPlans.map(p => {
+      logInfo("\n" + p.toString())
+      Dataset.ofRows(sQLContext.sparkSession, p)
     })
   }
 
