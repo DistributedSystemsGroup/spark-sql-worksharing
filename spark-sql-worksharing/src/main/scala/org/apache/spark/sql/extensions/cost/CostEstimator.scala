@@ -362,14 +362,15 @@ object CostEstimator extends SparkSQLServerLogging {
         estimatedResult.add(costLeftChild)
         estimatedResult.add(costRightChild)
 
-        // add cpu cost
-        estimatedResult.addCPUCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
-
         // add network cost
-        if (costLeftChild.getNumRecOutput < costRightChild.getNumRecOutput)
+        if (costLeftChild.getNumRecOutput < costRightChild.getNumRecOutput){
           estimatedResult.addNetworkCost(costLeftChild.getNumRecOutput * CostConstants.COST_NETWORK)
-        else
+          estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
+        }
+        else{
           estimatedResult.addNetworkCost(costRightChild.getNumRecOutput * CostConstants.COST_NETWORK)
+          estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
+        }
 
         b match {
           case j@Join(left, right, joinType, condition) =>
