@@ -65,7 +65,7 @@ object AppTmp2 {
     // (ok to use the default, remove the exception)
     val subString = Array("q8") //q8: substring(ca_zip#477, 1, 5) EqualTo 56910
 
-    val leftsemijoin = Array("q14a")
+    val leftsemijoin = Array("q14a", "q10")
 
     // can be fixed
     val join2Conditions = Array("q24b", "q49", "q64")
@@ -75,7 +75,7 @@ object AppTmp2 {
     // can be fixed
     val startWith = Array("q91")
 
-    val failedOurOptimization = Array("q24a", "q23b", "q78") // TODO: q10 changed physical execution strategy
+    val failedOurOptimization = Array("q24a", "q23b", "q78")
     // 24a: failed to run in 50 SF
     // 23b: too many shuffle, hang on the next queries
 
