@@ -395,6 +395,8 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
         else
           i += 1
       }
+      logInfo("isolated list of length %d".format(isolatedList.length))
+
       val subsets = isolatedList.toSet.subsets
       subsets.foreach(s => {
         val S = s.toList
