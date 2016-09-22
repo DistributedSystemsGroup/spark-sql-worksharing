@@ -75,9 +75,10 @@ object AppTmp2 {
     // can be fixed
     val startWith = Array("q91")
 
-    val failedOurOptimization = Array("q24a", "q23b", "q78")
+    val failedOurOptimization = Array("q24a", "q23b", "q78", "q35")
     // 24a: failed to run in 50 SF
     // 23b: too many shuffle, hang on the next queries
+    // q35: rewriting exception
 
     println(tpcds.tpcds1_4Queries.length)
 
