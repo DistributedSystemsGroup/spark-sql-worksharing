@@ -75,7 +75,8 @@ object AppTmp2 {
     // can be fixed
     val startWith = Array("q91")
 
-    val failedOurOptimization = Array("q10") // q10 changed physical execution strategy
+    val failedOurOptimization = Array("q10, q24a") // q10 changed physical execution strategy
+    // 24a: failed to run in 50 SF
 
     println(tpcds.tpcds1_4Queries.length)
 
