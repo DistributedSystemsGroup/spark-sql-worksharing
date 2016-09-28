@@ -11,5 +11,6 @@ object CostConstants {
   val DEFAULT_SELECTIVITY:Double = 0.33f
 
   val MIN_SAVING:Double = 200000f
+  val MAX_SE_OUTPUT_SIZE_GB = 5
   val MAX_CACHE_SIZE_GB:Int = 30 // 20 GB
 }

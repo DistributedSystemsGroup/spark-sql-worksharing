@@ -3,9 +3,9 @@ package org.apache.spark.sql.extensions.optimizer
 import java.math.BigInteger
 
 import fr.eurecom.dsg.cost.CostConstants
-import fr.eurecom.dsg.optimizer.{CEContainer}
+import fr.eurecom.dsg.optimizer.CEContainer
 import fr.eurecom.dsg.util.SparkSQLServerLogging
-import org.apache.spark.sql.catalyst.expressions.{NamedExpression, Or}
+import org.apache.spark.sql.catalyst.expressions.{IsNotNull, NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans.logical.{BinaryNode, Filter, LogicalPlan, Project, UnaryNode}
 import org.apache.spark.sql.extensions.cost.CostEstimator
 
@@ -72,7 +72,7 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
 
         val filteredSEs = SEs.zipWithIndex.filter {
           case ((p: LogicalPlan, id: Int), i: Int) => {
-            if (estimates(i).getOutputSizeGB <= CostConstants.MAX_CACHE_SIZE_GB){
+            if (estimates(i).getOutputSizeGB <= CostConstants.MAX_SE_OUTPUT_SIZE_GB){
               executionCostWithoutOpt += estimates(i).getExecutionCost
               true
             }
@@ -217,6 +217,8 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
           (Filter(conditionA, combinedChild), false)
         }
         else{
+          // TODO: remove duplicate filtering conditions
+
           (Filter(Or(conditionA, conditionB), combinedChild), false)
         }
       }

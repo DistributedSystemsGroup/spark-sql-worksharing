@@ -23,11 +23,11 @@ import scala.collection.mutable.ArrayBuffer
   * Phases:
   * - Detects the sharing opportunities among the queries which are called Similar sub-Expressions (SEs)
   * - Build Covering Expression (CE) candidates for each group of SEs
-  *  which then might be cached in memory to speed up the query execution. Each CE is assigned with (profit, weight)
+  * which then might be cached in memory to speed up the query execution. Each CE is assigned with (profit, weight)
   * - Solve the multiple choice knapsack problem (MCKP)
   * - Rewriting the original queries
   */
-object CacheAwareOptimizer  extends SparkSQLServerLogging{
+object CacheAwareOptimizer extends SparkSQLServerLogging {
 
   /**
     * Use the caching technique to globally optimize a given bag of (individually) optimized Logical Plans (queries).
@@ -35,10 +35,10 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     *
     * This is the main entry function of the Optimizer
     *
-    * @param inPlans: array of queries. To be exact, it is the array of (individually) Optimized LogicalPlans
+    * @param inPlans : array of queries. To be exact, it is the array of (individually) Optimized LogicalPlans
     * @return the best (globally optimized) StrategyGenerator to be executed
     */
-  def optimizePlans(inPlans:Array[LogicalPlan]):StrategyGenerator={
+  def optimizePlans(inPlans: Array[LogicalPlan]): StrategyGenerator = {
     val beginning = System.nanoTime()
 
     val outputPlans = new Array[LogicalPlan](inPlans.length)
@@ -53,8 +53,8 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     logInfo("Step 0: Pre-processing")
     val seenLogicalRelations = mutable.Set[LogicalRelation]()
 
-    def getSeenRelation(relation:LogicalRelation):Option[LogicalRelation]={
-      for (r <- seenLogicalRelations){
+    def getSeenRelation(relation: LogicalRelation): Option[LogicalRelation] = {
+      for (r <- seenLogicalRelations) {
         if (!r.fastEquals(relation) && Util.isSameRelation(r, relation))
           return Some(r)
       }
@@ -62,15 +62,15 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     }
 
     inPlans.indices.foreach { iPlan =>
-      for (relation <- Util.getLogicalRelations(inPlans(iPlan))){
+      for (relation <- Util.getLogicalRelations(inPlans(iPlan))) {
         getSeenRelation(relation) match {
-          case Some(standardRelation:LogicalRelation) => outputPlans(iPlan) = transformToSameDatasource(standardRelation, relation, outputPlans(iPlan))
+          case Some(standardRelation: LogicalRelation) => outputPlans(iPlan) = transformToSameDatasource(standardRelation, relation, outputPlans(iPlan))
           case None => seenLogicalRelations.add(relation)
         }
       }
     }
 
-    logInfo("Until step 0 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+    logInfo("Until step 0 elapsed: %f".format((System.nanoTime() - beginning) / 1e9))
 
     // ==============================================================
     // Step 1: Identifying all common subexpressions
@@ -80,7 +80,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     val SEsMap = identifySEs(outputPlans)
     // SEs are grouped by their signature
     // HashMap<SESignature, ArrayBuffer<(SE, ConsumerQueryIndex)>>
-    logInfo("Until step 1 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+    logInfo("Until step 1 elapsed: %f".format((System.nanoTime() - beginning) / 1e9))
 
     // ==============================================================
     // Step 2: Build CEs from the SEs
@@ -95,15 +95,15 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     logInfo("%d CEs were built".format(CEContainers.length))
 
     // now put in into classes and knapsack solver
-    val itemClassesForMCKP:Array[ItemClass] = classifyCEs(CEContainers)
+    val itemClassesForMCKP: Array[ItemClass] = classifyCEs(CEContainers)
 
     // log how many classes?
     logInfo("Classes for the MCKP")
-    itemClassesForMCKP.foreach(c =>{
+    itemClassesForMCKP.foreach(c => {
       logInfo("class i has %d items".format(c.items.length))
     })
 
-    logInfo("Until step 2.0 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+    logInfo("Until step 2.0 elapsed: %f".format((System.nanoTime() - beginning) / 1e9))
 
     val selectedItems = MCKnapsackSolverDynamicProgramming.solve(CostConstants.MAX_CACHE_SIZE_GB, itemClassesForMCKP)
     val selectedCEs = selectedItems.flatMap(kitem => kitem.asInstanceOf[ItemImpl].tag.asInstanceOf[ArrayBuffer[CEContainer]])
@@ -112,7 +112,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     logInfo("%d CEs were finally selected as cache plans".format(selectedCEs.length))
     selectedCEs.foreach(ce => logInfo("\n" + ce.CE.toString()))
 
-    logInfo("Until step 2.5 elapsed: %f".format((System.nanoTime() - beginning)/1e9))
+    logInfo("Until step 2.5 elapsed: %f".format((System.nanoTime() - beginning) / 1e9))
 
 
     // ==============================================================
@@ -147,13 +147,13 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * @param oldPlan
     * @return
     */
-  private def transformToSameDatasource(replaceByRelation:LogicalRelation, tobeReplacedRelation:LogicalRelation, oldPlan:LogicalPlan):LogicalPlan={
+  private def transformToSameDatasource(replaceByRelation: LogicalRelation, tobeReplacedRelation: LogicalRelation, oldPlan: LogicalPlan): LogicalPlan = {
     val standardOutputs = replaceByRelation.output.toList
     val currentOutputs = tobeReplacedRelation.output.toList
 
-    def getCorrespondingAR(a:AttributeReference): AttributeReference ={
-      for(item <- standardOutputs){
-        if(item.name == a.name && currentOutputs.contains(a))
+    def getCorrespondingAR(a: AttributeReference): AttributeReference = {
+      for (item <- standardOutputs) {
+        if (item.name == a.name && currentOutputs.contains(a))
           return item.asInstanceOf[AttributeReference]
       }
       a
@@ -169,7 +169,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // TODO: A bug here, need to track the ID, the getCorrespondingAR function only matches by name
     outPlan = outPlan.transformUp({
       case p => p.transformExpressions({
-        case a:AttributeReference => getCorrespondingAR(a)
+        case a: AttributeReference => getCorrespondingAR(a)
       })
     })
 
@@ -181,8 +181,8 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * @param trees
     * @return HashMap<SESignature, ArrayBuffer<(SE, ConsumerQueryIndex)>>
     */
-  private def identifySEs(trees:Array[LogicalPlan])
-  :mutable.HashMap[BigInteger, mutable.ArrayBuffer[(LogicalPlan, Int)]]={
+  private def identifySEs(trees: Array[LogicalPlan])
+  : mutable.HashMap[BigInteger, mutable.ArrayBuffer[(LogicalPlan, Int)]] = {
     val nPlans = trees.length
 
     logInfo("Input of %d plans".format(nPlans))
@@ -200,7 +200,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     // key: operator, value: (fingerprint, operator's height)
     // We haven
     val hashTrees = new Array[mutable.HashMap[LogicalPlan, BigInteger]](nPlans)
-    trees.indices.foreach {iPlan =>
+    trees.indices.foreach { iPlan =>
       hashTrees(iPlan) = buildHashTree(trees(iPlan))
     }
 
@@ -208,26 +208,25 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     trees.indices.foreach(i => {
       var isAllowedToMatchAfter = true // a flag variable
       val visitor = new DFSVisitor(trees(i))
-      while (visitor.hasNext){
+      while (visitor.hasNext) {
         val iPlan = visitor.getNext
         val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val isFoundSE = fingerPrintMap.contains(iPlanFingerprint)
 
-        if(isAllowedToMatchAfter)
+        if (isAllowedToMatchAfter)
           fingerPrintMap.getOrElseUpdate(iPlanFingerprint, newEmptyList()).append(Tuple2(iPlan, i))
 
-        if(isFoundSE && !containsCacheUnfriendlyOperator(iPlan)){
+        if (isFoundSE && !containsCacheUnfriendlyOperator(iPlan)) {
           isAllowedToMatchAfter = true
         }
-        else
-        {
+        else {
           visitor.goDeeper() // keep looking (doesn't match, or containing cache-unfriendly operator)
-          if(isFoundSE && containsCacheUnfriendlyOperator(iPlan)){
-            if(isUnfriendlyOperator(iPlan)){
+          if (isFoundSE && containsCacheUnfriendlyOperator(iPlan)) {
+            if (isUnfriendlyOperator(iPlan)) {
               isAllowedToMatchAfter = true // re-enable
             }
-            else{
+            else {
               isAllowedToMatchAfter = false
             }
           }
@@ -240,15 +239,15 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     trees.indices.foreach(i => {
       val visitor = new DFSVisitor(trees(i))
 
-      while (visitor.hasNext){
+      while (visitor.hasNext) {
         val iPlan = visitor.getNext
         val iPlanFingerprint = hashTrees(i).get(iPlan).get
 
         val found = (fingerPrintMap.contains(iPlanFingerprint)
           && fingerPrintMap.get(iPlanFingerprint).get.size >= 2)
         visitor.goDeeper()
-        if(found){
-          if(!fingerPrintMap.get(iPlanFingerprint).get.contains(Tuple2(iPlan, i))){
+        if (found) {
+          if (!fingerPrintMap.get(iPlanFingerprint).get.contains(Tuple2(iPlan, i))) {
             fingerPrintMap.getOrElseUpdate(iPlanFingerprint, newEmptyList).append(Tuple2(iPlan, i))
           }
         }
@@ -274,18 +273,19 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
     * This is a fast and secure way to search for Similar subExpressions among many trees
     *
     * Note that this function can also be used to compute the finger print of an operator. In such case, hashTree = null
-    * @param tree: input tree
-    * @param hashTree: used to store the hash tree
+    *
+    * @param tree     : input tree
+    * @param hashTree : used to store the hash tree
     * @return (fingerprint of the given operator)
     */
-  def computeTreeHash(tree:LogicalPlan, hashTree:mutable.HashMap[LogicalPlan, BigInteger] = null):BigInteger={
-    def updateHashTree(treeNode:LogicalPlan, fingerprint:BigInteger): Unit ={
-      if(hashTree != null)
+  def computeTreeHash(tree: LogicalPlan, hashTree: mutable.HashMap[LogicalPlan, BigInteger] = null): BigInteger = {
+    def updateHashTree(treeNode: LogicalPlan, fingerprint: BigInteger): Unit = {
+      if (hashTree != null)
         hashTree.put(treeNode, fingerprint)
     }
 
     val operatorName = tree.getClass.toString
-    var fingerprint:BigInteger = null
+    var fingerprint: BigInteger = null
 
     tree match {
 
@@ -298,7 +298,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
         // Unifying the order of left & right child before computing the hash of the parent operator
         // Do the sorting such that the leftChildHash should always lower or equals the rightChildHash
         // Example: We want 2 expressions: (A Join B) and (B Join A) to have the same fingerprint
-        if(leftChildHash.compareTo(rightChildHash) > 0){
+        if (leftChildHash.compareTo(rightChildHash) > 0) {
           // Do the swap
           val tmpSwap = leftChildHash
           leftChildHash = rightChildHash
@@ -306,20 +306,20 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
         }
 
         b match {
-          case b:Join =>
+          case b: Join =>
             // 2 Joins operators can be transformed to share the computation
             // We Consider only same join type and join condition
             fingerprint = Util.hash(operatorName + b.joinType + b.condition + leftChildHash + rightChildHash)
 
           // override everything, only consider identical expressions
-          case b:Intersect =>
+          case b: Intersect =>
             fingerprint = Util.hash(operatorName + b.hashCode().toString)
-          case b:Except =>
+          case b: Except =>
             fingerprint = Util.hash(operatorName + b.hashCode().toString)
           case _ => throw new NotImplementedError("not supported binary operator: " + operatorName)
         }
 
-      case u:Union =>
+      case u: Union =>
         u.children.foreach(c => computeTreeHash(c, hashTree))
         // TODO: In some case, union operators can share some computation
         fingerprint = Util.hash(operatorName + u.hashCode().toString)
@@ -329,11 +329,11 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       // ================================================================
       case u: UnaryNode =>
         val childHash = computeTreeHash(u.child, hashTree)
-        u match{
-          case u@(_:Filter | _:Project) => fingerprint = Util.hash(operatorName + childHash)
+        u match {
+          case u@(_: Filter | _: Project) => fingerprint = Util.hash(operatorName + childHash)
 
           // TODO: can we share some computation in the following operators?
-          case u@(_:GlobalLimit | _:LocalLimit | _:Sort | _:Aggregate) => // Only consider identical expression
+          case u@(_: GlobalLimit | _: LocalLimit | _: Sort | _: Aggregate) => // Only consider identical expression
             fingerprint = Util.hash(operatorName + u.hashCode().toString)
 
           case _ => // Only consider identical expression
@@ -344,7 +344,7 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       // Unary Node case: `logicalPlan` doesn't have any child
       // ================================================================
       case l: LeafNode => l match {
-        case leaf:LogicalRelation =>
+        case leaf: LogicalRelation =>
           val inputPath = Util.extractInputPath(leaf.relation)
           fingerprint = Util.hash(operatorName + inputPath)
         case _ => throw new NotImplementedError("Not supported leaf: " + operatorName)
@@ -359,36 +359,173 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
   /**
     * Computes fingerprints for all sub-trees of rootPlan
- *
+    *
     * @param rootPlan
     * @return hash map <subtree, fingerprint>
     */
-  private def buildHashTree(rootPlan:LogicalPlan):mutable.HashMap[LogicalPlan, BigInteger]={
+  private def buildHashTree(rootPlan: LogicalPlan): mutable.HashMap[LogicalPlan, BigInteger] = {
     val res = new mutable.HashMap[LogicalPlan, BigInteger]()
     computeTreeHash(rootPlan, res)
     res
   }
 
+  private def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
+    val res = new ArrayBuffer[ItemClass]()
+    val ces = CEContainers.sortBy(x => Util.getHeight(x.SEs(0)._1))
+    val filteredCes = new ArrayBuffer[CEContainer]()
+
+    for (i <- 0 until ces.length) {
+      var isDominated = false
+      for (j <- i + 1 until ces.length) {
+        // checking if ces(i) is descendant of ces(j)
+        var isDescendant = false
+        for (m <- 0 until ces(i).SEs.length)
+          for (n <- 0 until ces(j).SEs.length)
+            if (ces(i).SEs(m)._2 == ces(j).SEs(n)._2 && Util.containsDescendant(ces(j).SEs(n)._1, ces(i).SEs(m)._1))
+              isDescendant = true
+
+        if (isDescendant) {
+          if (ces(i).weight >= ces(j).weight && ces(i).profit <= ces(j).profit) {
+            isDominated = true
+            //println("is dominated!")
+          }
+        }
+      }
+
+      if (!isDominated) {
+        filteredCes.append(ces(i))
+      }
+      else {
+        //println("removed " + ces(i))
+      }
+    }
+
+    val cesWithAncestors = new mutable.HashMap[CEContainer, mutable.Set[CEContainer]]()
+    for (i <- 0 until filteredCes.length) {
+      val ancestors = mutable.Set[CEContainer]()
+      for (j <- i + 1 until filteredCes.length) {
+          var isDescendant = false
+          for (m <- 0 until filteredCes(i).SEs.length)
+            for (n <- 0 until filteredCes(j).SEs.length)
+              if (filteredCes(i).SEs(m)._2 == filteredCes(j).SEs(n)._2 && Util.containsDescendant(filteredCes(j).SEs(n)._1, filteredCes(i).SEs(m)._1))
+                isDescendant = true
+
+          if (isDescendant) {
+            ancestors += filteredCes(j)
+          }
+
+      }
+      cesWithAncestors.put(filteredCes(i), ancestors)
+    }
+
+    val sortedCes = cesWithAncestors.to[ArrayBuffer].sortBy(x => -x._2.size)
+
+    while (!sortedCes.isEmpty) {
+      val isolatedNodes = new ArrayBuffer[(CEContainer, mutable.Set[CEContainer])]()
+      val firstCE = sortedCes(0)
+      sortedCes.remove(0)
+      isolatedNodes.append(firstCE)
+
+      var i = 0
+      while (i < sortedCes.length) {
+        if (firstCE._2.contains(sortedCes(i)._1) || !firstCE._2.intersect(sortedCes(i)._2).isEmpty) {
+          isolatedNodes.append(sortedCes(i))
+          sortedCes.remove(i)
+        }
+        else
+          i += 1
+      }
+
+      println("isolated: " + isolatedNodes.length)
+
+      // now generate all possible options for the isolated list
+      var options = mutable.Set[Set[CEContainer]]()
+
+      for (i <- 0 until isolatedNodes.length) {
+        val nodes = ArrayBuffer[CEContainer]()
+        nodes.append(isolatedNodes(i)._1)
+
+        for (j <- i+1 until isolatedNodes.length) {
+            if(!isolatedNodes(i)._2.contains(isolatedNodes(j)._1)){
+              nodes.append(isolatedNodes(j)._1)
+            }
+        }
+
+        val subOptions = nodes.toSet.subsets.filter(set => {
+          val items = set.toList
+          if(items.length == 1){
+            true
+          }
+          else if(items.length > 1){
+            var keep = true
+            for(iItem <- 0 until items.size)
+              for(jItem <- 0 until items.size){
+                if (iItem != jItem){
+                  if(cesWithAncestors(items(iItem)).contains(items(jItem)) ||
+                  cesWithAncestors(items(jItem)).contains(items(iItem))){
+                    keep = false
+                    //println("keep = false")
+                  }
+                }
+              }
+            keep
+          }
+          else
+            false
+        }).toSet
+        options ++= subOptions
+      }
+      val itemClass = new ItemClass()
+      res.append(itemClass)
+      options.foreach(option => {
+        val list = option.toList
+        if(option.size == 1){
+          val item = new ItemImpl(list.head.profit, list.head.weight, ArrayBuffer(list.head))
+          itemClass.addItem(item)
+        }else{
+          var profit:Double = 0
+          var weight:Double = 0
+          val tag = new ArrayBuffer[CEContainer]()
+          for(i<- 0 until list.size){
+            profit += list(i).profit
+            weight += list(i).weight
+            tag.append(list(i))
+          }
+          itemClass.addItem(new ItemImpl(profit, weight, tag))
+        }
+      })
+
+
+
+      println("class i with %d isolated nodes has %d options".format(isolatedNodes.size, options.size))
+
+
+    }
+
+    res.toArray
+  }
+
 
   /** Items need to be put in their class for the MCKP. At most one item from a class can be chosen
     * CEContainers that are dependent will be classified into the same class
+    *
     * @param CEContainers
     * @return
     */
-  private def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
+  private def classifyCEs2(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
     val res = new ArrayBuffer[ItemClass]()
 
     val ces = CEContainers.map(x => (x, x.SEs.map(se => se._2).toList))
 
-    while(!ces.isEmpty){
+    while (!ces.isEmpty) {
       val itemClass = new ItemClass()
       val isolatedList = new ArrayBuffer[CEContainer]()
       val firstCE = ces(0)
       isolatedList.append(firstCE._1)
       ces.remove(0)
       var i = 0
-      while(i < ces.length){
-        if(firstCE._2.intersect(ces(i)._2).nonEmpty){
+      while (i < ces.length) {
+        if (firstCE._2.intersect(ces(i)._2).nonEmpty) {
           isolatedList.append(ces(i)._1)
           ces.remove(i)
         }
@@ -400,27 +537,27 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
       val subsets = isolatedList.toSet.subsets
       subsets.foreach(s => {
         val S = s.toList
-        if(S.length > 0){
-          if(S.length == 1){
+        if (S.length > 0) {
+          if (S.length == 1) {
             val item = new ItemImpl(s.head.profit, s.head.weight, ArrayBuffer(s.head))
             itemClass.addItem(item)
-          }else{
+          } else {
             var keep = true
-            for(i <- 0 until S.size)
-              for(j<- 0 until S.size){
-                if(i != j){
-                  for(m <- 0 until S(i).SEs.length)
-                    for(n <- 0 until S(j).SEs.length)
-                      if(Util.containsDescendant(S(i).SEs(m)._1, S(j).SEs(n)._1))
+            for (i <- 0 until S.size)
+              for (j <- 0 until S.size) {
+                if (i != j) {
+                  for (m <- 0 until S(i).SEs.length)
+                    for (n <- 0 until S(j).SEs.length)
+                      if (Util.containsDescendant(S(i).SEs(m)._1, S(j).SEs(n)._1))
                         keep = false
                 }
               }
-            if(keep){
-              var profit:Double = 0
-              var weight:Double = 0
+            if (keep) {
+              var profit: Double = 0
+              var weight: Double = 0
               val tag = new ArrayBuffer[CEContainer]()
 
-              for(i<- 0 until S.size){
+              for (i <- 0 until S.size) {
                 profit += S(i).profit
                 weight += S(i).weight
                 tag.append(S(i))
@@ -439,22 +576,24 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
 
   /**
     * checks whether a tree contains a cache-unfriendly operator or not
+    *
     * @param plan tree
     * @return
     */
-  def containsCacheUnfriendlyOperator(plan:LogicalPlan): Boolean={
-    plan.foreach(f => if(isUnfriendlyOperator(f)) return true)
+  def containsCacheUnfriendlyOperator(plan: LogicalPlan): Boolean = {
+    plan.foreach(f => if (isUnfriendlyOperator(f)) return true)
     false
   }
 
   /**
     * checks if this tree operator is a cache-unfriendly operator (join/ union)
+    *
     * @param operator
     * @return
     */
-  private def isUnfriendlyOperator(operator:LogicalPlan): Boolean={
-    operator match{
-      case p @(_:Join | _:Union) => true
+  private def isUnfriendlyOperator(operator: LogicalPlan): Boolean = {
+    operator match {
+      case p@(_: Join | _: Union) => true
       case _ => false
     }
   }
@@ -462,13 +601,6 @@ object CacheAwareOptimizer  extends SparkSQLServerLogging{
   //=======================================================================================
   // END - Private utility functions
   //=======================================================================================
-
-
-
-
-
-
-
 
 
 }
