@@ -13,8 +13,8 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object AppTmp2 {
   def main(args: Array[String]): Unit = {
-    if(args.length != 8){
-      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries> <randomlySelect>")
+    if(args.length != 9){
+      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries> <randomlySelect> <seeds>")
       System.exit(0)
     }
 
@@ -26,6 +26,7 @@ object AppTmp2 {
     val mode = args(5)
     val nQueries = args(6).toInt
     val randomlySelect = args(7).toBoolean
+    val seeds = args(8).toInt
 
     val conf = new SparkConf().setAppName("%s %s %s %s %d %s".format(this.getClass.getSimpleName, inputDir , format, mode, nQueries, randomlySelect))
     if(master.toLowerCase == "local")
@@ -102,7 +103,7 @@ object AppTmp2 {
     println("#runable queries: " + runableQueries.length)
     var queriesToRun:Seq[(String, String)] = null
     if(randomlySelect){
-      val r = new scala.util.Random(System.currentTimeMillis)
+      val r = new scala.util.Random(seeds)
       queriesToRun = r.shuffle(runableQueries).take(nQueries)
     }
     else{
