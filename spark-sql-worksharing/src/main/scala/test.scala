@@ -10,7 +10,11 @@ import scala.concurrent.Await
 
 object test {
   def main(args: Array[String]) {
-    println((1e-2))
+    val x = Seq("1", "2", "3", "4", "5")
+    val r = new scala.util.Random(System.currentTimeMillis)
+    r.shuffle(x).take(6).foreach(print)
+
+
 //    val mailer = Mailer("smtp.gmail.com", 25)
 //      .auth(true)
 //      .as("khoa.mailer@gmail.com", "abcxyz1234")

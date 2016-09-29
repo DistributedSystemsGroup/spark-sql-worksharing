@@ -13,8 +13,8 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object AppTmp2 {
   def main(args: Array[String]): Unit = {
-    if(args.length != 7){
-      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries>")
+    if(args.length != 8){
+      System.out.println("Usage: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries> <randomlySelect>")
       System.exit(0)
     }
 
@@ -25,8 +25,9 @@ object AppTmp2 {
     val statFile = args(4)
     val mode = args(5)
     val nQueries = args(6).toInt
+    val randomlySelect = args(7).toBoolean
 
-    val conf = new SparkConf().setAppName("%s %s %s %s %s".format(this.getClass.getSimpleName, inputDir , format, mode, nQueries))
+    val conf = new SparkConf().setAppName("%s %s %s %s %d %s".format(this.getClass.getSimpleName, inputDir , format, mode, nQueries, randomlySelect))
     if(master.toLowerCase == "local")
       conf.setMaster("local[2]")
 
@@ -99,12 +100,20 @@ object AppTmp2 {
       && !failedOurOptimization.contains(q._1)
     )
     println("#runable queries: " + runableQueries.length)
+    var queriesToRun:Seq[(String, String)] = null
+    if(randomlySelect){
+      val r = new scala.util.Random(System.currentTimeMillis)
+      queriesToRun = r.shuffle(runableQueries).take(nQueries)
+    }
+    else{
+      queriesToRun = runableQueries.take(nQueries)
+    }
 
-    println("queries to run: " + runableQueries.take(nQueries).map(_._1).mkString(" "))
+    println("queries to run: " + queriesToRun.map(_._1).mkString(" "))
 
     mode match{
       case "opt" => {
-        QueryExecutor.executeWorkSharing(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+        QueryExecutor.executeWorkSharing(sqlc, queriesToRun.map(x => queryProvider.getDF(x._2)), outputDir)
         Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
         Thread.sleep(120000) // sleep for 2 mins, so that I can check how much memory has been cached
       }
