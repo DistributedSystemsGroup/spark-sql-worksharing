@@ -11,7 +11,7 @@ import scala.concurrent.Await
 object test {
   def main(args: Array[String]) {
     val x = Seq("1", "2", "3", "4", "5")
-    val r = new scala.util.Random(System.currentTimeMillis)
+    val r = new scala.util.Random(1)
     r.shuffle(x).take(6).foreach(print)
 
 

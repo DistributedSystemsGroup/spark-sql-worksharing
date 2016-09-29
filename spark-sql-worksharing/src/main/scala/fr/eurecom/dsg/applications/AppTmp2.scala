@@ -116,9 +116,9 @@ object AppTmp2 {
       case "opt" => {
         QueryExecutor.executeWorkSharing(sqlc, queriesToRun.map(x => queryProvider.getDF(x._2)), outputDir)
         Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
-        Thread.sleep(120000) // sleep for 2 mins, so that I can check how much memory has been cached
+        Thread.sleep(60000) // sleep for 1 mins, so that I can check how much memory has been cached
       }
-      case "wopt" => QueryExecutor.executeSequential(sqlc, runableQueries.take(nQueries).map(x => queryProvider.getDF(x._2)), outputDir)
+      case "wopt" => QueryExecutor.executeSequential(sqlc, queriesToRun.map(x => queryProvider.getDF(x._2)), outputDir)
 
     }
 
