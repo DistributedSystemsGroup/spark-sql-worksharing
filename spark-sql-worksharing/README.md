@@ -19,12 +19,12 @@ Please refer to our paper
 
 `fr.eurecom.dsg.microbenchmark.MicroBenchmark`
 
-- Arguments: <master> <inputFile> <format> <query> <mode>
+- Arguments: <master> <inputFile> <format> <experimentNum> <mode>
     + master: {local, cluster}
     + inputFile
     + format: {parquet, csv}
-    + query: {0, 1, 2, 3, 4}
-    + mode: {wopt, opt} // witout optimization, with optimization
+    + query: {0, 1, 2, 3, 4, 100, 101, 102}
+    + mode: {wopt, opt} // without Work Sharing, with Work Sharing
 - Example: local /home/ntkhoa/random/random-csv csv 0 wopt
 
 ### Macro-benchmark:
