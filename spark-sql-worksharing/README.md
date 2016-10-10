@@ -7,7 +7,9 @@ Please refer to our paper
 
 ## Applications in this project
 ### Pre-computing some basic statistics:
-`ComputeStats <master> <inputDir> <savePath> <format>`
+`fr.eurecom.dsg.ComputeStats`
+
+- Arguments: <master> <inputDir> <savePath> <format>
     + master = {local, cluster}
     + inputDir: where to read the input data
     + savePath: where to save the statistics (output)
@@ -17,7 +19,7 @@ Please refer to our paper
 
 `fr.eurecom.dsg.microbenchmark.MicroBenchmark`
 
-- arguments: <master> <inputFile> <format> <query> <mode>
+- Arguments: <master> <inputFile> <format> <query> <mode>
     + master: {local, cluster}
     + inputFile
     + format: {parquet, csv}
@@ -28,7 +30,7 @@ Please refer to our paper
 ### Macro-benchmark:
 `fr.eurecom.dsg.macrobenchmark.MacroBenchmark`
 
-- arguments: <master> <inputFile> <format> <query> <mode>
+- Arguments: <master> <inputFile> <format> <query> <mode>
     + master: {local, cluster}
     + inputFile
     + format: {parquet, csv}
@@ -39,7 +41,9 @@ Please refer to our paper
 ## Appendix
 - Generating input data for the Micro-benchmark: microbenchmark-generator/generator.py
 
-``python generator.py 1000000 | hdfs dfs -put - tmp/random-data.txt``
+`python generator.py 1000000 | hdfs dfs -put - tmp/random-data.txt`
+
+To convert txt format to csv and parquet, use fr.eurecom.dsg.microbenchmark.ConvertData
 
 ## Issues & resolution
 - datetime datatype problem: change the data type to string
