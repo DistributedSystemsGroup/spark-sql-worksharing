@@ -2,7 +2,7 @@ package fr.eurecom.dsg.applications.microbenchmark.queries
 
 import org.apache.spark.sql.DataFrame
 
-class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBenchmarkExperiment(data){
+class SimpleJoining(data: DataFrame, refData: DataFrame) extends MicroBenchmarkExperiment(data) {
 
   val whereLeft1 = "(20 <= n1 and n1 <= 70)"
   val whereLeft2 = "(50 <= n1 and n1 <= 75)"
@@ -20,38 +20,41 @@ class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBenchmarkExp
   val extract1 = (columnsLeft1.toSet ++ columnsRight1.toSet).toSeq
   val extract2 = (columnsLeft2.toSet ++ columnsRight2.toSet).toSeq
 
-  override def warmUp():Unit = {
+  override def warmUp(): Unit = {
     data.foreach(_ => ())
     refData.foreach(_ => ())
   }
 
-  override def query1: DataFrame = data.where(whereLeft1).select(columnsLeft1.head, columnsLeft1.tail:_*).join(
-    refData.where(whereRight1).select(columnsRight1.head, columnsRight1.tail:_*),
-    data("n4") === refData("ref_n1"))
-  override def query2: DataFrame = data.where(whereLeft2).select(columnsLeft2.head, columnsLeft2.tail:_*).join(
-    refData.where(whereRight2).select(columnsRight2.head, columnsRight2.tail:_*),
+  override def query1: DataFrame = data.where(whereLeft1).select(columnsLeft1.head, columnsLeft1.tail: _*).join(
+    refData.where(whereRight1).select(columnsRight1.head, columnsRight1.tail: _*),
     data("n4") === refData("ref_n1"))
 
-  override def cachePlan: DataFrame = data.where(whereLeft1 + " or " + whereLeft2).select(unionLeftColumns.head, unionLeftColumns.tail:_*).join(
-    refData.where(whereRight1 + " or " + whereRight2).select(unionRightColumns.head, unionRightColumns.tail:_*),
+  override def query2: DataFrame = data.where(whereLeft2).select(columnsLeft2.head, columnsLeft2.tail: _*).join(
+    refData.where(whereRight2).select(columnsRight2.head, columnsRight2.tail: _*),
     data("n4") === refData("ref_n1"))
-  override def query1WS: DataFrame = cachePlan.where(whereLeft1 + " and " + whereRight1).select(extract1.head, extract1.tail:_*)
-  override def query2WS: DataFrame = cachePlan.where(whereLeft2 + " and " + whereRight2).select(extract2.head, extract2.tail:_*)
+
+  override def cachePlan: DataFrame = data.where(whereLeft1 + " or " + whereLeft2).select(unionLeftColumns.head, unionLeftColumns.tail: _*).join(
+    refData.where(whereRight1 + " or " + whereRight2).select(unionRightColumns.head, unionRightColumns.tail: _*),
+    data("n4") === refData("ref_n1"))
+
+  override def query1WS: DataFrame = cachePlan.where(whereLeft1 + " and " + whereRight1).select(extract1.head, extract1.tail: _*)
+
+  override def query2WS: DataFrame = cachePlan.where(whereLeft2 + " and " + whereRight2).select(extract2.head, extract2.tail: _*)
 
 
-//  override def runWithOpt():Unit = {
-//    warmUp()
-//    cachePlan.count() // run this to get the cardinality information
-//    cachePlan.cache()
-//    q1Opt.foreach(_ => ())
-//    q2Opt.foreach(_ => ())
-//  }
-//
-//  override def runWithoutOpt(): Unit ={
-//    warmUp()
-//    q1.count()
-//    q2.count()
-//    q1.foreach(_ => ())
-//    q2.foreach(_ => ())
-//  }
+  //  override def runWithOpt():Unit = {
+  //    warmUp()
+  //    cachePlan.count() // run this to get the cardinality information
+  //    cachePlan.cache()
+  //    q1Opt.foreach(_ => ())
+  //    q2Opt.foreach(_ => ())
+  //  }
+  //
+  //  override def runWithoutOpt(): Unit ={
+  //    warmUp()
+  //    q1.count()
+  //    q2.count()
+  //    q1.foreach(_ => ())
+  //    q2.foreach(_ => ())
+  //  }
 }

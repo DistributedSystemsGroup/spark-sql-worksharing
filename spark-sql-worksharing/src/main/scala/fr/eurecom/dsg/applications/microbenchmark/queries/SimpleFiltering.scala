@@ -1,6 +1,6 @@
 package fr.eurecom.dsg.applications.microbenchmark.queries
 
-import org.apache.spark.sql.{DataFrame}
+import org.apache.spark.sql.DataFrame
 
 class SimpleFiltering(data: DataFrame) extends MicroBenchmarkExperiment(data) {
   def where1 = "(20 <= n1 and n1 <= 70)"
@@ -18,7 +18,9 @@ class SimpleFiltering(data: DataFrame) extends MicroBenchmarkExperiment(data) {
   override def query2WS: DataFrame = cachePlan.where(where2)
 }
 
-// simple filtering with full cache
+/**
+  * Alternative version of SimpleFiltering where the cache plan is the base relation
+  */
 class SimpleFilteringFC(data: DataFrame) extends SimpleFiltering(data) {
   override def cachePlan: DataFrame = data
 }
