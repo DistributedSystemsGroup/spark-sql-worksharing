@@ -10,44 +10,37 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object ComputeStatsApp {
   def main(args: Array[String]): Unit = {
-    if(args.length != 4){
+    if (args.length != 4) {
       System.out.println("Usage: <master> <inputDir> <savePath> <format>")
       System.exit(0)
     }
 
-    val master = args(0)
-    val inputDir = args(1)
-    val savePath = args(2)
-    val format = args(3)
+    val master = args(0) // {local, cluster}
+    val inputDir = args(1) // where your input data is generated
+    val savePath = args(2) // where to save the statistics (output)
+    val format = args(3) // {csv, parquet}
 
-    val conf = new SparkConf().setAppName(this.getClass.toString)
-    if(master.toLowerCase == "local")
+    val appName = "%s %s %s %s".format(this.getClass.getSimpleName, inputDir, savePath, format)
+
+    val conf = new SparkConf().setAppName(appName)
+    if (master.toLowerCase == "local")
       conf.setMaster("local[2]")
 
     val sc = new SparkContext(conf)
-    val sqlc= new SQLContext(sc)
+    val sqlc = new SQLContext(sc)
 
-    // Use all tables
-    val tables = Tables.getAllTables()
-    // Use just some tables
-    //val tables = Tables.getSomeTables()
+    val tableNames = Tables.getAllTables()
 
-    // QueryProvider will register your tables to the catalog system, so that your queries can be parsed and understood
-    val queryProvider = new QueryProvider(sqlc, inputDir, tables, format)
-    val stats = new StatisticsProvider()
-    // We have 2 options:
-    // - collect (compute) stats. You can save the result to a json file
-    // - read from a json file where stats are pre-computed and written back to
+    // QueryProvider will register your tables to the catalog system, so that queries can be parsed and understood
+    val queryProvider = new QueryProvider(sqlc, inputDir, tableNames, format)
 
-    stats.collect(tables, queryProvider = queryProvider)
+    val statsProvider = new StatisticsProvider()
+    statsProvider.collect(tableNames, queryProvider = queryProvider)
+    statsProvider.saveToFile(savePath)
 
-    stats.saveToFile(savePath)
+    // Try to retrieve statistics back
+    val computedStats = statsProvider.readFromFile(savePath)
 
-    val newStats = stats.readFromFile(savePath)
     sc.stop()
-
-//    while(true){
-//
-//    }
   }
 }
