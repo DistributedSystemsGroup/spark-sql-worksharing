@@ -5,88 +5,93 @@ import fr.eurecom.dsg.util.Emailer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkConf, SparkContext}
 
-
+/**
+  * Application for doing micro-benchmark
+  */
 object MicroBenchmark {
   def main(args: Array[String]) {
-    val master = args(0)
-    val inputFile = args(1)
-    val format = args(2)
-    val query = args(3).toInt
-    val mode = args(4)
+    if (args.length != 5) {
+      System.out.println("Usage: <master> <inputPath> <format> <experimentNum> <mode>")
+      System.exit(0)
+    }
 
-    val conf = new SparkConf().setAppName("%s %s %s %s".format(this.getClass.getName, inputFile , query.toString, mode))
-    if(master.toLowerCase == "local")
+    val master = args(0) // {local, cluster}
+    val inputPath = args(1) // path to the input table
+    val format = args(2) // {csv, parquet}
+    val experimentNum = args(3).toInt // {0, 1, 2, 3, 4, 100, 101, 102}
+    val mode = args(4) // {opt, wopt} - with work sharing / without work sharing
+
+    val conf = new SparkConf().setAppName("%s %s %s %d %s".format(this.getClass.getName, inputPath, format, experimentNum, mode))
+    if (master.toLowerCase == "local")
       conf.setMaster("local[2]")
+
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
 
     sqlContext.setConf("spark.sql.parquet.cacheMetadata", "false")
-    sqlContext.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false")
-    sqlContext.setConf("spark.sql.inMemoryColumnarStorage.partitionPruning", "true") // them cai nay vao bao cao
+    sqlContext.setConf("spark.sql.inMemoryColumnarStorage.compressed", "false") // enabling this will affect the caching cost significantly
+    sqlContext.setConf("spark.sql.inMemoryColumnarStorage.partitionPruning", "true")
     sqlContext.setConf("spark.sql.parquet.filterPushdown", "false")
-    var data:DataFrame = null
 
-    if(format == "csv"){
-      data = sqlContext.read.schema(DataRow.getSchema).csv(inputFile)
-      data.printSchema()
-    }
-    else{
-      data = sqlContext.read.parquet(inputFile)
-      data.printSchema()
+    var data: DataFrame = null
+
+    format matches {
+      case "csv" => data = sqlContext.read.schema(DataRow.getSchema).csv(inputPath)
+      case "parquet" => data = sqlContext.read.parquet(inputPath)
+      case _ => throw new IllegalArgumentException(format)
     }
 
-    var q:MicroBenchmarkExperiment = null
-    query match{
-      case 0 => q = new SimpleFiltering(data)
-      case 1 => q = new SimpleProjection(data)
-      case 2 => q = new SimpleFilteringProjection(data)
-      case 3 => q ={
-        val refTable = "data/random/ref-1M-"
-        var refData:DataFrame = null
-        if(format == "csv"){
-          refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
+    //data.printSchema()
+
+    var experiment: MicroBenchmarkExperiment = null
+    experimentNum match {
+
+      // Experiments on doing optimized cache on Similar Subexpressions
+      case 0 => experiment = new SimpleFiltering(data)
+      case 1 => experiment = new SimpleProjection(data)
+      case 2 => experiment = new SimpleFilteringProjection(data)
+      case 3 => experiment = {
+        val refTable = "data/random/ref-1M-" // TODO: change this!!! too lazy to add parameter :(
+        var refData: DataFrame = null
+        format matches {
+          case "csv" => refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
+          case "parquet" => refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
+          case _ => throw new IllegalArgumentException(format)
         }
-        else{
-          refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
-        }
+
         new SimpleJoining(data, refData)
       }
-      case 4 => q ={
-        val refTable = "data/random/ref-10M-"
-        var refData:DataFrame = null
-        if(format == "csv"){
-          refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
+      case 4 => experiment = {
+        val refTable = "data/random/ref-10M-" // TODO: change this!!! too lazy to add parameter :(
+        var refData: DataFrame = null
+
+        format matches {
+          case "csv" => refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
+          case "parquet" => refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
+          case _ => throw new IllegalArgumentException(format)
         }
-        else{
-          refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
-        }
+
         new SimpleJoining(data, refData)
       }
 
-      case 100 => q = new SimpleFilteringFC(data)
-      case 101 => q = new SimpleProjectionFC(data)
-      case 102 => q = new SimpleFilteringProjectionFC(data)
+      // Experiments on doing full cache on base tables
+      case 100 => experiment = new SimpleFilteringFC(data)
+      case 101 => experiment = new SimpleProjectionFC(data)
+      case 102 => experiment = new SimpleFilteringProjectionFC(data)
 
-      case _ => throw new IllegalArgumentException("query = " + query.toString)
+      case _ => throw new IllegalArgumentException(experimentNum.toString)
     }
 
-    mode match{
+    mode match {
       case "opt" =>
-        q.runWithWorkSharing()
+        experiment.runWithWorkSharing()
         Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
-        Thread.sleep(60000) // sleep for 60 secs, so that I can check how much memory has been cached
-      case "wopt" =>
-
-        q.runWithoutWorkSharing()
-      case _ => throw new IllegalArgumentException("mode = " + mode)
+        Thread.sleep(60000) // sleep for 60 secs, so that I can check the cache usage on the Application UI
+      case "wopt" => experiment.runWithoutWorkSharing()
+      case _ => throw new IllegalArgumentException(mode)
     }
-
-//    while(true){
-//      Thread.sleep(1000)
-//    }
 
     sc.stop()
-
   }
 }
 
