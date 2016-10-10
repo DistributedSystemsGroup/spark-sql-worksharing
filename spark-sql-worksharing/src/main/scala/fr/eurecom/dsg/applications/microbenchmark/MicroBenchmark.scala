@@ -35,7 +35,7 @@ object MicroBenchmark {
 
     var data: DataFrame = null
 
-    format matches {
+    format match {
       case "csv" => data = sqlContext.read.schema(DataRow.getSchema).csv(inputPath)
       case "parquet" => data = sqlContext.read.parquet(inputPath)
       case _ => throw new IllegalArgumentException(format)
@@ -53,7 +53,7 @@ object MicroBenchmark {
       case 3 => experiment = {
         val refTable = "data/random/ref-1M-" // TODO: change this!!! too lazy to add parameter :(
         var refData: DataFrame = null
-        format matches {
+        format match {
           case "csv" => refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
           case "parquet" => refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
           case _ => throw new IllegalArgumentException(format)
@@ -65,7 +65,7 @@ object MicroBenchmark {
         val refTable = "data/random/ref-10M-" // TODO: change this!!! too lazy to add parameter :(
         var refData: DataFrame = null
 
-        format matches {
+        format match {
           case "csv" => refData = sqlContext.read.schema(RefDataRow.getSchema).csv(refTable + "csv")
           case "parquet" => refData = sqlContext.read.schema(RefDataRow.getSchema).parquet(refTable + "parquet")
           case _ => throw new IllegalArgumentException(format)
