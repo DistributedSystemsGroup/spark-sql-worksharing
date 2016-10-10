@@ -2,7 +2,7 @@ package fr.eurecom.dsg.applications.microbenchmark.queries
 
 import org.apache.spark.sql._
 
-class SimpleFilteringProjection (data:DataFrame) extends MicroBQuery(data) {
+class SimpleFilteringProjection (data:DataFrame) extends MicroBenchmarkExperiment(data) {
   def where1 = "(20 <= n1 and n1 <= 70)"
   def where2 = "(50 <= n1 and n1 <= 75)"
 
@@ -11,13 +11,13 @@ class SimpleFilteringProjection (data:DataFrame) extends MicroBQuery(data) {
   def columns2 = Seq("n1", "n2", "n3", "d5", "d6", "d7", "s5", "s6", "s7")
   def unionColumns = (columns1.toSet ++ columns2.toSet).toSeq // be aware of the fields in the where statements
 
-  override def q1: DataFrame = data.where(where1).select(columns1.head, columns1.tail:_*)
-  override def q2: DataFrame = data.where(where2).select(columns2.head, columns2.tail:_*)
+  override def query1: DataFrame = data.where(where1).select(columns1.head, columns1.tail:_*)
+  override def query2: DataFrame = data.where(where2).select(columns2.head, columns2.tail:_*)
 
   override def cachePlan: DataFrame = data.where(where1 + " or " + where2).select(unionColumns.head, unionColumns.tail:_*)
 
-  override def q1Opt: DataFrame = cachePlan.where(where1).select(columns1.head, columns1.tail:_*)
-  override def q2Opt: DataFrame = cachePlan.where(where2).select(columns2.head, columns2.tail:_*)
+  override def query1WS: DataFrame = cachePlan.where(where1).select(columns1.head, columns1.tail:_*)
+  override def query2WS: DataFrame = cachePlan.where(where2).select(columns2.head, columns2.tail:_*)
 }
 
 // simple filtering with full cache

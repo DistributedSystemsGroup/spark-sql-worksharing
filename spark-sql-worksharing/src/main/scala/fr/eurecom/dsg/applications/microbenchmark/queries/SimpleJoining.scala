@@ -2,7 +2,7 @@ package fr.eurecom.dsg.applications.microbenchmark.queries
 
 import org.apache.spark.sql.DataFrame
 
-class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBQuery(data){
+class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBenchmarkExperiment(data){
 
   val whereLeft1 = "(20 <= n1 and n1 <= 70)"
   val whereLeft2 = "(50 <= n1 and n1 <= 75)"
@@ -25,18 +25,18 @@ class SimpleJoining(data:DataFrame, refData:DataFrame) extends MicroBQuery(data)
     refData.foreach(_ => ())
   }
 
-  override def q1: DataFrame = data.where(whereLeft1).select(columnsLeft1.head, columnsLeft1.tail:_*).join(
+  override def query1: DataFrame = data.where(whereLeft1).select(columnsLeft1.head, columnsLeft1.tail:_*).join(
     refData.where(whereRight1).select(columnsRight1.head, columnsRight1.tail:_*),
     data("n4") === refData("ref_n1"))
-  override def q2: DataFrame = data.where(whereLeft2).select(columnsLeft2.head, columnsLeft2.tail:_*).join(
+  override def query2: DataFrame = data.where(whereLeft2).select(columnsLeft2.head, columnsLeft2.tail:_*).join(
     refData.where(whereRight2).select(columnsRight2.head, columnsRight2.tail:_*),
     data("n4") === refData("ref_n1"))
 
   override def cachePlan: DataFrame = data.where(whereLeft1 + " or " + whereLeft2).select(unionLeftColumns.head, unionLeftColumns.tail:_*).join(
     refData.where(whereRight1 + " or " + whereRight2).select(unionRightColumns.head, unionRightColumns.tail:_*),
     data("n4") === refData("ref_n1"))
-  override def q1Opt: DataFrame = cachePlan.where(whereLeft1 + " and " + whereRight1).select(extract1.head, extract1.tail:_*)
-  override def q2Opt: DataFrame = cachePlan.where(whereLeft2 + " and " + whereRight2).select(extract2.head, extract2.tail:_*)
+  override def query1WS: DataFrame = cachePlan.where(whereLeft1 + " and " + whereRight1).select(extract1.head, extract1.tail:_*)
+  override def query2WS: DataFrame = cachePlan.where(whereLeft2 + " and " + whereRight2).select(extract2.head, extract2.tail:_*)
 
 
 //  override def runWithOpt():Unit = {

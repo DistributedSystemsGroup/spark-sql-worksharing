@@ -35,7 +35,7 @@ object MicroBenchmark {
       data.printSchema()
     }
 
-    var q:MicroBQuery = null
+    var q:MicroBenchmarkExperiment = null
     query match{
       case 0 => q = new SimpleFiltering(data)
       case 1 => q = new SimpleProjection(data)
@@ -72,12 +72,12 @@ object MicroBenchmark {
 
     mode match{
       case "opt" =>
-        q.runWithOpt()
+        q.runWithWorkSharing()
         Emailer.sendMessage("Job done", "Pls check the cache amount on webui")
         Thread.sleep(60000) // sleep for 60 secs, so that I can check how much memory has been cached
       case "wopt" =>
 
-        q.runWithoutOpt()
+        q.runWithoutWorkSharing()
       case _ => throw new IllegalArgumentException("mode = " + mode)
     }
 
