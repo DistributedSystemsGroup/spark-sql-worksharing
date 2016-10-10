@@ -9,8 +9,6 @@
 `ComputeStats <master> <inputDir> <savePath> <format>`
     + format = {parquet, csv}
 
-- 
-
 
 ### Precomputed statistics
 - check class `StatisticsProvider`. Method `collect(tables)` will start computing stats for given list of tables. Method `saveToFile`, `readFromFile`  

@@ -4,8 +4,6 @@ version := "1.0"
 
 scalaVersion := "2.10.6"
 
-//resolvers += "apache-snapshots" at "https://repository.apache.org/snapshots/"
-
 libraryDependencies += "org.apache.spark" %% "spark-core" % "2.0.0"
 
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.0.0"
@@ -20,4 +18,4 @@ libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" 
 
 resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
 
-libraryDependencies += "me.lessis" %% "courier" % "0.1.3" // include the courier & mail library when building artifacts
+libraryDependencies += "me.lessis" %% "courier" % "0.1.3" // remember to package the courier & mail library when building artifacts
