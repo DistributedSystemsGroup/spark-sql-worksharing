@@ -16,7 +16,7 @@ object ComputeStatsApp {
     }
 
     val master = args(0) // {local, cluster}
-    val inputDir = args(1) // where your input data is generated
+    val inputDir = args(1) // where to read the input data
     val savePath = args(2) // where to save the statistics (output)
     val format = args(3) // {csv, parquet}
 

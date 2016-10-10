@@ -8,6 +8,9 @@ Please refer to our paper
 ## Applications in this project
 ### Pre-computing some basic statistics:
 `ComputeStats <master> <inputDir> <savePath> <format>`
+    + master = {local, cluster}
+    + inputDir: where to read the input data
+    + savePath: where to save the statistics (output)
     + format = {parquet, csv}
 
 ### Micro-benchmark: Application to benchmark on simple queries
