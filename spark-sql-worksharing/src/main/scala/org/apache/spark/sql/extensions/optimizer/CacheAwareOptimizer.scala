@@ -38,7 +38,7 @@ object CacheAwareOptimizer extends SparkSQLServerLogging {
     * @param inPlans : array of queries. To be exact, it is the array of (individually) Optimized LogicalPlans
     * @return the best (globally optimized) StrategyGenerator to be executed
     */
-  def optimizePlans(inPlans: Array[LogicalPlan]): StrategyGenerator = {
+  def optimizeWithWorkSharing(inPlans: Array[LogicalPlan]): StrategyGenerator = {
     val beginning = System.nanoTime()
 
     val outputPlans = new Array[LogicalPlan](inPlans.length)
