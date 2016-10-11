@@ -7,6 +7,7 @@ object QueryExecutor {
 
   /**
     * Execute queries sequentially (without Work Sharing) then execute queries with Work Sharing
+    *
     * @param sqlContext
     * @param dfs queries in the form of dataframes
     * @param outputPath
@@ -18,8 +19,9 @@ object QueryExecutor {
 
   /**
     * Execute queries sequentially (without Work Sharing)
+    *
     * @param sqlContext
-    * @param dfs queries in the form of dataframes
+    * @param dfs        queries in the form of dataframes
     * @param outputPath output folder
     */
   def executeSequential(sqlContext: SQLContext, dfs: Seq[DataFrame], outputPath: String) = {
@@ -28,6 +30,7 @@ object QueryExecutor {
 
   /**
     * Execute queries sequentially with Work Sharing
+    *
     * @param sqlContext
     * @param dfs queries in the form of dataframes
     * @param outputPath
@@ -35,6 +38,7 @@ object QueryExecutor {
   def executeWorkSharing(sqlContext: SQLContext, dfs: Seq[DataFrame], outputPath: String) = {
     // take the optimized logical plans
     val optimizedLogicalPlans = dfs.map(df => df.queryExecution.optimizedPlan).toArray
+
     // optimize them
     val strategyGenerator = CacheAwareOptimizer.optimizeWithWorkSharing(optimizedLogicalPlans)
     val bestStrategy = strategyGenerator.get()

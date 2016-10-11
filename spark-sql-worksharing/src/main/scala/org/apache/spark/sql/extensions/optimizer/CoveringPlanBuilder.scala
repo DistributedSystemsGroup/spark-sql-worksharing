@@ -175,15 +175,6 @@ class CoveringPlanBuilder extends SparkSQLServerLogging{
         projectListA.foreach(update)
         projectListB.foreach(update)
 
-
-//        def addRequiredProjectRefs(plan:LogicalPlan): Unit ={
-//          val filtersOps = plan.collect{case n:Filter => n}.toArray
-//          filtersOps.foreach(f => f.references.foreach(update))
-//        }
-//
-//        addRequiredProjectRefs(a)
-//        addRequiredProjectRefs(b)
-
         val filtersOpsA = a.collect{case fNode:Filter => fNode}.toList
         val filtersOpsB = b.collect{case fNode:Filter => fNode}.toList
 

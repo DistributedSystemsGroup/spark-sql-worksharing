@@ -13,32 +13,33 @@ import org.apache.spark.sql.sources.BaseRelation
 object Util {
   /**
     * Create new DataFrame from a LogicalPlan
+    *
     * @param sparkSession
     * @param logicalPlan
     * @return
     */
-  def toDataFrame(sparkSession: SparkSession, logicalPlan:LogicalPlan): DataFrame = {
+  def toDataFrame(sparkSession: SparkSession, logicalPlan: LogicalPlan): DataFrame = {
     Dataset.ofRows(sparkSession, logicalPlan)
   }
 
-  def stringToInt(key:String, mod:Int):Int = {
+  def stringToInt(key: String, mod: Int): Int = {
     val res = key.hashCode() % mod
-    if(res < 0)
+    if (res < 0)
       res + mod
     else
       res
   }
 
-  def extractTableName(r:BaseRelation): String = {
+  def extractTableName(r: BaseRelation): String = {
     r match {
-      case r:HadoopFsRelation => r.location.paths.iterator.next.getName
+      case r: HadoopFsRelation => r.location.paths.iterator.next.getName
       case _ => throw new InvalidObjectException("cannot extract table name from relation" + r.toString)
     }
   }
 
-  def extractInputPath(r:BaseRelation): String = {
+  def extractInputPath(r: BaseRelation): String = {
     r match {
-      case r:HadoopFsRelation => r.location.paths.iterator.next.toString
+      case r: HadoopFsRelation => r.location.paths.iterator.next.toString
       case _ => throw new InvalidObjectException("cannot extract table name from relation" + r.toString)
     }
   }
@@ -47,26 +48,27 @@ object Util {
     * Find all LogicalRelation nodes of a plan
     * The leaf nodes of a logical plan are very usually Logical Relations - loading up the data
     *
-    * @param plan: the logical plan (query)
+    * @param plan : the logical plan (query)
     * @return sequence of LogicalRelations
     */
-  def getLogicalRelations(plan:LogicalPlan):Seq[LogicalRelation]={
-    plan.collect{
-      case n:LogicalRelation => n
+  def getLogicalRelations(plan: LogicalPlan): Seq[LogicalRelation] = {
+    plan.collect {
+      case n: LogicalRelation => n
     }
   }
 
 
-  def hash(text:String): BigInteger = new BigInteger(1, MessageDigest.getInstance("SHA-256").digest(text.getBytes()))
+  def hash(text: String): BigInteger = new BigInteger(1, MessageDigest.getInstance("SHA-256").digest(text.getBytes()))
 
   /**
     * Important method for checking the equality of 2 subtrees
     * It uses the MerkleTree (Hash Tree) technique to compare 2 subtrees
-    * @param relationA: tree 1
-    * @param relationB: tree 2
+    *
+    * @param relationA : tree 1
+    * @param relationB : tree 2
     * @return
     */
-  def isSameRelation(relationA:LogicalRelation, relationB:LogicalRelation):Boolean={
+  def isSameRelation(relationA: LogicalRelation, relationB: LogicalRelation): Boolean = {
     val pathsA = extractInputPath(relationA.relation)
     val classA = relationA.getClass.toString
     val hashA = Util.hash(classA + pathsA)
@@ -78,42 +80,42 @@ object Util {
     hashA == hashB
   }
 
-  def isIdenticalLogicalPlans(planA:LogicalPlan, planB:LogicalPlan):Boolean={
+  def isIdenticalLogicalPlans(planA: LogicalPlan, planB: LogicalPlan): Boolean = {
     planA.fastEquals(planB)
   }
 
-  def isSameHash(planA:LogicalPlan, planB:LogicalPlan):Boolean={
+  def isSameHash(planA: LogicalPlan, planB: LogicalPlan): Boolean = {
     CacheAwareOptimizer.computeTreeHash(planA) == CacheAwareOptimizer.computeTreeHash(planB)
   }
 
-  def containsDescendant(parentPlan:LogicalPlan, child:LogicalPlan): Boolean ={
+  def containsDescendant(parentPlan: LogicalPlan, child: LogicalPlan): Boolean = {
     parentPlan.find(f => f.fastEquals(child)) match {
       case Some(item) => true
       case None => false
     }
   }
 
-  def getHeight(plan:LogicalPlan):Int={
-    plan match{
-      case b:BinaryNode =>{
+  def getHeight(plan: LogicalPlan): Int = {
+    plan match {
+      case b: BinaryNode => {
         val leftChildHeight = getHeight(b.left)
         val rightChildHeight = getHeight(b.right)
         math.max(leftChildHeight, rightChildHeight) + 1
       }
-      case u:UnaryNode => getHeight(u.child) + 1
+      case u: UnaryNode => getHeight(u.child) + 1
       case l: LeafNode => 1
-      case u:Union => u.children.map(c => getHeight(c)).max + 1
+      case u: Union => u.children.map(c => getHeight(c)).max + 1
     }
   }
 
-  private def getNDescendants(plan:LogicalPlan):Int ={
-    plan match{
-      case b:BinaryNode =>{
+  private def getNDescendants(plan: LogicalPlan): Int = {
+    plan match {
+      case b: BinaryNode => {
         val lDescendants = getNDescendants(b.left)
         val rDescendants = getNDescendants(b.right)
         lDescendants + rDescendants + 1
       }
-      case u:UnaryNode => getNDescendants(u.child) + 1
+      case u: UnaryNode => getNDescendants(u.child) + 1
       case l: LeafNode => 1
     }
   }
@@ -123,10 +125,11 @@ object Util {
     * Use the format of the following site
     * http://ironcreek.net/phpsyntaxtree/?
     * Paste the result and you can get the image of the tree visualized
+    *
     * @param p
     * @return
     */
-  def getVisualizedString(p:LogicalPlan):String ={
+  def getVisualizedString(p: LogicalPlan): String = {
     val opName = p.getClass.getSimpleName
 
     p match {
@@ -136,8 +139,8 @@ object Util {
         return "[%s %s]".format(opName, getVisualizedString(u.child))
       case l: LeafNode =>
         val path = l.asInstanceOf[LogicalRelation].relation.asInstanceOf[HadoopFsRelation].inputFiles.mkString(" ")
-        return "%s".format(path.substring(path.lastIndexOf('/')+1))
-      case u:Union =>
+        return "%s".format(path.substring(path.lastIndexOf('/') + 1))
+      case u: Union =>
         var res = opName
         u.children.foreach(c => res = res + " " + getVisualizedString(c))
         return "[" + res + "]"

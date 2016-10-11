@@ -41,12 +41,6 @@ class StrategyGenerator(inPlans: Array[LogicalPlan], val CEs: Array[CEContainer]
             rewrittenPlans(consumerIndex) = rewrittenPlans(consumerIndex).transform{
               case `originalPlan` => extractPlan
             }
-//            rewrittenPlans(consumerIndex) = rewrittenPlans(consumerIndex).transform{
-//              case `originalPlan` => originalPlan.transformUp{
-//                case x:LeafNode => coveringExpression
-//              }
-//            }
-
           }
 
         }

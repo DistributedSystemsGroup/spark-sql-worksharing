@@ -25,7 +25,7 @@ object BasicStatGatherer {
     * @return
     *
     */
-  def execute(df:DataFrame):DataFrame={
+  def execute(df: DataFrame): DataFrame = {
     //TODO: How about using dataframe.stat.corr('column1', 'column2')? to compute the statistical dependence between 2 columns?
 
     // The list of summary statistics to compute, in the form of expressions.

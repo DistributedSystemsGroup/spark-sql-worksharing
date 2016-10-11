@@ -18,14 +18,14 @@ object CostEstimator extends SparkSQLServerLogging {
   }
 
   /**
-    * return the first match
+    * return the first match statistics of a given column
     *
     * @param relations
     * @param columnName
     * @return null, or first match
     */
   private def tryGetColumnStat(relations: Array[String], columnName: String): Option[ColumnStatistics] = {
-    relations.indices.foreach(i =>{
+    relations.indices.foreach(i => {
       val tableStat = statsProvider.getTableStatistics(relations(i))
       val columnStat = tableStat.getColumnStats(columnName)
       if (columnStat != null)
@@ -34,40 +34,49 @@ object CostEstimator extends SparkSQLServerLogging {
     None
   }
 
-
-  private def unwrapCast(e:Expression): Expression ={
+  /**
+    * Unwrap the cast statement if possible
+    * @param e
+    * @return
+    */
+  private def unwrapCast(e: Expression): Expression = {
     e match {
-      case e:Cast => e.child
+      case e: Cast => e.child
       case _ => e
     }
   }
 
-
-  private def estimateSelectivity(predicate:Expression, relationNames:Array[String]): Double ={
+  /**
+    * Estimate the selectivity of an expression
+    * @param predicate
+    * @param relationNames
+    * @return
+    */
+  private def estimateSelectivity(predicate: Expression, relationNames: Array[String]): Double = {
     var selectivity = CostConstants.DEFAULT_SELECTIVITY
 
-    predicate match{
+    predicate match {
       // sel(a AND b) = sel(a) * sel(b)
-      case and:And => selectivity = estimateSelectivity(and.left, relationNames) * estimateSelectivity(and.right, relationNames)
+      case and: And => selectivity = estimateSelectivity(and.left, relationNames) * estimateSelectivity(and.right, relationNames)
 
       // sel (a OR b) = sel(a) + sel(b) - sel(a) * sel(b)
       // OR equivalent to
       // 1 - [(1-sel(a)) * (1-sel(b))]
-      case or:Or =>
+      case or: Or =>
         val leftSel = estimateSelectivity(or.left, relationNames)
         val rightSel = estimateSelectivity(or.right, relationNames)
-        selectivity = leftSel + rightSel - leftSel*rightSel
+        selectivity = leftSel + rightSel - leftSel * rightSel
 
-      case eq:EqualTo =>
+      case eq: EqualTo =>
         val left = unwrapCast(eq.left)
         val right = unwrapCast(eq.right)
 
-        (left, right) match{
+        (left, right) match {
           // colA = colB
           // if colA is unique || colB is unique
           // then numOutput = max(colA output, colB output)
           // else, hard to say
-          case (colA:AttributeReference, colB:AttributeReference) =>
+          case (colA: AttributeReference, colB: AttributeReference) =>
             val columnAStat = tryGetColumnStat(relationNames, colA.name)
             val columnBStat = tryGetColumnStat(relationNames, colB.name)
             (columnAStat, columnBStat) match {
@@ -83,7 +92,7 @@ object CostEstimator extends SparkSQLServerLogging {
             }
 
           // col = c
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value)
@@ -91,7 +100,7 @@ object CostEstimator extends SparkSQLServerLogging {
             }
 
           // c = col
-          case (c:Literal, col:AttributeReference) =>
+          case (c: Literal, col: AttributeReference) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value)
@@ -102,11 +111,11 @@ object CostEstimator extends SparkSQLServerLogging {
         }
 
       // col Like c
-      case l:Like =>
+      case l: Like =>
         val left = unwrapCast(l.left)
         val right = unwrapCast(l.right)
         (left, right) match {
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(colStat) => selectivity = colStat.getEqualityEstimation(c.value)
@@ -117,12 +126,12 @@ object CostEstimator extends SparkSQLServerLogging {
         }
 
       // sel(col > C)
-      case gt:GreaterThan =>
+      case gt: GreaterThan =>
         val left = unwrapCast(gt.left)
         val right = unwrapCast(gt.right)
-        (left, right) match{
+        (left, right) match {
           // col > c
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getGreaterThanEstimation(c.value)
@@ -132,12 +141,12 @@ object CostEstimator extends SparkSQLServerLogging {
         }
 
       // sel(col < c)
-      case lt:LessThan =>
+      case lt: LessThan =>
         val left = unwrapCast(lt.left)
         val right = unwrapCast(lt.right)
-        (left, right) match{
+        (left, right) match {
           // col < c
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getLessThanEstimation(c.value)
@@ -147,12 +156,12 @@ object CostEstimator extends SparkSQLServerLogging {
         }
 
       // sel(col >= c)
-      case gteq:GreaterThanOrEqual =>
+      case gteq: GreaterThanOrEqual =>
         val left = unwrapCast(gteq.left)
         val right = unwrapCast(gteq.right)
-        (unwrapCast(gteq.left), unwrapCast(gteq.right)) match{
+        (unwrapCast(gteq.left), unwrapCast(gteq.right)) match {
           // col < c
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value) + columnStat.getGreaterThanEstimation(c.value)
@@ -162,18 +171,18 @@ object CostEstimator extends SparkSQLServerLogging {
         }
 
       // sel(col <= c)
-      case lteq:LessThanOrEqual =>
+      case lteq: LessThanOrEqual =>
         val left = unwrapCast(lteq.left)
         val right = unwrapCast(lteq.right)
-        (left, right) match{
+        (left, right) match {
           // col < c
-          case (col:AttributeReference, c:Literal) =>
+          case (col: AttributeReference, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, col.name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value) + columnStat.getLessThanEstimation(c.value)
               case None =>
             }
-          case (cast:Cast, c:Literal) =>
+          case (cast: Cast, c: Literal) =>
             val columnStat = tryGetColumnStat(relationNames, cast.child.asInstanceOf[AttributeReference].name)
             columnStat match {
               case Some(columnStat) => selectivity = columnStat.getEqualityEstimation(c.value) + columnStat.getLessThanEstimation(c.value)
@@ -182,45 +191,43 @@ object CostEstimator extends SparkSQLServerLogging {
           case _ => throw new NotImplementedError(left.toString() + " GreaterThanOrEqual " + right.toString())
         }
 
-      case notNul:IsNotNull =>
-        val child = unwrapCast(notNul.child)
+      case notNull: IsNotNull =>
+        val child = unwrapCast(notNull.child)
         child match {
-          case a:AttributeReference =>
+          case a: AttributeReference =>
             val columnStat = tryGetColumnStat(relationNames, a.name)
             columnStat match {
-              case Some(c) => selectivity = c.numNotNull*1.0 / (c.numNull + c.numNotNull)
+              case Some(c) => selectivity = c.numNotNull * 1.0 / (c.numNull + c.numNotNull)
               case None =>
             }
           case _ => throw new NotImplementedError(predicate.getClass.toString)
         }
 
 
-      case nul:IsNull =>
-        selectivity = 1 - estimateSelectivity(IsNotNull(nul.child), relationNames)
+      case isNull: IsNull =>
+        selectivity = 1 - estimateSelectivity(IsNotNull(isNull.child), relationNames)
 
-      case in:In =>
+      case in: In =>
         val list = in.list.toArray
-        var equivalentOrExp:Expression = EqualTo(in.value, list(0))
-        for(i <- 1 until list.length)
+        var equivalentOrExp: Expression = EqualTo(in.value, list(0))
+        for (i <- 1 until list.length)
           equivalentOrExp = Or(equivalentOrExp, EqualTo(in.value, list(i)))
         estimateSelectivity(equivalentOrExp, relationNames)
 
-      case inSet:InSet =>
+      case inSet: InSet =>
         val list = inSet.hset.toArray
 
-
-        var equivalentOrExp:Expression = EqualTo(inSet.child, Literal(list(0).toString))
-        for(i <- 1 until list.length)
+        var equivalentOrExp: Expression = EqualTo(inSet.child, Literal(list(0).toString))
+        for (i <- 1 until list.length)
           equivalentOrExp = Or(equivalentOrExp, EqualTo(inSet.child, Literal(list(i).toString)))
         estimateSelectivity(equivalentOrExp, relationNames)
-
 
       case _ => throw new NotImplementedError(predicate.getClass.toString)
     }
     selectivity
   }
 
-  private def estimateSelectivity(filter:Filter): Double = {
+  private def estimateSelectivity(filter: Filter): Double = {
     val relationNames = Util.getLogicalRelations(filter).map(r => Util.extractTableName(r.relation)).toArray
     estimateSelectivity(filter.condition, relationNames)
   }
@@ -235,7 +242,7 @@ object CostEstimator extends SparkSQLServerLogging {
     * @return estimated cost of evaluating this plan
     */
   def estimateCost(plan: LogicalPlan): Estimate = {
-    var estimatedResult:Estimate = null
+    var estimatedResult: Estimate = null
 
     plan match {
       case l: LeafNode => l match {
@@ -250,7 +257,7 @@ object CostEstimator extends SparkSQLServerLogging {
           estimatedResult.setOutputSize(tableStats.inputSize)
           // scan cost
           estimatedResult.setCPUCost(tableStats.numRecords * CostConstants.COST_DISK_READ)
-          // no network cost?
+        // no network cost?
         case _ => throw new NotImplementedError(l.toString())
       }
 
@@ -271,7 +278,7 @@ object CostEstimator extends SparkSQLServerLogging {
             estimatedResult.addCPUCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
             estimatedResult.setOutputSize((estimatedResult.getOutputSize * fraction).toLong)
 
-          case f:Filter =>
+          case f: Filter =>
             // Filtering would potentially filter out some row(s), therefore reduce the numRecOutput, outputSize
             // Compute the selectivity factor "sel" of this f
             // numRecOutput = childNumRecOutput * sel
@@ -308,7 +315,7 @@ object CostEstimator extends SparkSQLServerLogging {
             val fraction: Double = numFieldsThis * 1.0 / numFieldsChild
             estimatedResult = childCost
 
-            estimatedResult.addCPUCost(estimatedResult.getNumRecOutput * 2*CostConstants.COST_SIMPLE_OP)
+            estimatedResult.addCPUCost(estimatedResult.getNumRecOutput * 2 * CostConstants.COST_SIMPLE_OP)
             estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_NETWORK)
 
             estimatedResult.setOutputSize((estimatedResult.getOutputSize * fraction).toLong)
@@ -348,7 +355,7 @@ object CostEstimator extends SparkSQLServerLogging {
             // sorting cost, shuffling cost
             // add expensive cpu & network cost
             estimatedResult = childCost
-            estimatedResult.addCPUCost(estimatedResult.getNumRecOutput *  Math.log10(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP))
+            estimatedResult.addCPUCost(estimatedResult.getNumRecOutput * Math.log10(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP))
             estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_NETWORK)
 
           case _ => throw new NotImplementedError(u.toString)
@@ -366,11 +373,11 @@ object CostEstimator extends SparkSQLServerLogging {
         logInfo("Right #recs: " + costRightChild.getNumRecOutput)
 
         // add network cost
-        if (costLeftChild.getNumRecOutput < costRightChild.getNumRecOutput){
+        if (costLeftChild.getNumRecOutput < costRightChild.getNumRecOutput) {
           estimatedResult.addNetworkCost(costLeftChild.getNumRecOutput * CostConstants.COST_NETWORK)
           estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
         }
-        else{
+        else {
           estimatedResult.addNetworkCost(costRightChild.getNumRecOutput * CostConstants.COST_NETWORK)
           estimatedResult.addNetworkCost(estimatedResult.getNumRecOutput * CostConstants.COST_SIMPLE_OP)
         }
@@ -391,22 +398,22 @@ object CostEstimator extends SparkSQLServerLogging {
 
             condition.get match {
               // join a.1 = b.2
-              case cond:EqualTo =>
+              case cond: EqualTo =>
                 val relationNames = Util.getLogicalRelations(j).map(r => Util.extractTableName(r.relation)).toArray
 
                 var colAName = ""
-                if(cond.left.isInstanceOf[Cast]){
+                if (cond.left.isInstanceOf[Cast]) {
                   colAName = cond.left.asInstanceOf[Cast].child.asInstanceOf[AttributeReference].name
                 }
-                else{
+                else {
                   colAName = cond.left.asInstanceOf[AttributeReference].name
                 }
 
                 var colBName = ""
-                if(cond.right.isInstanceOf[Cast]){
+                if (cond.right.isInstanceOf[Cast]) {
                   colBName = cond.right.asInstanceOf[Cast].child.asInstanceOf[AttributeReference].name
                 }
-                else{
+                else {
                   colBName = cond.right.asInstanceOf[AttributeReference].name
                 }
 
@@ -416,8 +423,8 @@ object CostEstimator extends SparkSQLServerLogging {
                   case (Some(a), Some(b)) =>
                     val leftCard = a.numDistincts
                     val rightCard = b.numDistincts
-                    val nOutRec:Long = ((costLeftChild.getNumRecOutput * costRightChild.getNumRecOutput)*1.0 / Math.max(leftCard, rightCard)).toLong
-                    val f = nOutRec*1.0 / estimatedResult.getNumRecOutput
+                    val nOutRec: Long = ((costLeftChild.getNumRecOutput * costRightChild.getNumRecOutput) * 1.0 / Math.max(leftCard, rightCard)).toLong
+                    val f = nOutRec * 1.0 / estimatedResult.getNumRecOutput
                     estimatedResult.setNumRecOutput(nOutRec)
                     estimatedResult.setOutputSize((estimatedResult.getOutputSize * f).toLong)
                   case _ =>
@@ -433,27 +440,27 @@ object CostEstimator extends SparkSQLServerLogging {
           case _ => throw new NotImplementedError(b.toString)
         }
 
-      case u:Union =>
+      case u: Union =>
         estimatedResult = new Estimate()
         u.children.foreach(c => estimatedResult.add(estimateCost(c)))
-        //TODO: add network cost
+      //TODO: add network cost
 
 
       case _ => throw new NotImplementedError(plan.toString)
     }
 
-//    logInfo("Operator: %s - Cost: %s".format(plan.getClass.getSimpleName, estimatedResult))
+    //    logInfo("Operator: %s - Cost: %s".format(plan.getClass.getSimpleName, estimatedResult))
     estimatedResult
   }
 
 
-  def estimateMaterializingCost(amount:Long):Double = {
+  def estimateMaterializingCost(amount: Long): Double = {
     // byte => KB
-    amount*1.0/1024 * CostConstants.COST_RAM_WRITE
+    amount * 1.0 / 1024 * CostConstants.COST_RAM_WRITE
   }
 
-  def estimateRetrievingCost(amount:Long):Double = {
-    amount*1.0/1024 * CostConstants.COST_RAM_READ
+  def estimateRetrievingCost(amount: Long): Double = {
+    amount * 1.0 / 1024 * CostConstants.COST_RAM_READ
   }
 
 }

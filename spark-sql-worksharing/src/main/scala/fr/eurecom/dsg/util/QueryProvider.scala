@@ -477,11 +477,7 @@ class QueryProvider(val sqlContext: SQLContext, inputDir: String, tables: Seq[St
   tables.foreach(tableName => {
     sqlContext.read
       .format(format)
-//      .option("header", "true") // Use first line of all files as header
       .schema(allTablesSchema.get(tableName).get)
-      //.option("inferSchema", "true") // Automatically infer data types
-      // Issue: The option inferSchema for csv files are very limited at the moment, contains many wrong DataType inference.
-      // Thus, we prefer to disable this, and use our own schema
       .load(inputDir + "/" + tableName)
       .registerTempTable(tableName)
     logInfo("Registered table %s".format(tableName))
