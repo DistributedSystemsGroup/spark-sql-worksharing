@@ -23,20 +23,23 @@ Please refer to our paper
     + master: {local, cluster}
     + inputFile
     + format: {parquet, csv}
-    + query: {0, 1, 2, 3, 4, 100, 101, 102}
+    + experimentNum: {0, 1, 2, 3, 4, 100, 101, 102}
     + mode: {wopt, opt} // without Work Sharing, with Work Sharing
 - Example: local /home/ntkhoa/random/random-csv csv 0 wopt
 
 ### Macro-benchmark:
 `fr.eurecom.dsg.macrobenchmark.MacroBenchmark`
 
-- Arguments: <master> <inputFile> <format> <query> <mode>
+- Arguments: <master> <inputDir> <outputDir> <format> <statFile> <mode> <nQueries> <randomlySelect> <seeds>
     + master: {local, cluster}
-    + inputFile
+    + inputDir
+    + outputDir
     + format: {parquet, csv}
-    + query: {0, 1, 2, 3, 4}
-    + mode: {wopt, opt} // witout optimization, with optimization
-- Example: local /home/ntkhoa/random/random-csv csv 0 wopt
+    + statFile
+    + mode: {wopt, opt} // without Work Sharing, with Work Sharing
+    + nQueries // how many queries you want to run in an experiment
+    + randomlySelect: {True, False}
+    + seeds // random seeds
 
 ## Appendix
 - Generating input data for the Micro-benchmark: microbenchmark-generator/generator.py
