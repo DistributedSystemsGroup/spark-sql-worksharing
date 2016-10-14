@@ -369,6 +369,12 @@ object CacheAwareOptimizer extends SparkSQLServerLogging {
     res
   }
 
+  /** Items need to be put in their class for the MCKP. At most one item from a class can be chosen
+    * CEContainers that are dependent will be classified into the same class
+    *
+    * @param CEContainers
+    * @return
+    */
   private def classifyCEs(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
     val res = new ArrayBuffer[ItemClass]()
     val ces = CEContainers.sortBy(x => Util.getHeight(x.SEs(0)._1))
@@ -495,80 +501,7 @@ object CacheAwareOptimizer extends SparkSQLServerLogging {
         }
       })
 
-
-
       println("class i with %d isolated nodes has %d options".format(isolatedNodes.size, options.size))
-
-
-    }
-
-    res.toArray
-  }
-
-
-  /** Items need to be put in their class for the MCKP. At most one item from a class can be chosen
-    * CEContainers that are dependent will be classified into the same class
-    *
-    * @param CEContainers
-    * @return
-    */
-  private def classifyCEs2(CEContainers: ArrayBuffer[CEContainer]): Array[ItemClass] = {
-    val res = new ArrayBuffer[ItemClass]()
-
-    val ces = CEContainers.map(x => (x, x.SEs.map(se => se._2).toList))
-
-    while (!ces.isEmpty) {
-      val itemClass = new ItemClass()
-      val isolatedList = new ArrayBuffer[CEContainer]()
-      val firstCE = ces(0)
-      isolatedList.append(firstCE._1)
-      ces.remove(0)
-      var i = 0
-      while (i < ces.length) {
-        if (firstCE._2.intersect(ces(i)._2).nonEmpty) {
-          isolatedList.append(ces(i)._1)
-          ces.remove(i)
-        }
-        else
-          i += 1
-      }
-      logInfo("isolated list of length %d".format(isolatedList.length))
-
-      val subsets = isolatedList.toSet.subsets
-      subsets.foreach(s => {
-        val S = s.toList
-        if (S.length > 0) {
-          if (S.length == 1) {
-            val item = new ItemImpl(s.head.profit, s.head.weight, ArrayBuffer(s.head))
-            itemClass.addItem(item)
-          } else {
-            var keep = true
-            for (i <- 0 until S.size)
-              for (j <- 0 until S.size) {
-                if (i != j) {
-                  for (m <- 0 until S(i).SEs.length)
-                    for (n <- 0 until S(j).SEs.length)
-                      if (Util.containsDescendant(S(i).SEs(m)._1, S(j).SEs(n)._1))
-                        keep = false
-                }
-              }
-            if (keep) {
-              var profit: Double = 0
-              var weight: Double = 0
-              val tag = new ArrayBuffer[CEContainer]()
-
-              for (i <- 0 until S.size) {
-                profit += S(i).profit
-                weight += S(i).weight
-                tag.append(S(i))
-              }
-              itemClass.addItem(new ItemImpl(profit, weight, tag))
-            }
-          }
-        }
-      })
-
-      res.append(itemClass)
     }
 
     res.toArray
